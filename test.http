@@ -1,4 +1,7 @@
-@worker_origin = http://localhost:9999
+# prod
+@worker_origin = http://localhost:9001
+# dev
+# @worker_origin = http://localhost:9000
 
 ###
 GET {{worker_origin}}/version
