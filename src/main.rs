@@ -120,7 +120,10 @@ async fn main() -> anyhow::Result<()> {
             db: DB.clone(),
             voicevox: VoiceVox::new(voicevox_endpoint),
         });
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:9999").await?;
+    let port = std::env::var("PORT").unwrap_or("9001".to_string());
+    log::info!("Listen port: {}", port);
+
+    let listener = tokio::net::TcpListener::bind(&format!("0.0.0.0:{}", port)).await?;
     axum::serve(listener, app).await?;
     Ok(())
 }

@@ -2,7 +2,7 @@ services:
   voicevox_engine:
     image: voicevox/voicevox_engine:nvidia-ubuntu20.04-latest
     ports:
-      - "50021:50021"
+      - "50020:50020"
     tty: true
     deploy:
       resources:
@@ -13,7 +13,7 @@ services:
     build: .
     working_dir: /app
     ports:
-      - "9001:9001"
+      - "9000:9000"
     environment:
-      - PORT=9001
-      - VOICEVOX_ENDPOINT=http://voicevox_engine:50021
+      - PORT=9000
+      - VOICEVOX_ENDPOINT=http://voicevox_engine:50020
