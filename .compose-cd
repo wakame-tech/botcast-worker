@@ -1,0 +1,2 @@
+REPO="git@github.com:wakame-tech/botcast-worker.git"
+UPDATE_REPO_ONLY=true
