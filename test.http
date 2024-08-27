@@ -1,0 +1,15 @@
+@worker_origin = http://localhost:9999
+
+###
+GET {{worker_origin}}/version
+
+###
+GET {{worker_origin}}/version/voicevox
+
+###
+POST {{worker_origin}}/scripts
+Content-Type: application/json
+
+{
+  "url": "https://ncode.syosetu.com/n0904cx/1/"
+}
