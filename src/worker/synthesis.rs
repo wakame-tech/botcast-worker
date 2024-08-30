@@ -1,7 +1,8 @@
-use crate::{
+use crate::api::ctx::Ctx;
+
+use super::{
     task::{RunTask, Task},
     voicevox_client::VoiceVoxSpeaker,
-    Ctx,
 };
 use std::{fs::OpenOptions, io::Write, path::PathBuf};
 use surrealdb::opt::RecordId;
@@ -102,7 +103,7 @@ impl Drop for Synthesis {
 
 #[cfg(test)]
 mod tests {
-    use crate::voicevox_client::{VoiceVox, VoiceVoxSpeaker};
+    use crate::worker::voicevox_client::{VoiceVox, VoiceVoxSpeaker};
     use std::path::PathBuf;
     use tokio::fs;
 

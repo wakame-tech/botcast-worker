@@ -1,12 +1,14 @@
-use crate::{
-    synthesis::Synthesis,
-    task::{RunTask, Task, TaskRepo},
-    voicevox_client::VoiceVoxSpeaker,
-    Ctx,
-};
 use scraper::{Html, Selector};
 use std::path::PathBuf;
 use surrealdb::opt::RecordId;
+
+use crate::api::ctx::Ctx;
+
+use super::{
+    synthesis::Synthesis,
+    task::{RunTask, Task, TaskRepo},
+    voicevox_client::VoiceVoxSpeaker,
+};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Episode {
@@ -114,9 +116,10 @@ impl RunTask for ScrapeEpisode {
 
 #[cfg(test)]
 mod tests {
-    use crate::scrape::EpisodeConverter;
     use scraper::Html;
     use std::{fs::File, io::Read, path::PathBuf};
+
+    use crate::worker::scrape::EpisodeConverter;
 
     fn read_html(path: &str) -> anyhow::Result<Html> {
         let mut f = File::open(PathBuf::from(path))?;

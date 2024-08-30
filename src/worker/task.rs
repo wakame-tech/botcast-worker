@@ -1,7 +1,10 @@
-use crate::{scrape::ScrapeEpisode, synthesis::Synthesis, Ctx};
 use std::fmt::Debug;
 use surrealdb::{engine::local::Db, opt::RecordId, Surreal};
 use uuid::Uuid;
+
+use crate::api::ctx::Ctx;
+
+use super::{scrape::ScrapeEpisode, synthesis::Synthesis};
 
 pub(crate) trait RunTask
 where
