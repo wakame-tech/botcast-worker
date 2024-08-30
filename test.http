@@ -1,7 +1,7 @@
 # prod
-@worker_origin = http://localhost:9001
+# @worker_origin = https://botcast-worker.w4k4.me
 # dev
-# @worker_origin = http://localhost:9000
+@worker_origin = http://localhost:9001
 
 ###
 GET {{worker_origin}}/version
@@ -16,3 +16,6 @@ Content-Type: application/json
 {
   "url": "https://ncode.syosetu.com/n0904cx/1/"
 }
+
+###
+GET {{worker_origin}}/episodes

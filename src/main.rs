@@ -5,7 +5,9 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use episode::{Episode, EpisodeRepo};
 use scrape::ScrapeEpisode;
+use sqlx::Pool;
 use std::{sync::LazyLock, time::Duration};
 use surrealdb::{
     engine::local::{Db, Mem},
@@ -14,6 +16,7 @@ use surrealdb::{
 use task::{Task, TaskRepo};
 use voicevox_client::VoiceVox;
 
+mod episode;
 mod scrape;
 mod synthesis;
 mod task;
@@ -21,19 +24,26 @@ mod voicevox_client;
 
 #[derive(Debug, Clone)]
 struct Ctx {
-    db: Surreal<Db>,
+    queue_db: Surreal<Db>,
+    pool: Pool<sqlx::Postgres>,
     voicevox: voicevox_client::VoiceVox,
 }
 
 impl Ctx {
     fn task_repo(&self) -> TaskRepo {
         TaskRepo {
-            db: self.db.clone(),
+            db: self.queue_db.clone(),
+        }
+    }
+
+    fn episode_repo(&self) -> EpisodeRepo {
+        EpisodeRepo {
+            pool: self.pool.clone(),
         }
     }
 }
 
-static DB: LazyLock<Surreal<Db>> = LazyLock::new(|| Surreal::init());
+static QUEUE_DB: LazyLock<Surreal<Db>> = LazyLock::new(|| Surreal::init());
 
 #[derive(Debug)]
 struct AppError(anyhow::Error);
@@ -75,30 +85,42 @@ async fn create_task(
     Ok(StatusCode::CREATED)
 }
 
+async fn list_episodes(State(ctx): State<Ctx>) -> Result<Json<Vec<Episode>>, AppError> {
+    let repo = ctx.episode_repo();
+    let tasks = repo.list().await?;
+    Ok(Json(tasks))
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    DB.connect::<Mem>(()).await?;
-    DB.use_ns("default").use_db("database").await?;
+    QUEUE_DB.connect::<Mem>(()).await?;
+    QUEUE_DB.use_ns("default").use_db("database").await?;
 
     let voicevox_endpoint =
         std::env::var("VOICEVOX_ENDPOINT").unwrap_or("http://localhost:50021".to_string());
 
     log::info!("VoiceVox endpoint: {}", voicevox_endpoint);
 
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is required");
+    let pool = sqlx::PgPool::connect(&database_url).await?;
+
+    let ctx = Ctx {
+        queue_db: QUEUE_DB.clone(),
+        pool: pool.clone(),
+        voicevox: VoiceVox::default(),
+    };
+
+    let ctx_ = ctx.clone();
     tokio::spawn(async move {
         let interval = Duration::from_secs(5);
         loop {
             log::info!("Watching tasks...");
-            let ctx = Ctx {
-                db: DB.clone(),
-                voicevox: VoiceVox::default(),
-            };
-            let repo = ctx.task_repo();
-            if let Err(e) = repo.watch(&ctx).await {
+            let repo = ctx_.task_repo();
+            if let Err(e) = repo.watch(&ctx_).await {
                 log::error!("Error: {:?}", e);
             }
             tokio::time::sleep(interval).await;
@@ -116,10 +138,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/version", get(|| async { env!("CARGO_PKG_VERSION") }))
         .route("/", get(list_task))
         .route("/scripts", post(create_task))
-        .with_state(Ctx {
-            db: DB.clone(),
-            voicevox: VoiceVox::new(voicevox_endpoint),
-        });
+        .route("/episodes", get(list_episodes))
+        .with_state(ctx);
     let port = std::env::var("PORT").unwrap_or("9001".to_string());
     log::info!("Listen port: {}", port);
 
