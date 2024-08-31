@@ -8,7 +8,8 @@ use surrealdb::{
 use worker::start_worker;
 
 mod api;
-mod episode;
+mod model;
+mod repo;
 mod worker;
 
 static QUEUE_DB: LazyLock<Surreal<Db>> = LazyLock::new(|| Surreal::init());

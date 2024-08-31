@@ -1,7 +1,4 @@
-use crate::{
-    episode::EpisodeRepo,
-    worker::{task::TaskRepo, voicevox_client::VoiceVox},
-};
+use crate::worker::voicevox_client::VoiceVox;
 use sqlx::Pool;
 use std::sync::LazyLock;
 use surrealdb::{engine::local::Db, Surreal};
@@ -29,18 +26,6 @@ impl Ctx {
             voicevox: VoiceVox::default(),
         };
         Ok(ctx)
-    }
-
-    pub(crate) fn task_repo(&self) -> TaskRepo {
-        TaskRepo {
-            db: self.queue_db.clone(),
-        }
-    }
-
-    pub(crate) fn episode_repo(&self) -> EpisodeRepo {
-        EpisodeRepo {
-            pool: self.pool.clone(),
-        }
     }
 }
 

@@ -1,26 +1,8 @@
+use super::{synthesis::Synthesis, voicevox_client::VoiceVoxSpeaker, Args, RunTask};
+use crate::{api::ctx::Ctx, model::Episode};
 use scraper::{Html, Selector};
 use std::path::PathBuf;
-use surrealdb::opt::RecordId;
-
-use crate::api::ctx::Ctx;
-
-use super::{
-    synthesis::Synthesis,
-    task::{RunTask, Task, TaskRepo},
-    voicevox_client::VoiceVoxSpeaker,
-};
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) struct Episode {
-    title: String,
-    content: String,
-}
-
-impl Episode {
-    pub(crate) fn new(title: String, content: String) -> Self {
-        Self { title, content }
-    }
-}
+use uuid::Uuid;
 
 pub(crate) struct EpisodeConverter {
     client: reqwest::Client,
@@ -70,24 +52,18 @@ impl EpisodeConverter {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ScrapeEpisode {
-    #[serde(skip_serializing)]
-    pub(crate) id: RecordId,
     url: String,
 }
 
 impl ScrapeEpisode {
-    pub(crate) fn new(id: RecordId, url: String) -> Self {
-        Self { id, url }
+    pub(crate) fn new(url: String) -> Self {
+        Self { url }
     }
 }
 
 impl RunTask for ScrapeEpisode {
-    fn id(&self) -> &RecordId {
-        &self.id
-    }
-
-    async fn run(&mut self, _ctx: &Ctx) -> anyhow::Result<Option<Task>> {
-        let _span = tracing::debug_span!("run", id = self.id.id.to_string());
+    async fn run(&self, id: Uuid, _ctx: &Ctx) -> anyhow::Result<Option<Args>> {
+        let _span = tracing::debug_span!("run", id = id.hyphenated().to_string());
         let dir = PathBuf::from("temp");
         let scraper = EpisodeConverter::new();
         let res = scraper.client.get(&self.url).send().await?;
@@ -103,23 +79,20 @@ impl RunTask for ScrapeEpisode {
         // let json = serde_json::to_string_pretty(&episode)?;
         // std::fs::write(&path, json)?;
 
-        let task = Task::Synthesis(Synthesis {
-            id: TaskRepo::new_id(),
+        let args = Args::Synthesis(Synthesis {
             text: episode.content,
             speaker: VoiceVoxSpeaker::ZundaNormal,
-            out: dir.join(format!("{}.wav", self.id.id.to_string())),
-            artifacts: Vec::new(),
+            out: dir.join(format!("{}.wav", id.hyphenated().to_string())),
         });
-        Ok(Some(task))
+        Ok(Some(args))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::worker::scrape::EpisodeConverter;
     use scraper::Html;
     use std::{fs::File, io::Read, path::PathBuf};
-
-    use crate::worker::scrape::EpisodeConverter;
 
     fn read_html(path: &str) -> anyhow::Result<Html> {
         let mut f = File::open(PathBuf::from(path))?;

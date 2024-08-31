@@ -1,7 +1,8 @@
 use super::{ctx::Ctx, AppError};
-use crate::worker::{
-    scrape::ScrapeEpisode,
-    task::{Task, TaskRepo},
+use crate::{
+    model::Task,
+    repo::TaskRepo,
+    worker::{scrape::ScrapeEpisode, Args},
 };
 use axum::{extract::State, Json};
 use reqwest::StatusCode;
@@ -12,7 +13,7 @@ pub(crate) struct CreateTaskBody {
 }
 
 pub(crate) async fn list_task(State(ctx): State<Ctx>) -> Result<Json<Vec<Task>>, AppError> {
-    let repo = ctx.task_repo();
+    let repo = TaskRepo::new(ctx.pool);
     let tasks = repo.list().await?;
     Ok(Json(tasks))
 }
@@ -21,9 +22,9 @@ pub(crate) async fn create_task(
     State(ctx): State<Ctx>,
     Json(body): Json<CreateTaskBody>,
 ) -> Result<StatusCode, AppError> {
-    let repo = ctx.task_repo();
-    let task_id = TaskRepo::new_id();
-    let scrape = ScrapeEpisode::new(task_id, body.url);
-    repo.create(Task::Scrape(scrape)).await?;
+    let repo = TaskRepo::new(ctx.pool);
+    let args = Args::Scrape(ScrapeEpisode::new(body.url));
+    let task = Task::new(args)?;
+    repo.create(task).await?;
     Ok(StatusCode::CREATED)
 }
