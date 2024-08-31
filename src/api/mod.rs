@@ -41,7 +41,6 @@ pub(crate) fn create_router(router: Router<Ctx>) -> Router<Ctx> {
             }),
         )
         .route("/version", get(|| async { env!("CARGO_PKG_VERSION") }))
-        .route("/", get(list_task))
-        .route("/scripts", post(create_task))
+        .route("/tasks", get(list_task).post(create_task))
         .route("/episodes", get(list_episodes))
 }

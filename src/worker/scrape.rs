@@ -55,12 +55,6 @@ pub(crate) struct ScrapeEpisode {
     url: String,
 }
 
-impl ScrapeEpisode {
-    pub(crate) fn new(url: String) -> Self {
-        Self { url }
-    }
-}
-
 impl RunTask for ScrapeEpisode {
     async fn run(&self, id: Uuid, _ctx: &Ctx) -> anyhow::Result<Option<Args>> {
         let _span = tracing::debug_span!("run", id = id.hyphenated().to_string());

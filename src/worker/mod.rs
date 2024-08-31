@@ -1,4 +1,8 @@
-use crate::{api::ctx::Ctx, model::Task, repo::TaskRepo};
+use crate::{
+    api::ctx::Ctx,
+    model::{Task, TaskStatus},
+    repo::TaskRepo,
+};
 use scrape::ScrapeEpisode;
 use std::{fmt::Debug, time::Duration};
 use synthesis::Synthesis;
@@ -16,6 +20,7 @@ where
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "type")]
 pub(crate) enum Args {
     Scrape(ScrapeEpisode),
     Synthesis(Synthesis),
@@ -46,26 +51,26 @@ pub(crate) fn start_worker() {
 }
 
 async fn batch(repo: TaskRepo, ctx: &Ctx) -> anyhow::Result<()> {
-    let mut tasks = repo.list().await?;
-    if tasks.is_empty() {
+    let Some(mut task) = repo.pop().await? else {
         return Ok(());
-    }
-    log::info!("worker | {} tasks", tasks.len());
-    for task in tasks.iter_mut() {
-        let Task { id, args, .. } = &task;
-        let args: Args = serde_json::from_value(args.clone())?;
-        match args.run(task.id, &ctx).await {
-            Ok(Some(args)) => {
+    };
+    task.status = TaskStatus::Running;
+    repo.update_status(&task).await?;
+
+    let args: Args = serde_json::from_value(task.args.clone())?;
+    match args.run(task.id, &ctx).await {
+        Ok(args) => {
+            task.status = TaskStatus::Completed;
+            if let Some(args) = args {
                 let task = Task::new(args)?;
                 repo.create(task).await?;
             }
-            Err(e) => {
-                log::error!("Failed to run task: {:?}", e);
-            }
-            _ => {}
-        };
-        let res = repo.delete(&id).await?;
-        log::info!("Deleted: {:?}", res.id);
-    }
+        }
+        Err(e) => {
+            task.status = TaskStatus::Failed;
+            log::error!("Failed to run task: {:?}", e);
+        }
+    };
+    repo.update_status(&task).await?;
     Ok(())
 }

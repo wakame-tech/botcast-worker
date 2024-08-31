@@ -1,11 +1,8 @@
 use crate::worker::voicevox_client::VoiceVox;
 use sqlx::Pool;
-use std::sync::LazyLock;
-use surrealdb::{engine::local::Db, Surreal};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Ctx {
-    pub(crate) queue_db: Surreal<Db>,
     pub(crate) pool: Pool<sqlx::Postgres>,
     pub(crate) voicevox: VoiceVox,
 }
@@ -21,12 +18,9 @@ impl Ctx {
         let pool = sqlx::PgPool::connect(&database_url).await?;
 
         let ctx = Ctx {
-            queue_db: QUEUE_DB.clone(),
             pool: pool.clone(),
             voicevox: VoiceVox::default(),
         };
         Ok(ctx)
     }
 }
-
-static QUEUE_DB: LazyLock<Surreal<Db>> = LazyLock::new(|| Surreal::init());

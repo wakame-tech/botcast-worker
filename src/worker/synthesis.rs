@@ -44,6 +44,10 @@ impl RunTask for Synthesis {
             };
             artifacts.push(out.clone());
         }
+        if artifacts.is_empty() {
+            anyhow::bail!("Failed to synthesis");
+        }
+
         let out = dir.join(format!("{}.wav", id.hyphenated().to_string()));
         let res = concat_wavs(&mut artifacts, &text_path, &out).await;
         for path in &artifacts {

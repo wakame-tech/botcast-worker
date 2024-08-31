@@ -35,6 +35,14 @@ impl TaskRepo {
         Ok(tasks)
     }
 
+    pub(crate) async fn pop(&self) -> anyhow::Result<Option<Task>> {
+        let task =
+            sqlx::query_as(r#"select * from tasks where status = 'PENDING' order by id limit 1"#)
+                .fetch_optional(&self.pool)
+                .await?;
+        Ok(task)
+    }
+
     pub(crate) async fn create(&self, task: Task) -> anyhow::Result<()> {
         sqlx::query!(
             "insert into tasks (id, status, args) values ($1, $2, $3)",
@@ -45,6 +53,15 @@ impl TaskRepo {
         .execute(&self.pool)
         .await?;
         Ok(())
+    }
+
+    pub(crate) async fn update_status(&self, task: &Task) -> anyhow::Result<Task> {
+        let task = sqlx::query_as("update tasks set status = $2 where id = $1 returning *")
+            .bind(&task.id)
+            .bind(&task.status as &TaskStatus)
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(task)
     }
 
     pub(crate) async fn delete(&self, id: &Uuid) -> anyhow::Result<Task> {
