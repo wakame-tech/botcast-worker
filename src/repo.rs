@@ -12,7 +12,7 @@ impl EpisodeRepo {
     }
 
     pub(crate) async fn list(&self) -> anyhow::Result<Vec<Episode>> {
-        let episodes = sqlx::query_as!(Episode, "select * from episodes order by id desc",)
+        let episodes = sqlx::query_as!(Episode, "select * from episodes order by id desc")
             .fetch_all(&self.pool)
             .await?;
         Ok(episodes)
@@ -42,8 +42,10 @@ impl EpisodeRepo {
     pub(crate) async fn update(&self, episode: &Episode) -> anyhow::Result<Episode> {
         let episode = sqlx::query_as!(
             Episode,
-            "update episodes set audio_url = $2 where id = $1 returning *",
+            "update episodes set title = $2, content = $3, audio_url = $4 where id = $1 returning *",
             episode.id,
+            episode.title,
+            episode.content,
             episode.audio_url
         )
         .fetch_one(&self.pool)

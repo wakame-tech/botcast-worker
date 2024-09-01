@@ -8,8 +8,10 @@ pub(crate) struct Extractor {
 
 impl Extractor {
     pub(crate) fn new(html: String) -> anyhow::Result<Self> {
-        // remove a line starts with <!DOCTYPE html> to avoid parsing error
-        let html = html.lines().skip(1).collect::<Vec<_>>().join("\n");
+        let pos = html
+            .find("<html")
+            .ok_or(anyhow::anyhow!("HTML tag not found"))?;
+        let html = &html[pos..];
         let html = Dom::parse(&html)?;
         Ok(Self { html })
     }
@@ -76,7 +78,6 @@ impl Extractor {
 #[cfg(test)]
 mod tests {
     use crate::worker::extractor::Extractor;
-    use html_parser::Dom;
     use std::{fs::File, io::Read, path::PathBuf};
 
     fn read_html<'a>(path: &str) -> anyhow::Result<String> {

@@ -1,5 +1,6 @@
 use super::{extractor::Extractor, synthesis::Synthesis, Args, RunTask};
 use crate::{api::ctx::Ctx, repo::EpisodeRepo};
+use anyhow::Context;
 use uuid::Uuid;
 
 static USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
@@ -25,8 +26,10 @@ impl RunTask for Scrape {
         let html = res.text().await?;
 
         let extractor = Extractor::new(html)?;
-        let title = extractor.get_title()?;
-        let content = extractor.get_content()?;
+        let title = extractor.get_title().context("Failed to get title")?;
+        let content = extractor.get_content().context("Failed to get content")?;
+        log::info!("Scraped: {} {} B", episode.title, content.len());
+
         episode.title = title;
         episode.content = Some(content);
         repo.update(&episode).await?;

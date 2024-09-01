@@ -18,6 +18,7 @@ Content-Type: application/json
 
 {
   "type": "Scrape",
+  "episode_id": "6334264b-0db3-4497-9302-b022a4f87212",
   "url": "https://ncode.syosetu.com/n0904cx/1/"
 }
 
