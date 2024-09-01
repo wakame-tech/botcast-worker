@@ -3,11 +3,12 @@ use crate::{
     model::{Task, TaskStatus},
     repo::TaskRepo,
 };
-use scrape::ScrapeEpisode;
+use scrape::Scrape;
 use std::{fmt::Debug, time::Duration};
 use synthesis::Synthesis;
 use uuid::Uuid;
 
+pub(crate) mod extractor;
 pub(crate) mod scrape;
 pub(crate) mod synthesis;
 pub(crate) mod voicevox_client;
@@ -22,7 +23,7 @@ where
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type")]
 pub(crate) enum Args {
-    Scrape(ScrapeEpisode),
+    Scrape(Scrape),
     Synthesis(Synthesis),
 }
 

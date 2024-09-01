@@ -17,6 +17,39 @@ impl EpisodeRepo {
             .await?;
         Ok(episodes)
     }
+
+    pub(crate) async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Episode>> {
+        let episode = sqlx::query_as!(Episode, "select * from episodes where id = $1", id)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(episode)
+    }
+
+    pub(crate) async fn create(&self, episode: Episode) -> anyhow::Result<Episode> {
+        let episode = sqlx::query_as!(
+            Episode,
+            "insert into episodes (id, title, content, audio_url) values ($1, $2, $3, $4) returning *",
+            episode.id,
+            episode.title,
+            episode.content,
+            episode.audio_url
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(episode)
+    }
+
+    pub(crate) async fn update(&self, episode: &Episode) -> anyhow::Result<Episode> {
+        let episode = sqlx::query_as!(
+            Episode,
+            "update episodes set audio_url = $2 where id = $1 returning *",
+            episode.id,
+            episode.audio_url
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(episode)
+    }
 }
 
 pub(crate) struct TaskRepo {

@@ -1,5 +1,5 @@
 use super::{voicevox_client::VoiceVoxSpeaker, Args, RunTask};
-use crate::api::ctx::Ctx;
+use crate::{api::ctx::Ctx, repo::EpisodeRepo};
 use std::{
     fs::{self, OpenOptions},
     io::Write,
@@ -10,32 +10,41 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Synthesis {
-    pub(crate) text: String,
-    pub(crate) speaker: VoiceVoxSpeaker,
-    pub(crate) out: PathBuf,
+    pub(crate) episode_id: Uuid,
 }
 
 impl RunTask for Synthesis {
-    async fn run(&self, id: Uuid, ctx: &Ctx) -> anyhow::Result<Option<Args>> {
-        let sentences = self.text.split('。').collect::<Vec<_>>();
+    async fn run(&self, task_id: Uuid, ctx: &Ctx) -> anyhow::Result<Option<Args>> {
+        let repo = EpisodeRepo::new(ctx.pool.clone());
+        let Some(episode) = repo.find_by_id(&self.episode_id).await? else {
+            return Err(anyhow::anyhow!("Episode not found"));
+        };
+        let text = episode
+            .content
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Content not found"))?;
+
+        let sentences = text.split('。').collect::<Vec<_>>();
         let dir = PathBuf::from("temp");
         if !dir.exists() {
             std::fs::create_dir(&dir)?;
         }
         let text_path = dir.join("text.txt");
 
+        let speaker = VoiceVoxSpeaker::ZundaNormal;
         let mut artifacts: Vec<PathBuf> = vec![];
+
         for (i, sentence) in sentences.iter().enumerate() {
             log::info!("[{}] {}", i, sentence);
-            let out = dir.join(format!("{}_{}.wav", id.hyphenated().to_string(), i));
-            let query = match ctx.voicevox.query(sentence, &self.speaker).await {
+            let out = dir.join(format!("{}_{}.wav", task_id.hyphenated().to_string(), i));
+            let query = match ctx.voicevox.query(sentence, &speaker).await {
                 Ok(query) => query,
                 Err(e) => {
                     log::error!("Failed to query: {}", e);
                     continue;
                 }
             };
-            match ctx.voicevox.synthesis(query, &self.speaker, &out).await {
+            match ctx.voicevox.synthesis(query, &speaker, &out).await {
                 Ok(_) => {}
                 Err(e) => {
                     log::error!("Failed to synthesis: {}", e);
@@ -48,7 +57,7 @@ impl RunTask for Synthesis {
             anyhow::bail!("Failed to synthesis");
         }
 
-        let out = dir.join(format!("{}.wav", id.hyphenated().to_string()));
+        let out = dir.join(format!("{}.wav", task_id.hyphenated().to_string()));
         let res = concat_wavs(&mut artifacts, &text_path, &out).await;
         for path in &artifacts {
             if path.exists() {

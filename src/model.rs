@@ -3,18 +3,18 @@ use uuid::Uuid;
 
 #[derive(Debug, serde::Serialize, sqlx::FromRow)]
 pub(crate) struct Episode {
-    pub id: String,
+    pub id: Uuid,
     pub title: String,
-    pub content: String,
+    pub content: Option<String>,
     pub audio_url: Option<String>,
 }
 
 impl Episode {
-    pub(crate) fn new(title: String, content: String) -> Self {
+    pub(crate) fn new(title: String) -> Self {
         Self {
-            id: Uuid::new_v4().hyphenated().to_string(),
+            id: Uuid::new_v4(),
             title,
-            content,
+            content: None,
             audio_url: None,
         }
     }
