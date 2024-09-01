@@ -1,62 +1,77 @@
-use crate::{
-    task::{RunTask, Task},
-    voicevox_client::VoiceVoxSpeaker,
-    Ctx,
+use super::{voicevox_client::VoiceVoxSpeaker, Args, RunTask};
+use crate::{api::ctx::Ctx, repo::EpisodeRepo};
+use std::{
+    fs::{self, OpenOptions},
+    io::Write,
+    path::PathBuf,
 };
-use std::{fs::OpenOptions, io::Write, path::PathBuf};
-use surrealdb::opt::RecordId;
 use tokio::process::Command;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Synthesis {
-    #[serde(skip_serializing)]
-    pub(crate) id: RecordId,
-    pub(crate) text: String,
-    pub(crate) speaker: VoiceVoxSpeaker,
-    pub(crate) out: PathBuf,
-    pub(crate) artifacts: Vec<PathBuf>,
+    pub(crate) episode_id: Uuid,
 }
 
 impl RunTask for Synthesis {
-    fn id(&self) -> &RecordId {
-        &self.id
-    }
+    async fn run(&self, task_id: Uuid, ctx: &Ctx) -> anyhow::Result<Option<Args>> {
+        let repo = EpisodeRepo::new(ctx.pool.clone());
+        let Some(episode) = repo.find_by_id(&self.episode_id).await? else {
+            return Err(anyhow::anyhow!("Episode not found"));
+        };
+        let text = episode
+            .content
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Content not found"))?;
 
-    async fn run(&mut self, ctx: &Ctx) -> anyhow::Result<Option<Task>> {
-        let sentences = self.text.split('。').collect::<Vec<_>>();
+        let sentences = text.split('。').collect::<Vec<_>>();
         let dir = PathBuf::from("temp");
         if !dir.exists() {
             std::fs::create_dir(&dir)?;
         }
         let text_path = dir.join("text.txt");
 
+        let speaker = VoiceVoxSpeaker::ZundaNormal;
+        let mut artifacts: Vec<PathBuf> = vec![];
+
         for (i, sentence) in sentences.iter().enumerate() {
             log::info!("[{}] {}", i, sentence);
-            let out = dir.join(format!("{}_{}.wav", self.id.id.to_raw().to_string(), i));
-            let query = match ctx.voicevox.query(sentence, &self.speaker).await {
+            let out = dir.join(format!("{}_{}.wav", task_id.hyphenated().to_string(), i));
+            let query = match ctx.voicevox.query(sentence, &speaker).await {
                 Ok(query) => query,
                 Err(e) => {
                     log::error!("Failed to query: {}", e);
                     continue;
                 }
             };
-            match ctx.voicevox.synthesis(query, &self.speaker, &out).await {
+            match ctx.voicevox.synthesis(query, &speaker, &out).await {
                 Ok(_) => {}
                 Err(e) => {
                     log::error!("Failed to synthesis: {}", e);
                     continue;
                 }
             };
-            self.artifacts.push(out.clone());
+            artifacts.push(out.clone());
         }
-        let out = dir.join(format!("{}.wav", self.id.id.to_raw().to_string()));
-        concat_wavs(&mut self.artifacts, &text_path, &out).await?;
+        if artifacts.is_empty() {
+            anyhow::bail!("Failed to synthesis");
+        }
+
+        let out = dir.join(format!("{}.wav", task_id.hyphenated().to_string()));
+        let res = concat_wavs(&mut artifacts, &text_path, &out).await;
+        for path in &artifacts {
+            if path.exists() {
+                fs::remove_file(path).unwrap();
+                log::info!("Removed: {}", path.display());
+            }
+        }
+        res?;
         Ok(None)
     }
 }
 
 async fn concat_wavs(
-    artifacts: &mut Vec<PathBuf>,
+    artifacts: &[PathBuf],
     text_path: &PathBuf,
     out: &PathBuf,
 ) -> anyhow::Result<()> {
@@ -70,7 +85,6 @@ async fn concat_wavs(
         .create(true)
         .open(text_path)?;
     f.write_all(text.as_bytes())?;
-    artifacts.push(text_path.clone());
 
     let mut cmd = Command::new("ffmpeg");
     cmd.args([
@@ -83,26 +97,16 @@ async fn concat_wavs(
     ]);
     // cmd.spawn()?.wait();
     let res = cmd.output().await?;
+    fs::remove_file(text_path)?;
     if !res.status.success() {
         anyhow::bail!("Failed to concat wavs: {}", String::from_utf8(res.stderr)?);
     }
     Ok(())
 }
 
-impl Drop for Synthesis {
-    fn drop(&mut self) {
-        for path in &self.artifacts {
-            if path.exists() {
-                std::fs::remove_file(path).unwrap();
-                log::info!("Removed: {}", path.display());
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::voicevox_client::{VoiceVox, VoiceVoxSpeaker};
+    use crate::worker::voicevox_client::{VoiceVox, VoiceVoxSpeaker};
     use std::path::PathBuf;
     use tokio::fs;
 

@@ -1,7 +1,7 @@
 # prod
-@worker_origin = http://localhost:9001
+# @worker_origin = https://botcast-worker.w4k4.me
 # dev
-# @worker_origin = http://localhost:9000
+@worker_origin = http://localhost:9000
 
 ###
 GET {{worker_origin}}/version
@@ -10,9 +10,17 @@ GET {{worker_origin}}/version
 GET {{worker_origin}}/version/voicevox
 
 ###
-POST {{worker_origin}}/scripts
+GET {{worker_origin}}/tasks
+
+###
+POST {{worker_origin}}/tasks
 Content-Type: application/json
 
 {
+  "type": "Scrape",
+  "episode_id": "6334264b-0db3-4497-9302-b022a4f87212",
   "url": "https://ncode.syosetu.com/n0904cx/1/"
 }
+
+###
+GET {{worker_origin}}/episodes
