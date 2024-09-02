@@ -1,9 +1,7 @@
-use super::{extractor::Extractor, synthesis::Synthesis, Args, RunTask};
-use crate::{api::ctx::Ctx, repo::EpisodeRepo};
+use super::{extractor::HtmlExtractor, synthesis::Synthesis, Args, RunTask};
+use crate::{api::ctx::Ctx, repo::EpisodeRepo, worker::USER_AGENT};
 use anyhow::Context;
 use uuid::Uuid;
-
-static USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Scrape {
@@ -23,9 +21,10 @@ impl RunTask for Scrape {
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!("Failed to fetch: {}", res.status());
         }
+        res.headers().get("content-type");
         let html = res.text().await?;
 
-        let extractor = Extractor::new(html)?;
+        let extractor = HtmlExtractor::new(html)?;
         let title = extractor.get_title().context("Failed to get title")?;
         let content = extractor.get_content().context("Failed to get content")?;
         log::info!("Scraped: {} {} B", episode.title, content.len());

@@ -20,3 +20,12 @@ pub(crate) async fn create_task(
     repo.create(task).await?;
     Ok(StatusCode::CREATED)
 }
+
+pub(crate) async fn run_task(
+    State(ctx): State<Ctx>,
+    Json(body): Json<Value>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let args: Args = serde_json::from_value(body)?;
+    let res = args.run_once(&ctx).await?;
+    Ok(Json(res))
+}
