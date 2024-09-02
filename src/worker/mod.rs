@@ -4,6 +4,7 @@ use crate::{
     repo::TaskRepo,
 };
 use scrape::Scrape;
+use script::Script;
 use std::{fmt::Debug, time::Duration};
 use synthesis::Synthesis;
 use uuid::Uuid;
@@ -11,13 +12,24 @@ use uuid::Uuid;
 pub(crate) mod extractor;
 pub mod r2_client;
 pub(crate) mod scrape;
+pub(crate) mod script;
 pub(crate) mod synthesis;
 pub(crate) mod voicevox_client;
+
+static USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
+
+#[allow(unused_variables)]
 pub(crate) trait RunTask
 where
     Self: Debug + Clone + serde::Serialize + for<'de> serde::Deserialize<'de>,
 {
-    async fn run(&self, id: Uuid, ctx: &Ctx) -> anyhow::Result<Option<Args>>;
+    async fn run(&self, id: Uuid, ctx: &Ctx) -> anyhow::Result<Option<Args>> {
+        unimplemented!()
+    }
+
+    async fn run_once(&self, ctx: &Ctx) -> anyhow::Result<serde_json::Value> {
+        unimplemented!()
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -25,13 +37,23 @@ where
 pub(crate) enum Args {
     Scrape(Scrape),
     Synthesis(Synthesis),
+    Script(Script),
 }
 
 impl Args {
-    async fn run(self, id: Uuid, ctx: &Ctx) -> anyhow::Result<Option<Args>> {
+    pub(crate) async fn run(self, id: Uuid, ctx: &Ctx) -> anyhow::Result<Option<Args>> {
         match self {
             Self::Scrape(scrape) => scrape.run(id, ctx).await,
             Self::Synthesis(synthesis) => synthesis.run(id, ctx).await,
+            Self::Script(script) => script.run(id, ctx).await,
+        }
+    }
+
+    pub(crate) async fn run_once(self, ctx: &Ctx) -> anyhow::Result<serde_json::Value> {
+        match self {
+            Self::Scrape(scrape) => scrape.run_once(ctx).await,
+            Self::Synthesis(synthesis) => synthesis.run_once(ctx).await,
+            Self::Script(script) => script.run_once(ctx).await,
         }
     }
 }

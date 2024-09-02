@@ -19,7 +19,16 @@ Content-Type: application/json
 {
   "type": "Scrape",
   "episode_id": "ae91da93-b127-4f49-814d-b0aaa0f0413d",
-  "url": "https://ncode.syosetu.com/n0904cx/1/"
+  "url": "https://qiita.com/wakame_tech/items/dad2a1bdbdeeb0b41fca"
+}
+
+###
+POST {{worker_origin}}/tasks/run
+Content-Type: application/json
+
+{
+  "type": "Script",
+  "url": "https://qiita.com/wakame_tech/items/dad2a1bdbdeeb0b41fca"
 }
 
 ###

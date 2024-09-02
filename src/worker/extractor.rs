@@ -2,11 +2,11 @@ use html_parser::{Dom, Element, Node};
 use std::collections::HashSet;
 
 #[derive(Debug)]
-pub(crate) struct Extractor {
+pub(crate) struct HtmlExtractor {
     html: Dom,
 }
 
-impl Extractor {
+impl HtmlExtractor {
     pub(crate) fn new(html: String) -> anyhow::Result<Self> {
         let pos = html
             .find("<html")
@@ -42,7 +42,7 @@ impl Extractor {
                 Node::Element(e) => Some(Self::collect_text(
                     &e.children,
                     tags,
-                    tags.contains(&e.name.as_str()),
+                    in_tags || tags.contains(&e.name.as_str()),
                 )),
                 _ => None,
             })
@@ -70,14 +70,14 @@ impl Extractor {
             .split('\n')
             .filter(|line| !line.trim().is_empty())
             .collect::<Vec<_>>()
-            .join("\n");
+            .join("");
         Ok(content)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::worker::extractor::Extractor;
+    use crate::worker::extractor::HtmlExtractor;
     use std::{fs::File, io::Read, path::PathBuf};
 
     fn read_html<'a>(path: &str) -> anyhow::Result<String> {
@@ -90,7 +90,7 @@ mod tests {
     #[test]
     fn test_get_title() -> anyhow::Result<()> {
         let html = read_html("narou.html")?;
-        let extractor = Extractor::new(html)?;
+        let extractor = HtmlExtractor::new(html)?;
         let title = extractor.get_title()?;
         println!("{}", title);
         Ok(())
@@ -99,7 +99,7 @@ mod tests {
     #[test]
     fn test_get_content() -> anyhow::Result<()> {
         let html = read_html("narou.html")?;
-        let extractor = Extractor::new(html)?;
+        let extractor = HtmlExtractor::new(html)?;
         let content = extractor.get_content()?;
         println!("content={}", content);
         Ok(())

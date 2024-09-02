@@ -1,7 +1,13 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Router};
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Router,
+};
 use ctx::Ctx;
 use episode::list_episodes;
-use task::{create_task, list_task};
+use task::{create_task, list_task, run_task};
 
 pub mod ctx;
 mod episode;
@@ -36,5 +42,6 @@ pub fn create_router(router: Router<Ctx>) -> Router<Ctx> {
         )
         .route("/version", get(|| async { env!("CARGO_PKG_VERSION") }))
         .route("/tasks", get(list_task).post(create_task))
+        .route("/tasks/run", post(run_task))
         .route("/episodes", get(list_episodes))
 }
