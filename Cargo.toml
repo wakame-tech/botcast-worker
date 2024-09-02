@@ -10,6 +10,7 @@ html2text = "0.12.5"
 html_parser = "0.7.0"
 log = "0.4.22"
 reqwest = { version = "0.12.7", features = ["json"] }
+rust-s3 = "0.35.1"
 serde = { version = "1.0.208", features = ["derive"] }
 serde_json = "1.0.125"
 sqlx = { version = "0.8.1", features = [
