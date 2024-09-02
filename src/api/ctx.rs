@@ -1,14 +1,15 @@
-use crate::worker::voicevox_client::VoiceVox;
+use crate::worker::{r2_client::R2Client, voicevox_client::VoiceVox};
 use sqlx::Pool;
 
 #[derive(Debug, Clone)]
-pub(crate) struct Ctx {
+pub struct Ctx {
     pub(crate) pool: Pool<sqlx::Postgres>,
     pub(crate) voicevox: VoiceVox,
+    pub(crate) r2_client: R2Client,
 }
 
 impl Ctx {
-    pub(crate) async fn new() -> anyhow::Result<Self> {
+    pub async fn new() -> anyhow::Result<Self> {
         let voicevox_endpoint =
             std::env::var("VOICEVOX_ENDPOINT").unwrap_or("http://localhost:50021".to_string());
 
@@ -20,6 +21,7 @@ impl Ctx {
         let ctx = Ctx {
             pool: pool.clone(),
             voicevox: VoiceVox::default(),
+            r2_client: R2Client::new()?,
         };
         Ok(ctx)
     }

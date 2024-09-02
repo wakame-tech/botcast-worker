@@ -1,11 +1,8 @@
-use api::{create_router, ctx::Ctx};
 use axum::Router;
-use worker::start_worker;
-
-mod api;
-mod model;
-mod repo;
-mod worker;
+use worker::{
+    api::{create_router, ctx::Ctx},
+    worker::start_worker,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

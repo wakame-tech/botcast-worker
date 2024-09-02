@@ -3,7 +3,7 @@ use ctx::Ctx;
 use episode::list_episodes;
 use task::{create_task, list_task};
 
-pub(crate) mod ctx;
+pub mod ctx;
 mod episode;
 mod task;
 
@@ -25,7 +25,7 @@ where
     }
 }
 
-pub(crate) fn create_router(router: Router<Ctx>) -> Router<Ctx> {
+pub fn create_router(router: Router<Ctx>) -> Router<Ctx> {
     router
         .route(
             "/version/voicevox",

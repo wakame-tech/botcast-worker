@@ -9,10 +9,10 @@ use synthesis::Synthesis;
 use uuid::Uuid;
 
 pub(crate) mod extractor;
+pub mod r2_client;
 pub(crate) mod scrape;
 pub(crate) mod synthesis;
 pub(crate) mod voicevox_client;
-
 pub(crate) trait RunTask
 where
     Self: Debug + Clone + serde::Serialize + for<'de> serde::Deserialize<'de>,
@@ -36,7 +36,7 @@ impl Args {
     }
 }
 
-pub(crate) fn start_worker() {
+pub fn start_worker() {
     tokio::spawn(async move {
         let ctx = Ctx::new().await.unwrap();
         let interval = Duration::from_secs(5);
