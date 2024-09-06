@@ -1,6 +1,7 @@
-use super::{extractor::HtmlExtractor, synthesis::Synthesis, Args, RunTask};
+use super::{synthesis::Synthesis, Args, RunTask};
 use crate::{api::ctx::Ctx, repo::EpisodeRepo, worker::USER_AGENT};
 use anyhow::Context;
+use scriper::extractor::HtmlExtractor;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

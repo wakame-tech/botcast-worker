@@ -2,12 +2,12 @@ use html_parser::{Dom, Element, Node};
 use std::collections::HashSet;
 
 #[derive(Debug)]
-pub(crate) struct HtmlExtractor {
+pub struct HtmlExtractor {
     html: Dom,
 }
 
 impl HtmlExtractor {
-    pub(crate) fn new(html: String) -> anyhow::Result<Self> {
+    pub fn new(html: String) -> anyhow::Result<Self> {
         let pos = html
             .find("<html")
             .ok_or(anyhow::anyhow!("HTML tag not found"))?;
@@ -50,7 +50,7 @@ impl HtmlExtractor {
             .join("\n")
     }
 
-    pub(crate) fn get_title(&self) -> anyhow::Result<String> {
+    pub fn get_title(&self) -> anyhow::Result<String> {
         let e = Self::find_tag(&self.html.children, "title")
             .ok_or_else(|| anyhow::anyhow!("Title not found"))?;
         let title = e
@@ -62,7 +62,7 @@ impl HtmlExtractor {
         Ok(title.to_string())
     }
 
-    pub(crate) fn get_content(&self) -> anyhow::Result<String> {
+    pub fn get_content(&self) -> anyhow::Result<String> {
         let e = Self::find_tag(&self.html.children, "body")
             .ok_or_else(|| anyhow::anyhow!("Body not found"))?;
         let content = Self::collect_text(&e.children, &HashSet::from_iter(["p"]), false);
@@ -77,7 +77,7 @@ impl HtmlExtractor {
 
 #[cfg(test)]
 mod tests {
-    use crate::worker::extractor::HtmlExtractor;
+    use crate::extractor::HtmlExtractor;
     use std::{fs::File, io::Read, path::PathBuf};
 
     fn read_html<'a>(path: &str) -> anyhow::Result<String> {

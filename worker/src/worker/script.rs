@@ -1,9 +1,7 @@
 use super::RunTask;
-use crate::{
-    api::ctx::Ctx,
-    worker::{extractor::HtmlExtractor, USER_AGENT},
-};
+use crate::{api::ctx::Ctx, worker::USER_AGENT};
 use anyhow::Context;
+use scriper::extractor::HtmlExtractor;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Script {

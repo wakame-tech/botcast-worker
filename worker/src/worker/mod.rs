@@ -9,7 +9,6 @@ use std::{fmt::Debug, time::Duration};
 use synthesis::Synthesis;
 use uuid::Uuid;
 
-pub(crate) mod extractor;
 pub mod r2_client;
 pub(crate) mod scrape;
 pub(crate) mod script;
