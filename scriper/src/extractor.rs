@@ -12,23 +12,20 @@ impl HtmlExtractor {
             .find("<html")
             .ok_or(anyhow::anyhow!("HTML tag not found"))?;
         let html = &html[pos..];
-        let html = Dom::parse(&html)?;
+        let html = Dom::parse(html)?;
         Ok(Self { html })
     }
 
     fn find_tag(nodes: &[Node], tag: &str) -> Option<Element> {
         for n in nodes.iter() {
-            match n {
-                Node::Element(e) => {
-                    if e.name == tag {
-                        return Some(e.to_owned());
-                    }
-                    let Some(e) = Self::find_tag(&e.children, tag) else {
-                        continue;
-                    };
-                    return Some(e);
+            if let Node::Element(e) = n {
+                if e.name == tag {
+                    return Some(e.to_owned());
                 }
-                _ => {}
+                let Some(e) = Self::find_tag(&e.children, tag) else {
+                    continue;
+                };
+                return Some(e);
             }
         }
         None
@@ -55,7 +52,7 @@ impl HtmlExtractor {
             .ok_or_else(|| anyhow::anyhow!("Title not found"))?;
         let title = e
             .children
-            .get(0)
+            .first()
             .unwrap()
             .text()
             .ok_or_else(|| anyhow::anyhow!("Title not found"))?;
@@ -80,7 +77,7 @@ mod tests {
     use crate::extractor::HtmlExtractor;
     use std::{fs::File, io::Read, path::PathBuf};
 
-    fn read_html<'a>(path: &str) -> anyhow::Result<String> {
+    fn read_html(path: &str) -> anyhow::Result<String> {
         let mut f = File::open(PathBuf::from(path))?;
         let mut html = String::new();
         f.read_to_string(&mut html)?;

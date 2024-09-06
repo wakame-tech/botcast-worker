@@ -1,70 +1,22 @@
-use crate::{
-    api::ctx::Ctx,
-    model::{Task, TaskStatus},
-    repo::TaskRepo,
-};
-use scrape::Scrape;
-use script::Script;
-use std::{fmt::Debug, time::Duration};
-use synthesis::Synthesis;
-use uuid::Uuid;
+use crate::{api::Args, episode_repo::PostgresEpisodeRepo, tasks::run};
+use sqlx::{Pool, Postgres};
+use std::time::Duration;
+use task::TaskStatus;
+use task_repo::{PostgresTaskRepo, TaskRepo};
 
-pub mod r2_client;
-pub(crate) mod scrape;
-pub(crate) mod script;
-pub(crate) mod synthesis;
-pub(crate) mod voicevox_client;
-
-static USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
-
-#[allow(unused_variables)]
-pub(crate) trait RunTask
-where
-    Self: Debug + Clone + serde::Serialize + for<'de> serde::Deserialize<'de>,
-{
-    async fn run(&self, id: Uuid, ctx: &Ctx) -> anyhow::Result<Option<Args>> {
-        unimplemented!()
-    }
-
-    async fn run_once(&self, ctx: &Ctx) -> anyhow::Result<serde_json::Value> {
-        unimplemented!()
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "type")]
-pub(crate) enum Args {
-    Scrape(Scrape),
-    Synthesis(Synthesis),
-    Script(Script),
-}
-
-impl Args {
-    pub(crate) async fn run(self, id: Uuid, ctx: &Ctx) -> anyhow::Result<Option<Args>> {
-        match self {
-            Self::Scrape(scrape) => scrape.run(id, ctx).await,
-            Self::Synthesis(synthesis) => synthesis.run(id, ctx).await,
-            Self::Script(script) => script.run(id, ctx).await,
-        }
-    }
-
-    pub(crate) async fn run_once(self, ctx: &Ctx) -> anyhow::Result<serde_json::Value> {
-        match self {
-            Self::Scrape(scrape) => scrape.run_once(ctx).await,
-            Self::Synthesis(synthesis) => synthesis.run_once(ctx).await,
-            Self::Script(script) => script.run_once(ctx).await,
-        }
-    }
-}
+pub(crate) mod task;
+pub(crate) mod task_repo;
 
 pub fn start_worker() {
     tokio::spawn(async move {
-        let ctx = Ctx::new().await.unwrap();
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is required");
+        let pool = sqlx::PgPool::connect(&database_url)
+            .await
+            .expect("Failed to connect to DB");
         let interval = Duration::from_secs(5);
         loop {
             log::info!("Watching tasks...");
-            let repo = TaskRepo::new(ctx.pool.clone());
-            if let Err(e) = batch(repo, &ctx).await {
+            if let Err(e) = batch(pool.clone()).await {
                 log::error!("Error: {:?}", e);
             }
             tokio::time::sleep(interval).await;
@@ -72,27 +24,24 @@ pub fn start_worker() {
     });
 }
 
-async fn batch(repo: TaskRepo, ctx: &Ctx) -> anyhow::Result<()> {
-    let Some(mut task) = repo.pop().await? else {
+async fn batch(pool: Pool<Postgres>) -> anyhow::Result<()> {
+    let mut task_repo = PostgresTaskRepo::new(pool.clone());
+    let Some(mut task) = task_repo.pop().await? else {
         return Ok(());
     };
+
+    let mut episode_repo = PostgresEpisodeRepo::new(pool);
     task.status = TaskStatus::Running;
-    repo.update_status(&task).await?;
+    task_repo.update(&task).await?;
 
     let args: Args = serde_json::from_value(task.args.clone())?;
-    match args.run(task.id, &ctx).await {
-        Ok(args) => {
-            task.status = TaskStatus::Completed;
-            if let Some(args) = args {
-                let task = Task::new(args)?;
-                repo.create(task).await?;
-            }
-        }
+    task.status = match run(&mut episode_repo, task.id, &args).await {
+        Ok(()) => TaskStatus::Completed,
         Err(e) => {
-            task.status = TaskStatus::Failed;
             log::error!("Failed to run task: {:?}", e);
+            TaskStatus::Failed
         }
     };
-    repo.update_status(&task).await?;
+    task_repo.update(&task).await?;
     Ok(())
 }

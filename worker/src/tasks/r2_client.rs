@@ -31,7 +31,7 @@ impl R2Client {
                 format!(
                     "{}/{}.wav",
                     Self::DIRECTORY_NAME,
-                    id.hyphenated().to_string()
+                    id.hyphenated()
                 ),
                 data,
                 "audio/wav",
@@ -45,7 +45,7 @@ impl R2Client {
             "{}/{}/{}.wav",
             self.bucket_endpoint,
             Self::DIRECTORY_NAME,
-            id.hyphenated().to_string()
+            id.hyphenated()
         )
     }
 }
