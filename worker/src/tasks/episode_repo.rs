@@ -49,6 +49,7 @@ impl EpisodeRepo for DummyEpisodeRepo {
             title: "dummy".to_string(),
             content: None,
             audio_url: None,
+            user_id: None,
         };
         Ok(Some(episode))
     }

@@ -7,6 +7,7 @@ pub(crate) struct Episode {
     pub title: String,
     pub content: Option<String>,
     pub audio_url: Option<String>,
+    pub user_id: Option<Uuid>,
 }
 
 impl Display for Episode {
