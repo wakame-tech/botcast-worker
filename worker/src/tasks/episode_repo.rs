@@ -1,10 +1,10 @@
-use crate::episode::Episode;
+use super::episode::Episode;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 pub(crate) trait EpisodeRepo {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Episode>>;
-    async fn update(&mut self, episode: &Episode) -> anyhow::Result<()>;
+    async fn update(&self, episode: &Episode) -> anyhow::Result<()>;
 }
 
 pub(crate) struct PostgresEpisodeRepo {
@@ -25,7 +25,7 @@ impl EpisodeRepo for PostgresEpisodeRepo {
         Ok(episode)
     }
 
-    async fn update(&mut self, episode: &Episode) -> anyhow::Result<()> {
+    async fn update(&self, episode: &Episode) -> anyhow::Result<()> {
         sqlx::query_as!(
             Episode,
             "update episodes set title = $2, content = $3, audio_url = $4 where id = $1",
@@ -40,25 +40,21 @@ impl EpisodeRepo for PostgresEpisodeRepo {
     }
 }
 
-pub(crate) struct InMemoryEpisodeRepo {
-    episodes: std::collections::HashMap<Uuid, Episode>,
-}
+pub(crate) struct DummyEpisodeRepo;
 
-impl InMemoryEpisodeRepo {
-    pub(crate) fn new() -> Self {
-        Self {
-            episodes: std::collections::HashMap::new(),
-        }
-    }
-}
-
-impl EpisodeRepo for InMemoryEpisodeRepo {
+impl EpisodeRepo for DummyEpisodeRepo {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Episode>> {
-        Ok(self.episodes.get(id).cloned())
+        let episode = Episode {
+            id: *id,
+            title: "dummy".to_string(),
+            content: None,
+            audio_url: None,
+        };
+        Ok(Some(episode))
     }
 
-    async fn update(&mut self, episode: &Episode) -> anyhow::Result<()> {
-        self.episodes.insert(episode.id, episode.clone());
+    async fn update(&self, episode: &Episode) -> anyhow::Result<()> {
+        log::info!("{}", episode);
         Ok(())
     }
 }

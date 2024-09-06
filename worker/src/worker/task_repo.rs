@@ -5,10 +5,10 @@ use uuid::Uuid;
 
 #[allow(dead_code)]
 pub(crate) trait TaskRepo {
-    async fn pop(&mut self) -> anyhow::Result<Option<Task>>;
-    async fn create(&mut self, task: &Task) -> anyhow::Result<()>;
-    async fn update(&mut self, task: &Task) -> anyhow::Result<()>;
-    async fn delete(&mut self, id: &Uuid) -> anyhow::Result<Task>;
+    async fn pop(&self) -> anyhow::Result<Option<Task>>;
+    async fn create(&self, task: &Task) -> anyhow::Result<()>;
+    async fn update(&self, task: &Task) -> anyhow::Result<()>;
+    async fn delete(&self, id: &Uuid) -> anyhow::Result<Task>;
 }
 
 pub(crate) struct PostgresTaskRepo {
@@ -22,7 +22,7 @@ impl PostgresTaskRepo {
 }
 
 impl TaskRepo for PostgresTaskRepo {
-    async fn pop(&mut self) -> anyhow::Result<Option<Task>> {
+    async fn pop(&self) -> anyhow::Result<Option<Task>> {
         let task =
             sqlx::query_as(r#"select * from tasks where status = 'PENDING' order by id limit 1"#)
                 .fetch_optional(&self.pool)
@@ -30,7 +30,7 @@ impl TaskRepo for PostgresTaskRepo {
         Ok(task)
     }
 
-    async fn create(&mut self, task: &Task) -> anyhow::Result<()> {
+    async fn create(&self, task: &Task) -> anyhow::Result<()> {
         sqlx::query!(
             "insert into tasks (id, status, args) values ($1, $2, $3)",
             task.id,
@@ -42,7 +42,7 @@ impl TaskRepo for PostgresTaskRepo {
         Ok(())
     }
 
-    async fn update(&mut self, task: &Task) -> anyhow::Result<()> {
+    async fn update(&self, task: &Task) -> anyhow::Result<()> {
         sqlx::query_as("update tasks set status = $2, args = $3 where id = $1 returning *")
             .bind(task.id)
             .bind(&task.status as &TaskStatus)
@@ -52,7 +52,7 @@ impl TaskRepo for PostgresTaskRepo {
         Ok(())
     }
 
-    async fn delete(&mut self, id: &Uuid) -> anyhow::Result<Task> {
+    async fn delete(&self, id: &Uuid) -> anyhow::Result<Task> {
         let task = sqlx::query_as("delete from tasks where id = $1 returning *")
             .bind(id)
             .fetch_one(&self.pool)

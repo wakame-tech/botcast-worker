@@ -36,6 +36,20 @@ impl VoiceVox {
         }
     }
 
+    pub(crate) async fn version(&self) -> anyhow::Result<Value> {
+        let url = format!("{}/version", self.endpoint);
+        let res = self.client.get(url).send().await?;
+        if res.status() != reqwest::StatusCode::OK {
+            anyhow::bail!(
+                "Failed to get version: {} {}",
+                res.status(),
+                res.json::<Value>().await?.to_string()
+            );
+        }
+        let res = res.json().await?;
+        Ok(res)
+    }
+
     pub(crate) async fn query(
         &self,
         text: &str,

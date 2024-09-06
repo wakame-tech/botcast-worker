@@ -1,20 +1,24 @@
-use crate::{api::Args, episode_repo::EpisodeRepo};
+use crate::api::Args;
 use anyhow::Context;
-use r2_client::R2Client;
+use episode_repo::EpisodeRepo;
 use scriper::extractor::HtmlExtractor;
 use std::{fs::File, io::Read};
+use storage::Storage;
 use uuid::Uuid;
 use voicevox_client::{concat_wavs, VoiceVox, VoiceVoxSpeaker};
 use workdir::WorkDir;
 
-mod r2_client;
-mod voicevox_client;
+mod episode;
+pub(crate) mod episode_repo;
+pub(crate) mod storage;
+pub(crate) mod voicevox_client;
 mod workdir;
 
 static USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
 
-pub(crate) async fn run(
-    episode_repo: &mut impl EpisodeRepo,
+pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
+    episode_repo: &E,
+    storage: &S,
     task_id: Uuid,
     args: &Args,
 ) -> anyhow::Result<()> {
@@ -89,9 +93,9 @@ pub(crate) async fn run(
     let mut audio = vec![];
     file.read_to_end(&mut audio)?;
 
-    let r2_client = R2Client::new()?;
-    r2_client.upload_wav(&episode.id, &audio).await?;
-    episode.audio_url = Some(r2_client.get_url(&episode.id));
+    let upload_path = format!("episodes/{}.wav", episode.id.hyphenated().to_string());
+    storage.upload(&upload_path, &audio, "audio/wav").await?;
+    episode.audio_url = Some(format!("{}/{}", storage.get_endpoint(), upload_path));
     episode_repo.update(&episode).await?;
     Ok(())
 }
