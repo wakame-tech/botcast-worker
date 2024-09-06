@@ -2,33 +2,30 @@ use html_parser::{Dom, Element, Node};
 use std::collections::HashSet;
 
 #[derive(Debug)]
-pub(crate) struct HtmlExtractor {
+pub struct HtmlExtractor {
     html: Dom,
 }
 
 impl HtmlExtractor {
-    pub(crate) fn new(html: String) -> anyhow::Result<Self> {
+    pub fn new(html: String) -> anyhow::Result<Self> {
         let pos = html
             .find("<html")
             .ok_or(anyhow::anyhow!("HTML tag not found"))?;
         let html = &html[pos..];
-        let html = Dom::parse(&html)?;
+        let html = Dom::parse(html)?;
         Ok(Self { html })
     }
 
     fn find_tag(nodes: &[Node], tag: &str) -> Option<Element> {
         for n in nodes.iter() {
-            match n {
-                Node::Element(e) => {
-                    if e.name == tag {
-                        return Some(e.to_owned());
-                    }
-                    let Some(e) = Self::find_tag(&e.children, tag) else {
-                        continue;
-                    };
-                    return Some(e);
+            if let Node::Element(e) = n {
+                if e.name == tag {
+                    return Some(e.to_owned());
                 }
-                _ => {}
+                let Some(e) = Self::find_tag(&e.children, tag) else {
+                    continue;
+                };
+                return Some(e);
             }
         }
         None
@@ -50,19 +47,19 @@ impl HtmlExtractor {
             .join("\n")
     }
 
-    pub(crate) fn get_title(&self) -> anyhow::Result<String> {
+    pub fn get_title(&self) -> anyhow::Result<String> {
         let e = Self::find_tag(&self.html.children, "title")
             .ok_or_else(|| anyhow::anyhow!("Title not found"))?;
         let title = e
             .children
-            .get(0)
+            .first()
             .unwrap()
             .text()
             .ok_or_else(|| anyhow::anyhow!("Title not found"))?;
         Ok(title.to_string())
     }
 
-    pub(crate) fn get_content(&self) -> anyhow::Result<String> {
+    pub fn get_content(&self) -> anyhow::Result<String> {
         let e = Self::find_tag(&self.html.children, "body")
             .ok_or_else(|| anyhow::anyhow!("Body not found"))?;
         let content = Self::collect_text(&e.children, &HashSet::from_iter(["p"]), false);
@@ -77,10 +74,10 @@ impl HtmlExtractor {
 
 #[cfg(test)]
 mod tests {
-    use crate::worker::extractor::HtmlExtractor;
+    use crate::extractor::HtmlExtractor;
     use std::{fs::File, io::Read, path::PathBuf};
 
-    fn read_html<'a>(path: &str) -> anyhow::Result<String> {
+    fn read_html(path: &str) -> anyhow::Result<String> {
         let mut f = File::open(PathBuf::from(path))?;
         let mut html = String::new();
         f.read_to_string(&mut html)?;
