@@ -34,7 +34,7 @@ impl EpisodeRepo for PostgresEpisodeRepo {
             episode.content,
             episode.audio_url
         )
-        .fetch_one(&self.pool)
+        .execute(&self.pool)
         .await?;
         Ok(())
     }

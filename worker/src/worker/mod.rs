@@ -42,7 +42,7 @@ async fn batch<T: TaskRepo, E: EpisodeRepo, S: Storage>(
     let Some(mut task) = task_repo.pop().await? else {
         return Ok(());
     };
-
+    log::info!("Found task: {} args={}", task.id, task.args);
     task.status = TaskStatus::Running;
     task_repo.update(&task).await?;
 

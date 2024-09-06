@@ -8,7 +8,7 @@ pub(crate) trait TaskRepo {
     async fn pop(&self) -> anyhow::Result<Option<Task>>;
     async fn create(&self, task: &Task) -> anyhow::Result<()>;
     async fn update(&self, task: &Task) -> anyhow::Result<()>;
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<Task>;
+    async fn delete(&self, id: &Uuid) -> anyhow::Result<()>;
 }
 
 pub(crate) struct PostgresTaskRepo {
@@ -43,20 +43,20 @@ impl TaskRepo for PostgresTaskRepo {
     }
 
     async fn update(&self, task: &Task) -> anyhow::Result<()> {
-        sqlx::query_as("update tasks set status = $2, args = $3 where id = $1 returning *")
+        sqlx::query("update tasks set status = $2, args = $3 where id = $1")
             .bind(task.id)
             .bind(&task.status as &TaskStatus)
             .bind(&task.args)
-            .fetch_one(&self.pool)
+            .execute(&self.pool)
             .await?;
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<Task> {
-        let task = sqlx::query_as("delete from tasks where id = $1 returning *")
+    async fn delete(&self, id: &Uuid) -> anyhow::Result<()> {
+        sqlx::query("delete from tasks where id = $1")
             .bind(id)
             .fetch_one(&self.pool)
             .await?;
-        Ok(task)
+        Ok(())
     }
 }
