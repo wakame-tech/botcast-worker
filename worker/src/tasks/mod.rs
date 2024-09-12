@@ -1,8 +1,9 @@
 use crate::api::Args;
-use anyhow::Context;
+use encoding::{all::UTF_8, DecoderTrap, Encoding};
 use episode_repo::EpisodeRepo;
-use scriper::extractor::HtmlExtractor;
-use std::{fs::File, io::Read};
+use reqwest::Client;
+use scriper::{html2md::Html2MdExtractor, Extractor};
+use std::{fs::File, io::Read, sync::OnceLock};
 use storage::Storage;
 use uuid::Uuid;
 use voicevox_client::{concat_wavs, VoiceVox, VoiceVoxSpeaker};
@@ -15,6 +16,32 @@ pub(crate) mod voicevox_client;
 mod workdir;
 
 static USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
+
+static HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+pub fn client() -> &'static reqwest::Client {
+    HTTP_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .user_agent(USER_AGENT)
+            .build()
+            .expect("Failed to build HTTP client")
+    })
+}
+
+pub async fn fetch_content(client: &Client, url: String) -> anyhow::Result<String> {
+    let res = client.get(url).send().await?;
+    if res.status() != reqwest::StatusCode::OK {
+        anyhow::bail!("Failed to fetch: {}", res.status());
+    }
+    let html = res.bytes().await?;
+    let html = match xmldecl::parse(&html) {
+        Some(e) => e.decode(&html).0.into_owned(),
+        None => UTF_8
+            .decode(&html, DecoderTrap::Strict)
+            .map_err(|e| anyhow::anyhow!("Failed to decode: {}", e))?,
+    };
+    Ok(html)
+}
 
 pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
     episode_repo: &E,
@@ -29,20 +56,11 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
         return Err(anyhow::anyhow!("Episode not found"));
     };
 
-    let client = reqwest::Client::builder().user_agent(USER_AGENT).build()?;
-    let res = client.get(&args.url).send().await?;
-    if res.status() != reqwest::StatusCode::OK {
-        anyhow::bail!("Failed to fetch: {}", res.status());
-    }
-    res.headers().get("content-type");
-    let html = res.text().await?;
-
-    let extractor = HtmlExtractor::new(html)?;
-    let title = extractor.get_title().context("Failed to get title")?;
-    let content = extractor.get_content().context("Failed to get content")?;
+    let client = client();
+    let html = fetch_content(&client, args.url.to_string()).await?;
+    let content = Html2MdExtractor::extract(&html)?;
     log::info!("Scraped: {} {} B", episode.title, content.len());
 
-    episode.title = title;
     episode.content = Some(content);
     episode_repo.update(&episode).await?;
 
@@ -93,7 +111,7 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
     let mut audio = vec![];
     file.read_to_end(&mut audio)?;
 
-    let upload_path = format!("episodes/{}.wav", episode.id.hyphenated().to_string());
+    let upload_path = format!("episodes/{}.wav", episode.id.hyphenated());
     storage.upload(&upload_path, &audio, "audio/wav").await?;
     episode.audio_url = Some(format!("{}/{}", storage.get_endpoint(), upload_path));
     episode_repo.update(&episode).await?;
