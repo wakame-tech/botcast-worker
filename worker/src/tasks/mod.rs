@@ -7,10 +7,12 @@ use std::{
     fs::File,
     io::{Read, Write},
     sync::OnceLock,
+    time::Duration,
 };
 use storage::Storage;
 use uuid::Uuid;
-use voicevox_client::{concat_audios, VoiceVox, VoiceVoxSpeaker};
+use voicevox_client::{concat_audios, get_duration, VoiceVox, VoiceVoxSpeaker};
+use wavers::Wav;
 use workdir::WorkDir;
 
 mod episode;
@@ -19,14 +21,12 @@ pub(crate) mod storage;
 pub(crate) mod voicevox_client;
 mod workdir;
 
-static USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
-
 static HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
 pub fn client() -> &'static reqwest::Client {
     HTTP_CLIENT.get_or_init(|| {
         reqwest::Client::builder()
-            .user_agent(USER_AGENT)
+            .user_agent(std::env::var("USER_AGENT").unwrap_or_default())
             .build()
             .expect("Failed to build HTTP client")
     })
@@ -64,7 +64,7 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
     };
 
     let client = client();
-    let html = fetch_content(&client, args.url.to_string()).await?;
+    let html = fetch_content(client, args.url.to_string()).await?;
     let content = Html2MdExtractor::extract(&html)?;
     let mut content_file = File::create(work_dir.dir().join("content.md"))?;
     write!(content_file, "# {}\n\n", episode.title)?;
@@ -80,25 +80,32 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("Content not found"))?;
 
-    let sentences = text.split(['。', '\n']).collect::<Vec<_>>();
+    let mut content_with_timestamp = String::new();
+    let sentences = text.split_inclusive(['。', '\n']).collect::<Vec<_>>();
     if sentences.is_empty() {
         anyhow::bail!("Sentences is empty");
     }
 
-    let voicevox_endpoint =
-        std::env::var("VOICEVOX_ENDPOINT").unwrap_or("http://localhost:50021".to_string());
-    log::info!("VoiceVox endpoint: {}", voicevox_endpoint);
-    let voicevox = VoiceVox::new(voicevox_endpoint);
+    let voicevox = VoiceVox::new();
     let speaker = VoiceVoxSpeaker::ZundaNormal;
 
     let mut paths = vec![];
+    let mut duration = Duration::ZERO;
     for (i, sentence) in sentences.iter().enumerate() {
-        if sentence.trim().is_empty() {
+        let sentence = sentence.trim();
+        if sentence.is_empty() {
             continue;
         }
-        log::info!("[{}] {}", i, sentence);
+        let mmss = format!(
+            "{:02}:{:02}",
+            duration.as_secs() / 60,
+            duration.as_secs() % 60
+        );
+        log::info!("[{}] {}: {}", i, mmss, sentence);
         let sentence_wav_path = work_dir.dir().join(format!("{}.wav", i));
         paths.push(sentence_wav_path.clone());
+        content_with_timestamp += &format!("[{}](#{}) {}\n", mmss, mmss, sentence);
+
         let query = match voicevox.query(sentence, &speaker).await {
             Ok(query) => query,
             Err(e) => {
@@ -116,9 +123,16 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
                 continue;
             }
         };
+
+        let sentence_wav_file: Wav<i16> = Wav::from_path(&sentence_wav_path)?;
+        duration += get_duration(&sentence_wav_file);
     }
 
+    episode.content = Some(content_with_timestamp);
+    episode_repo.update(&episode).await?;
+
     let episode_audio_path = concat_audios(&work_dir, &paths).await?;
+
     let mut file = File::open(&episode_audio_path)?;
     let mut audio = vec![];
     file.read_to_end(&mut audio)?;

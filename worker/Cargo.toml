@@ -39,3 +39,4 @@ uuid = { version = "1.10.0", features = ["v4", "serde"] }
 xmldecl = "0.2.0"
 encoding = "0.2.33"
 clap = { version = "4.5.17", features = ["derive"] }
+wavers = "1.4.3"

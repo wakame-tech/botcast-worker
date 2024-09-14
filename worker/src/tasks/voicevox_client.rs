@@ -1,7 +1,8 @@
 use super::workdir::WorkDir;
 use serde_json::Value;
-use std::{fs::OpenOptions, io::Write, path::PathBuf};
+use std::{fs::OpenOptions, io::Write, path::PathBuf, time::Duration};
 use tokio::{fs, io::AsyncWriteExt, process::Command};
+use wavers::Wav;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) enum VoiceVoxSpeaker {
@@ -22,14 +23,11 @@ pub(crate) struct VoiceVox {
     client: reqwest::Client,
 }
 
-impl Default for VoiceVox {
-    fn default() -> Self {
-        Self::new("http://localhost:50021".to_string())
-    }
-}
-
 impl VoiceVox {
-    pub(crate) fn new(endpoint: String) -> Self {
+    pub(crate) fn new() -> Self {
+        let endpoint =
+            std::env::var("VOICEVOX_ENDPOINT").unwrap_or("http://localhost:50021".to_string());
+        log::info!("VoiceVox endpoint: {}", endpoint);
         Self {
             endpoint,
             client: reqwest::Client::new(),
@@ -99,6 +97,16 @@ impl VoiceVox {
         f.write_all(&res).await?;
         Ok(())
     }
+}
+
+pub(crate) fn get_duration(wav: &Wav<i16>) -> Duration {
+    let data_size = wav.header().data().size;
+
+    let sample_rate = wav.sample_rate() as u32;
+    let n_channels = wav.n_channels() as u32;
+    let bytes_per_sample = (wav.header().fmt_chunk.bits_per_sample / 8) as u32;
+
+    Duration::from_secs_f32(data_size as f32 / (sample_rate * n_channels * bytes_per_sample) as f32)
 }
 
 pub(crate) async fn concat_audios(
