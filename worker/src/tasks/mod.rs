@@ -3,10 +3,14 @@ use encoding::{all::UTF_8, DecoderTrap, Encoding};
 use episode_repo::EpisodeRepo;
 use reqwest::Client;
 use scriper::{html2md::Html2MdExtractor, Extractor};
-use std::{fs::File, io::Read, sync::OnceLock};
+use std::{
+    fs::File,
+    io::{Read, Write},
+    sync::OnceLock,
+};
 use storage::Storage;
 use uuid::Uuid;
-use voicevox_client::{concat_wavs, VoiceVox, VoiceVoxSpeaker};
+use voicevox_client::{concat_audios, VoiceVox, VoiceVoxSpeaker};
 use workdir::WorkDir;
 
 mod episode;
@@ -49,6 +53,9 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
     task_id: Uuid,
     args: &Args,
 ) -> anyhow::Result<()> {
+    let keep = true;
+    let work_dir = WorkDir::new(&task_id, keep)?;
+
     let Some(mut episode) = episode_repo
         .find_by_id(&Uuid::parse_str(&args.episode_id)?)
         .await?
@@ -59,6 +66,10 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
     let client = client();
     let html = fetch_content(&client, args.url.to_string()).await?;
     let content = Html2MdExtractor::extract(&html)?;
+    let mut content_file = File::create(work_dir.dir().join("content.md"))?;
+    write!(content_file, "# {}\n\n", episode.title)?;
+    content_file.write_all(content.as_bytes())?;
+
     log::info!("Scraped: {} {} B", episode.title, content.len());
 
     episode.content = Some(content);
@@ -69,12 +80,10 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("Content not found"))?;
 
-    let sentences = text.split('。').collect::<Vec<_>>();
+    let sentences = text.split(['。', '\n']).collect::<Vec<_>>();
     if sentences.is_empty() {
         anyhow::bail!("Sentences is empty");
     }
-
-    let work_dir = WorkDir::new(&task_id, false)?;
 
     let voicevox_endpoint =
         std::env::var("VOICEVOX_ENDPOINT").unwrap_or("http://localhost:50021".to_string());
@@ -84,6 +93,9 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
 
     let mut paths = vec![];
     for (i, sentence) in sentences.iter().enumerate() {
+        if sentence.trim().is_empty() {
+            continue;
+        }
         log::info!("[{}] {}", i, sentence);
         let sentence_wav_path = work_dir.dir().join(format!("{}.wav", i));
         paths.push(sentence_wav_path.clone());
@@ -106,13 +118,13 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
         };
     }
 
-    let episode_wav_path = concat_wavs(&work_dir, &paths).await?;
-    let mut file = File::open(&episode_wav_path)?;
+    let episode_audio_path = concat_audios(&work_dir, &paths).await?;
+    let mut file = File::open(&episode_audio_path)?;
     let mut audio = vec![];
     file.read_to_end(&mut audio)?;
 
-    let upload_path = format!("episodes/{}.wav", episode.id.hyphenated());
-    storage.upload(&upload_path, &audio, "audio/wav").await?;
+    let upload_path = format!("episodes/{}.mp3", episode.id.hyphenated());
+    storage.upload(&upload_path, &audio, "audio/mp3").await?;
     episode.audio_url = Some(format!("{}/{}", storage.get_endpoint(), upload_path));
     episode_repo.update(&episode).await?;
     Ok(())
