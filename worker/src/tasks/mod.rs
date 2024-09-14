@@ -53,7 +53,9 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
     task_id: Uuid,
     args: &Args,
 ) -> anyhow::Result<()> {
-    let keep = true;
+    let keep = std::env::var("KEEP_WORKDIR")
+        .unwrap_or("false".to_string())
+        .parse()?;
     let work_dir = WorkDir::new(&task_id, keep)?;
 
     let Some(mut episode) = episode_repo
