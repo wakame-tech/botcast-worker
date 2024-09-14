@@ -101,7 +101,10 @@ impl VoiceVox {
     }
 }
 
-pub(crate) async fn concat_wavs(work_dir: &WorkDir, paths: &[PathBuf]) -> anyhow::Result<PathBuf> {
+pub(crate) async fn concat_audios(
+    work_dir: &WorkDir,
+    paths: &[PathBuf],
+) -> anyhow::Result<PathBuf> {
     let inputs_path = work_dir.dir().join("inputs.txt");
     let text = paths
         .iter()
@@ -115,7 +118,7 @@ pub(crate) async fn concat_wavs(work_dir: &WorkDir, paths: &[PathBuf]) -> anyhow
         .open(&inputs_path)?;
     f.write_all(text.as_bytes())?;
 
-    let episode_wav_path = work_dir.dir().join("episode.wav");
+    let episode_audio_path = work_dir.dir().join("episode.mp3");
     let mut cmd = Command::new("ffmpeg");
     cmd.args([
         "-y",
@@ -123,11 +126,21 @@ pub(crate) async fn concat_wavs(work_dir: &WorkDir, paths: &[PathBuf]) -> anyhow
         "concat",
         "-i",
         inputs_path.display().to_string().as_str(),
-        episode_wav_path.display().to_string().as_str(),
+        "-vn",
+        "-ar",
+        "44100",
+        "-ac",
+        "2",
+        "-b:a",
+        "192k",
+        episode_audio_path.display().to_string().as_str(),
     ]);
     let res = cmd.output().await?;
     if !res.status.success() {
-        anyhow::bail!("Failed to concat wavs: {}", String::from_utf8(res.stderr)?);
+        anyhow::bail!(
+            "Failed to concat audios: {}",
+            String::from_utf8(res.stderr)?
+        );
     }
-    Ok(episode_wav_path)
+    Ok(episode_audio_path)
 }
