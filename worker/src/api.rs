@@ -45,10 +45,7 @@ async fn run_task(Json(body): Json<Value>) -> Result<impl IntoResponse, AppError
 
 async fn version() -> Result<impl IntoResponse, AppError> {
     let worker_version = env!("CARGO_PKG_VERSION");
-    let voicevox_endpoint =
-        std::env::var("VOICEVOX_ENDPOINT").unwrap_or("http://localhost:50021".to_string());
-    log::info!("VoiceVox endpoint: {}", voicevox_endpoint);
-    let voicevox = VoiceVox::new(voicevox_endpoint);
+    let voicevox = VoiceVox::new();
     let voicevox_version = voicevox.version().await.map_err(AppError)?;
     Ok(Json(json!({
         "worker": worker_version,
