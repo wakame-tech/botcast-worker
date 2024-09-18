@@ -3,7 +3,7 @@ WORKDIR /app
 
 ARG DATABASE_URL
 
-RUN apk update && apk add --no-cache musl-dev openssl-dev openssl-libs-static
+RUN apk update && apk add --no-cache musl-dev pkgconfig openssl-dev openssl-libs-static
 RUN rustup target add x86_64-unknown-linux-musl
 
 COPY . .
