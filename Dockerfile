@@ -11,7 +11,6 @@ COPY crates crates
 COPY Cargo.toml Cargo.toml
 COPY Cargo.lock Cargo.lock
 RUN cargo build --release --target=x86_64-unknown-linux-musl
-RUN cargo build --release --target=x86_64-unknown-linux-musl
 
 FROM alpine:latest
 WORKDIR /app

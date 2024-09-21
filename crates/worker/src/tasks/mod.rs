@@ -27,6 +27,7 @@ pub fn client() -> &'static reqwest::Client {
     HTTP_CLIENT.get_or_init(|| {
         reqwest::Client::builder()
             .user_agent(std::env::var("USER_AGENT").unwrap_or_default())
+            .timeout(Duration::from_secs(5))
             .build()
             .expect("Failed to build HTTP client")
     })
@@ -79,10 +80,8 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
 
     let text = episode
         .content
-        .as_ref()
         .ok_or_else(|| anyhow::anyhow!("Content not found"))?;
 
-    let mut content_with_timestamp = String::new();
     let sentences = text.split_inclusive(['。', '\n']).collect::<Vec<_>>();
     if sentences.is_empty() {
         anyhow::bail!("Sentences is empty");
@@ -92,22 +91,12 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
     let speaker = VoiceVoxSpeaker::ZundaNormal;
 
     let mut paths = vec![];
-    let mut duration = Duration::ZERO;
     for (i, sentence) in sentences.iter().enumerate() {
         let sentence = sentence.trim();
         if sentence.is_empty() {
             continue;
         }
-        let mmss = format!(
-            "{:02}:{:02}",
-            duration.as_secs() / 60,
-            duration.as_secs() % 60
-        );
-        log::info!("[{}] {}: {}", i, mmss, sentence);
         let sentence_wav_path = work_dir.dir().join(format!("{}.wav", i));
-        paths.push(sentence_wav_path.clone());
-        content_with_timestamp += &format!("[{}](#{}) {}\n", mmss, mmss, sentence);
-
         let query = match voicevox.query(sentence, &speaker).await {
             Ok(query) => query,
             Err(e) => {
@@ -126,13 +115,31 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
             }
         };
 
-        let sentence_wav_file: Wav<i16> = Wav::from_path(&sentence_wav_path)?;
-        duration += get_duration(&sentence_wav_file);
+        if sentence_wav_path.exists() {
+            paths.push((sentence_wav_path, sentence));
+        }
+    }
+
+    let mut content_with_timestamp = String::new();
+    let mut duration = Duration::ZERO;
+    for (path, sentence) in &paths {
+        let mmss = format!(
+            "{:02}:{:02}",
+            duration.as_secs() / 60,
+            duration.as_secs() % 60
+        );
+        content_with_timestamp += &format!("[{}](#{}) {}\n", mmss, mmss, sentence);
+
+        log::info!("{}: {}", mmss, sentence);
+        let file = Box::new(File::open(path)?);
+        let file: Wav<i16> = Wav::new(file)?;
+        duration += get_duration(&file);
     }
 
     episode.content = Some(content_with_timestamp);
     episode_repo.update(&episode).await?;
 
+    let paths = paths.into_iter().map(|(path, _)| path).collect::<Vec<_>>();
     let episode_audio_path = concat_audios(&work_dir, &paths).await?;
 
     let mut file = File::open(&episode_audio_path)?;
