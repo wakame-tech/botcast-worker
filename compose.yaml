@@ -15,9 +15,6 @@ services:
       args:
         - DATABASE_URL=${DATABASE_URL}
     working_dir: /app
-    volumes:
-      - .:/app
-      - /app/target
     ports:
       - "9001:9001"
     environment:
