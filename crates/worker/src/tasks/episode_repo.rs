@@ -1,4 +1,5 @@
 use super::episode::Episode;
+use chrono::Local;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
@@ -49,7 +50,9 @@ impl EpisodeRepo for DummyEpisodeRepo {
             title: "dummy".to_string(),
             audio_url: None,
             script_url: None,
+            podcast_id: Uuid::new_v4(),
             user_id: None,
+            created_at: Local::now().to_utc().to_rfc3339(),
         };
         Ok(Some(episode))
     }
