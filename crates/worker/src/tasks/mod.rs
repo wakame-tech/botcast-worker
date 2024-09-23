@@ -3,6 +3,7 @@ use encoding::{all::UTF_8, DecoderTrap, Encoding};
 use episode_repo::EpisodeRepo;
 use reqwest::Client;
 use scriper::{html2md::Html2MdExtractor, Extractor};
+use srtlib::{Subtitle, Subtitles, Timestamp};
 use std::{
     fs::File,
     io::{Read, Write},
@@ -75,14 +76,7 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
 
     log::info!("Scraped: {} {} B", episode.title, content.len());
 
-    episode.content = Some(content);
-    episode_repo.update(&episode).await?;
-
-    let text = episode
-        .content
-        .ok_or_else(|| anyhow::anyhow!("Content not found"))?;
-
-    let sentences = text.split_inclusive(['。', '\n']).collect::<Vec<_>>();
+    let sentences = content.split_inclusive(['。', '\n']).collect::<Vec<_>>();
     if sentences.is_empty() {
         anyhow::bail!("Sentences is empty");
     }
@@ -120,23 +114,25 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
         }
     }
 
-    let mut content_with_timestamp = String::new();
+    let mut subs = Subtitles::new();
     let mut duration = Duration::ZERO;
-    for (path, sentence) in &paths {
-        let mmss = format!(
-            "{:02}:{:02}",
-            duration.as_secs() / 60,
-            duration.as_secs() % 60
-        );
-        content_with_timestamp += &format!("[{}](#{}) {}\n", mmss, mmss, sentence);
 
-        log::info!("{}: {}", mmss, sentence);
+    let mmss = |d: &Duration| format!("{:02}:{:02}", d.as_secs() / 60, d.as_secs() % 60);
+    for (i, (path, sentence)) in paths.iter().enumerate() {
         let file = Box::new(File::open(path)?);
         let file: Wav<i16> = Wav::new(file)?;
-        duration += get_duration(&file);
+        let (start, end) = (duration, duration + get_duration(&file));
+        log::info!("{} -> {}: {}", mmss(&start), mmss(&end), sentence);
+        let sub = Subtitle::new(
+            i,
+            Timestamp::from_milliseconds(start.as_millis() as u32),
+            Timestamp::from_milliseconds(end.as_millis() as u32),
+            sentence.to_string(),
+        );
+        subs.push(sub);
+        duration = end;
     }
 
-    episode.content = Some(content_with_timestamp);
     episode_repo.update(&episode).await?;
 
     let paths = paths.into_iter().map(|(path, _)| path).collect::<Vec<_>>();
@@ -146,9 +142,16 @@ pub(crate) async fn run<E: EpisodeRepo, S: Storage>(
     let mut audio = vec![];
     file.read_to_end(&mut audio)?;
 
-    let upload_path = format!("episodes/{}.mp3", episode.id.hyphenated());
-    storage.upload(&upload_path, &audio, "audio/mp3").await?;
-    episode.audio_url = Some(format!("{}/{}", storage.get_endpoint(), upload_path));
+    let mp3_path = format!("episodes/{}.mp3", episode.id.hyphenated());
+    storage.upload(&mp3_path, &audio, "audio/mp3").await?;
+    episode.audio_url = Some(format!("{}/{}", storage.get_endpoint(), mp3_path));
+
+    let srt_path = format!("episodes/{}.srt", episode.id.hyphenated());
+    storage
+        .upload(&srt_path, subs.to_string().as_bytes(), "text/plain")
+        .await?;
+    episode.script_url = Some(format!("{}/{}", storage.get_endpoint(), srt_path));
+
     episode_repo.update(&episode).await?;
     Ok(())
 }
