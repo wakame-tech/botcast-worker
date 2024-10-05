@@ -2,8 +2,8 @@ use super::EpisodeRepo;
 use crate::infra::{http_client::HttpClient, workdir::WorkDir, Storage};
 use anyhow::{anyhow, Context};
 use axum::async_trait;
+use readable_text::{html2md::Html2MdExtractor, Extractor};
 use reqwest::Url;
-use scriper::{html2md::Html2MdExtractor, Extractor};
 use std::{
     fs::File,
     io::{Read, Write},

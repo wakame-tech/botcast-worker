@@ -1,5 +1,5 @@
 use clap::Parser;
-use scriper::{html2md::Html2MdExtractor, Extractor};
+use readable_text::{html2md::Html2MdExtractor, Extractor};
 use worker::infra::http_client::HttpClient;
 
 #[derive(Debug, clap::Parser)]
