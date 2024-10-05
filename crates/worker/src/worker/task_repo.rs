@@ -11,6 +11,7 @@ pub(crate) trait TaskRepo {
     async fn delete(&self, id: &Uuid) -> anyhow::Result<()>;
 }
 
+#[derive(Debug, Clone)]
 pub(crate) struct PostgresTaskRepo {
     pub(crate) pool: Pool<Postgres>,
 }

@@ -1,5 +1,9 @@
-use crate::tasks::{
-    episode_repo::DummyEpisodeRepo, run, storage::DummyStorage, voicevox_client::VoiceVox,
+use crate::{
+    tasks::{
+        episode_repo::DummyEpisodeRepo, storage::DummyStorage, voicevox_client::VoiceVox,
+        EpisodeService,
+    },
+    worker::run,
 };
 use axum::{
     http::StatusCode,
@@ -28,6 +32,15 @@ where
     }
 }
 
+impl EpisodeService {
+    fn dummy() -> Self {
+        Self {
+            episode_repo: Box::new(DummyEpisodeRepo),
+            storage: Box::new(DummyStorage),
+        }
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Args {
     pub(crate) episode_id: String,
@@ -37,9 +50,7 @@ pub(crate) struct Args {
 async fn run_task(Json(body): Json<Value>) -> Result<impl IntoResponse, AppError> {
     let args: Args = serde_json::from_value(body)?;
     let task_id = Uuid::new_v4();
-    let episode_repo = DummyEpisodeRepo;
-    let storage = DummyStorage;
-    run(&episode_repo, &storage, task_id, &args).await?;
+    run(&EpisodeService::dummy(), task_id, &args).await?;
     Ok("")
 }
 

@@ -1,6 +1,8 @@
+use axum::async_trait;
 use s3::{creds::Credentials, Bucket, Region};
 
-pub(crate) trait Storage {
+#[async_trait]
+pub(crate) trait Storage: Send + Sync {
     async fn upload(&self, path: &str, data: &[u8], content_type: &str) -> anyhow::Result<()>;
     fn get_endpoint(&self) -> String;
 }
@@ -29,6 +31,7 @@ impl R2Storage {
     }
 }
 
+#[async_trait]
 impl Storage for R2Storage {
     async fn upload(&self, path: &str, data: &[u8], content_type: &str) -> anyhow::Result<()> {
         self.bucket
@@ -44,6 +47,7 @@ impl Storage for R2Storage {
 
 pub(crate) struct DummyStorage;
 
+#[async_trait]
 impl Storage for DummyStorage {
     async fn upload(&self, _path: &str, _data: &[u8], _content_type: &str) -> anyhow::Result<()> {
         Ok(())
