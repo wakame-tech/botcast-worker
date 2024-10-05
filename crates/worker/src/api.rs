@@ -1,9 +1,6 @@
-use crate::{
-    tasks::{
-        episode_repo::DummyEpisodeRepo, storage::DummyStorage, voicevox_client::VoiceVox,
-        EpisodeService,
-    },
-    worker::run,
+use crate::tasks::{
+    episode_repo::DummyEpisodeRepo, storage::DummyStorage, voicevox_client::VoiceVox,
+    EpisodeService,
 };
 use axum::{
     http::StatusCode,
@@ -43,14 +40,17 @@ impl EpisodeService {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Args {
-    pub(crate) episode_id: String,
+    pub(crate) episode_id: Uuid,
     pub(crate) url: String,
 }
 
 async fn run_task(Json(body): Json<Value>) -> Result<impl IntoResponse, AppError> {
     let args: Args = serde_json::from_value(body)?;
     let task_id = Uuid::new_v4();
-    run(&EpisodeService::dummy(), task_id, &args).await?;
+    let episode_service = EpisodeService::dummy();
+    episode_service
+        .run(task_id, args.episode_id, args.url.parse()?)
+        .await?;
     Ok("")
 }
 
@@ -64,8 +64,18 @@ async fn version() -> Result<impl IntoResponse, AppError> {
     })))
 }
 
-pub fn create_router(router: Router) -> Router {
+fn create_router(router: Router) -> Router {
     router
         .route("/version", get(version))
         .route("/run", post(run_task))
+}
+
+pub async fn start_api() -> anyhow::Result<()> {
+    let router = Router::new();
+    let app = create_router(router);
+    let port = std::env::var("PORT").unwrap_or("9001".to_string());
+    log::info!("Listen port: {}", port);
+    let listener = tokio::net::TcpListener::bind(&format!("0.0.0.0:{}", port)).await?;
+    axum::serve(listener, app).await?;
+    Ok(())
 }

@@ -18,6 +18,8 @@ use workdir::WorkDir;
 mod episode;
 pub(crate) mod episode_repo;
 pub(crate) mod storage;
+pub(crate) mod task;
+pub(crate) mod task_repo;
 pub(crate) mod voicevox_client;
 mod workdir;
 
@@ -61,7 +63,7 @@ impl EpisodeService {
         WorkDir::new(&task_id, keep)
     }
 
-    pub(crate) async fn generate_script_from_url(
+    async fn generate_script_from_url(
         &self,
         task_id: Uuid,
         episode_id: Uuid,
@@ -91,7 +93,7 @@ impl EpisodeService {
         Ok(sentences)
     }
 
-    pub(crate) async fn synthesis_audio(
+    async fn synthesis_audio(
         &self,
         task_id: Uuid,
         episode_id: Uuid,
@@ -174,6 +176,19 @@ impl EpisodeService {
         episode.script_url = Some(format!("{}/{}", self.storage.get_endpoint(), srt_path));
 
         self.episode_repo.update(&episode).await?;
+        Ok(())
+    }
+
+    pub(crate) async fn run(
+        &self,
+        task_id: Uuid,
+        episode_id: Uuid,
+        url: Url,
+    ) -> anyhow::Result<()> {
+        let sentences = self
+            .generate_script_from_url(task_id, episode_id, url)
+            .await?;
+        self.synthesis_audio(task_id, episode_id, sentences).await?;
         Ok(())
     }
 }

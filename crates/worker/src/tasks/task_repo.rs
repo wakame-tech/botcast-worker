@@ -1,10 +1,11 @@
 use super::task::Task;
-use crate::worker::task::TaskStatus;
+use crate::tasks::task::TaskStatus;
+use axum::async_trait;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
-#[allow(dead_code)]
-pub(crate) trait TaskRepo {
+#[async_trait]
+pub(crate) trait TaskRepo: Send + Sync {
     async fn pop(&self) -> anyhow::Result<Option<Task>>;
     async fn create(&self, task: &Task) -> anyhow::Result<()>;
     async fn update(&self, task: &Task) -> anyhow::Result<()>;
@@ -22,6 +23,7 @@ impl PostgresTaskRepo {
     }
 }
 
+#[async_trait]
 impl TaskRepo for PostgresTaskRepo {
     async fn pop(&self) -> anyhow::Result<Option<Task>> {
         let task =
