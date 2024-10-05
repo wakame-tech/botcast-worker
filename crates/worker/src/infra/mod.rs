@@ -1,8 +1,10 @@
 pub mod episode_repo;
+pub mod ffmpeg;
 pub mod http_client;
 pub mod r2_storage;
 pub mod task_repo;
 pub mod voicevox_client;
+pub mod voicevox_synthesizer;
 pub mod workdir;
 
 use axum::async_trait;

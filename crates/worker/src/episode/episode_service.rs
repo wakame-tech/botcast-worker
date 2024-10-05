@@ -1,24 +1,34 @@
 use super::EpisodeRepo;
-use crate::infra::{
-    http_client::HttpClient,
-    voicevox_client::{concat_audios, get_duration, VoiceVox, VoiceVoxSpeaker},
-    workdir::WorkDir,
-    Storage,
-};
+use crate::infra::{http_client::HttpClient, workdir::WorkDir, Storage};
+use anyhow::{anyhow, Context};
+use axum::async_trait;
 use reqwest::Url;
 use scriper::{html2md::Html2MdExtractor, Extractor};
-use srtlib::{Subtitle, Subtitles, Timestamp};
 use std::{
     fs::File,
     io::{Read, Write},
-    time::Duration,
+    path::PathBuf,
 };
 use uuid::Uuid;
-use wavers::Wav;
+
+pub(crate) struct SynthesisResult {
+    pub(crate) out_path: PathBuf,
+    pub(crate) srt: String,
+}
+
+#[async_trait]
+pub(crate) trait AudioSynthesizer: Send + Sync {
+    async fn synthesis_sentences(
+        &self,
+        work_dir: &WorkDir,
+        sentences: Vec<String>,
+    ) -> anyhow::Result<SynthesisResult>;
+}
 
 pub(crate) struct EpisodeService {
     pub(crate) episode_repo: Box<dyn EpisodeRepo>,
     pub(crate) storage: Box<dyn Storage>,
+    pub(crate) synthesizer: Box<dyn AudioSynthesizer>,
 }
 
 impl EpisodeService {
@@ -36,13 +46,18 @@ impl EpisodeService {
         url: Url,
     ) -> anyhow::Result<Vec<String>> {
         let work_dir = self.use_work_dir(&task_id)?;
-        let Some(episode) = self.episode_repo.find_by_id(&episode_id).await? else {
-            return Err(anyhow::anyhow!("Episode not found"));
-        };
+        let episode = self
+            .episode_repo
+            .find_by_id(&episode_id)
+            .await?
+            .ok_or_else(|| anyhow!("Episode not found"))?;
 
         let client = HttpClient::default();
-        let html = client.fetch_content_as_utf8(url).await?;
-        let content = Html2MdExtractor::extract(&html)?;
+        let html = client
+            .fetch_content_as_utf8(url)
+            .await
+            .context("Failed to fetch content")?;
+        let content = Html2MdExtractor::extract(&html).context("Failed to extract content")?;
         let mut content_file = File::create(work_dir.dir().join("content.md"))?;
         write!(content_file, "# {}\n\n", episode.title)?;
         content_file.write_all(content.as_bytes())?;
@@ -70,64 +85,14 @@ impl EpisodeService {
             return Err(anyhow::anyhow!("Episode not found"));
         };
 
-        let voicevox = VoiceVox::new();
-        let speaker = VoiceVoxSpeaker::ZundaNormal;
-
-        let mut paths = vec![];
-        for (i, sentence) in sentences.iter().enumerate() {
-            let sentence = sentence.trim();
-            if sentence.is_empty() {
-                continue;
-            }
-            let sentence_wav_path = work_dir.dir().join(format!("{}.wav", i));
-            let query = match voicevox.query(sentence, &speaker).await {
-                Ok(query) => query,
-                Err(e) => {
-                    log::error!("Failed to query: {}", e);
-                    continue;
-                }
-            };
-            match voicevox
-                .synthesis(query, &speaker, &sentence_wav_path)
-                .await
-            {
-                Ok(_) => {}
-                Err(e) => {
-                    log::error!("Failed to synthesis: {}", e);
-                    continue;
-                }
-            };
-
-            if sentence_wav_path.exists() {
-                paths.push((sentence_wav_path, sentence));
-            }
-        }
-
-        let mut subs = Subtitles::new();
-        let mut duration = Duration::ZERO;
-
-        let mmss = |d: &Duration| format!("{:02}:{:02}", d.as_secs() / 60, d.as_secs() % 60);
-        for (i, (path, sentence)) in paths.iter().enumerate() {
-            let file = Box::new(File::open(path)?);
-            let file: Wav<i16> = Wav::new(file)?;
-            let (start, end) = (duration, duration + get_duration(&file));
-            log::info!("{} -> {}: {}", mmss(&start), mmss(&end), sentence);
-            let sub = Subtitle::new(
-                i,
-                Timestamp::from_milliseconds(start.as_millis() as u32),
-                Timestamp::from_milliseconds(end.as_millis() as u32),
-                sentence.to_string(),
-            );
-            subs.push(sub);
-            duration = end;
-        }
+        let SynthesisResult { out_path, srt, .. } = self
+            .synthesizer
+            .synthesis_sentences(&work_dir, sentences)
+            .await?;
 
         self.episode_repo.update(&episode).await?;
 
-        let paths = paths.into_iter().map(|(path, _)| path).collect::<Vec<_>>();
-        let episode_audio_path = concat_audios(&work_dir, &paths).await?;
-
-        let mut file = File::open(&episode_audio_path)?;
+        let mut file = File::open(&out_path)?;
         let mut audio = vec![];
         file.read_to_end(&mut audio)?;
 
@@ -137,7 +102,7 @@ impl EpisodeService {
 
         let srt_path = format!("episodes/{}.srt", episode.id.hyphenated());
         self.storage
-            .upload(&srt_path, subs.to_string().as_bytes(), "text/plain")
+            .upload(&srt_path, srt.as_bytes(), "text/plain")
             .await?;
         episode.script_url = Some(format!("{}/{}", self.storage.get_endpoint(), srt_path));
 

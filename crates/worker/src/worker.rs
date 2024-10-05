@@ -2,6 +2,7 @@ use crate::{
     episode::episode_service::EpisodeService,
     infra::{
         episode_repo::PostgresEpisodeRepo, r2_storage::R2Storage, task_repo::PostgresTaskRepo,
+        voicevox_synthesizer::VoiceVoxAudioSynthesizer,
     },
     task::task_service::TaskService,
 };
@@ -19,6 +20,7 @@ pub fn start_worker() {
         let episode_service = Arc::new(EpisodeService {
             episode_repo: Box::new(episode_repo),
             storage: Box::new(storage),
+            synthesizer: Box::new(VoiceVoxAudioSynthesizer::default()),
         });
 
         let task_repo = PostgresTaskRepo::new(pool.clone());

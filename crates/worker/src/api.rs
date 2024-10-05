@@ -9,7 +9,10 @@ use uuid::Uuid;
 
 use crate::{
     episode::episode_service::EpisodeService,
-    infra::{episode_repo::DummyEpisodeRepo, r2_storage::DummyStorage, voicevox_client::VoiceVox},
+    infra::{
+        episode_repo::DummyEpisodeRepo, r2_storage::DummyStorage, voicevox_client::VoiceVoxClient,
+        voicevox_synthesizer::VoiceVoxAudioSynthesizer,
+    },
 };
 
 #[derive(Debug)]
@@ -35,6 +38,7 @@ impl EpisodeService {
         Self {
             episode_repo: Box::new(DummyEpisodeRepo),
             storage: Box::new(DummyStorage),
+            synthesizer: Box::new(VoiceVoxAudioSynthesizer::default()),
         }
     }
 }
@@ -57,7 +61,7 @@ async fn run_task(Json(body): Json<Value>) -> Result<impl IntoResponse, AppError
 
 async fn version() -> Result<impl IntoResponse, AppError> {
     let worker_version = env!("CARGO_PKG_VERSION");
-    let voicevox = VoiceVox::new();
+    let voicevox = VoiceVoxClient::new();
     let voicevox_version = voicevox.version().await.map_err(AppError)?;
     Ok(Json(json!({
         "worker": worker_version,
