@@ -1,11 +1,6 @@
+use super::Storage;
 use axum::async_trait;
 use s3::{creds::Credentials, Bucket, Region};
-
-#[async_trait]
-pub(crate) trait Storage: Send + Sync {
-    async fn upload(&self, path: &str, data: &[u8], content_type: &str) -> anyhow::Result<()>;
-    fn get_endpoint(&self) -> String;
-}
 
 #[derive(Debug, Clone)]
 pub struct R2Storage {

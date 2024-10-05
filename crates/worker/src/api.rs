@@ -1,7 +1,3 @@
-use crate::tasks::{
-    episode_repo::DummyEpisodeRepo, storage::DummyStorage, voicevox_client::VoiceVox,
-    EpisodeService,
-};
 use axum::{
     http::StatusCode,
     response::IntoResponse,
@@ -10,6 +6,11 @@ use axum::{
 };
 use serde_json::{json, Value};
 use uuid::Uuid;
+
+use crate::{
+    episode::episode_service::EpisodeService,
+    infra::{episode_repo::DummyEpisodeRepo, r2_storage::DummyStorage, voicevox_client::VoiceVox},
+};
 
 #[derive(Debug)]
 struct AppError(anyhow::Error);

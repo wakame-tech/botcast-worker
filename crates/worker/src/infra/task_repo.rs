@@ -1,16 +1,7 @@
-use super::task::Task;
-use crate::tasks::task::TaskStatus;
+use crate::task::{Task, TaskRepo, TaskStatus};
 use axum::async_trait;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
-
-#[async_trait]
-pub(crate) trait TaskRepo: Send + Sync {
-    async fn pop(&self) -> anyhow::Result<Option<Task>>;
-    async fn create(&self, task: &Task) -> anyhow::Result<()>;
-    async fn update(&self, task: &Task) -> anyhow::Result<()>;
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<()>;
-}
 
 #[derive(Debug, Clone)]
 pub(crate) struct PostgresTaskRepo {

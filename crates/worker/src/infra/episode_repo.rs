@@ -1,14 +1,8 @@
-use super::episode::Episode;
+use crate::episode::{Episode, EpisodeRepo};
 use axum::async_trait;
 use chrono::Local;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
-
-#[async_trait]
-pub(crate) trait EpisodeRepo: Send + Sync {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Episode>>;
-    async fn update(&self, episode: &Episode) -> anyhow::Result<()>;
-}
 
 pub(crate) struct PostgresEpisodeRepo {
     pub(crate) pool: Pool<Postgres>,
@@ -62,7 +56,7 @@ impl EpisodeRepo for DummyEpisodeRepo {
     }
 
     async fn update(&self, episode: &Episode) -> anyhow::Result<()> {
-        log::info!("{}", episode);
+        log::info!("{:?}", episode);
         Ok(())
     }
 }

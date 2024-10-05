@@ -1,4 +1,6 @@
-use std::fmt::Display;
+pub mod episode_service;
+
+use axum::async_trait;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
@@ -12,9 +14,8 @@ pub(crate) struct Episode {
     pub created_at: String,
 }
 
-impl Display for Episode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{:?}", self)?;
-        Ok(())
-    }
+#[async_trait]
+pub(crate) trait EpisodeRepo: Send + Sync {
+    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Episode>>;
+    async fn update(&self, episode: &Episode) -> anyhow::Result<()>;
 }

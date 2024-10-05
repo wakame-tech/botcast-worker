@@ -1,54 +1,20 @@
-use encoding::{all::UTF_8, DecoderTrap, Encoding};
-use episode_repo::EpisodeRepo;
-use reqwest::{Client, Url};
+use super::EpisodeRepo;
+use crate::infra::{
+    http_client::HttpClient,
+    voicevox_client::{concat_audios, get_duration, VoiceVox, VoiceVoxSpeaker},
+    workdir::WorkDir,
+    Storage,
+};
+use reqwest::Url;
 use scriper::{html2md::Html2MdExtractor, Extractor};
 use srtlib::{Subtitle, Subtitles, Timestamp};
 use std::{
     fs::File,
     io::{Read, Write},
-    sync::OnceLock,
     time::Duration,
 };
-use storage::Storage;
 use uuid::Uuid;
-use voicevox_client::{concat_audios, get_duration, VoiceVox, VoiceVoxSpeaker};
 use wavers::Wav;
-use workdir::WorkDir;
-
-mod episode;
-pub(crate) mod episode_repo;
-pub(crate) mod storage;
-pub(crate) mod task;
-pub(crate) mod task_repo;
-pub(crate) mod voicevox_client;
-mod workdir;
-
-static HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
-
-pub fn client() -> &'static reqwest::Client {
-    HTTP_CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
-            .user_agent(std::env::var("USER_AGENT").unwrap_or_default())
-            .timeout(Duration::from_secs(5))
-            .build()
-            .expect("Failed to build HTTP client")
-    })
-}
-
-pub async fn fetch_content(client: &Client, url: String) -> anyhow::Result<String> {
-    let res = client.get(url).send().await?;
-    if res.status() != reqwest::StatusCode::OK {
-        anyhow::bail!("Failed to fetch: {}", res.status());
-    }
-    let html = res.bytes().await?;
-    let html = match xmldecl::parse(&html) {
-        Some(e) => e.decode(&html).0.into_owned(),
-        None => UTF_8
-            .decode(&html, DecoderTrap::Strict)
-            .map_err(|e| anyhow::anyhow!("Failed to decode: {}", e))?,
-    };
-    Ok(html)
-}
 
 pub(crate) struct EpisodeService {
     pub(crate) episode_repo: Box<dyn EpisodeRepo>,
@@ -60,7 +26,7 @@ impl EpisodeService {
         let keep = std::env::var("KEEP_WORKDIR")
             .unwrap_or("false".to_string())
             .parse()?;
-        WorkDir::new(&task_id, keep)
+        WorkDir::new(task_id, keep)
     }
 
     async fn generate_script_from_url(
@@ -74,8 +40,8 @@ impl EpisodeService {
             return Err(anyhow::anyhow!("Episode not found"));
         };
 
-        let client = client();
-        let html = fetch_content(client, url.to_string()).await?;
+        let client = HttpClient::default();
+        let html = client.fetch_content_as_utf8(url).await?;
         let content = Html2MdExtractor::extract(&html)?;
         let mut content_file = File::create(work_dir.dir().join("content.md"))?;
         write!(content_file, "# {}\n\n", episode.title)?;
