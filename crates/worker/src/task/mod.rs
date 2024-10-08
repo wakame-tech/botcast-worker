@@ -1,3 +1,6 @@
+pub mod task_service;
+
+use axum::async_trait;
 use uuid::Uuid;
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]
@@ -15,4 +18,12 @@ pub(crate) struct Task {
     pub id: Uuid,
     pub status: TaskStatus,
     pub args: serde_json::Value,
+}
+
+#[async_trait]
+pub(crate) trait TaskRepo: Send + Sync {
+    async fn pop(&self) -> anyhow::Result<Option<Task>>;
+    async fn create(&self, task: &Task) -> anyhow::Result<()>;
+    async fn update(&self, task: &Task) -> anyhow::Result<()>;
+    async fn delete(&self, id: &Uuid) -> anyhow::Result<()>;
 }

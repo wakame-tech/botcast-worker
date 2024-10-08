@@ -13,7 +13,7 @@ name = "cli"
 path = "src/bin/cli.rs"
 
 [dependencies]
-scriper = { path = "../scriper" }
+readable_text = { path = "../readable_text" }
 anyhow = "1.0.86"
 axum = "0.7.5"
 log = "0.4.22"
@@ -42,3 +42,4 @@ clap = { version = "4.5.17", features = ["derive"] }
 wavers = "1.4.3"
 srtlib = "0.2.0"
 chrono = "0.4.38"
+async-trait = "0.1.83"

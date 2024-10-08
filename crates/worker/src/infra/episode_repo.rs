@@ -1,12 +1,8 @@
-use super::episode::Episode;
+use crate::episode::{Episode, EpisodeRepo};
+use axum::async_trait;
 use chrono::Local;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
-
-pub(crate) trait EpisodeRepo {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Episode>>;
-    async fn update(&self, episode: &Episode) -> anyhow::Result<()>;
-}
 
 pub(crate) struct PostgresEpisodeRepo {
     pub(crate) pool: Pool<Postgres>,
@@ -18,6 +14,7 @@ impl PostgresEpisodeRepo {
     }
 }
 
+#[async_trait]
 impl EpisodeRepo for PostgresEpisodeRepo {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Episode>> {
         let episode = sqlx::query_as!(Episode, "select * from episodes where id = $1", id)
@@ -43,6 +40,7 @@ impl EpisodeRepo for PostgresEpisodeRepo {
 
 pub(crate) struct DummyEpisodeRepo;
 
+#[async_trait]
 impl EpisodeRepo for DummyEpisodeRepo {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Episode>> {
         let episode = Episode {
@@ -58,7 +56,7 @@ impl EpisodeRepo for DummyEpisodeRepo {
     }
 
     async fn update(&self, episode: &Episode) -> anyhow::Result<()> {
-        log::info!("{}", episode);
+        log::info!("{:?}", episode);
         Ok(())
     }
 }
