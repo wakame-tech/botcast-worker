@@ -1,4 +1,4 @@
-use crate::infra::voicevox_client::VoiceVoxClient;
+use crate::{app_module::AppModule, infra::voicevox_client::VoiceVoxClient};
 use axum::{
     http::StatusCode,
     response::IntoResponse,
@@ -51,15 +51,15 @@ async fn version() -> Result<impl IntoResponse, AppError> {
     })))
 }
 
-fn create_router(router: Router) -> Router {
+fn create_router(router: Router<AppModule>) -> Router<AppModule> {
     router
         .route("/version", get(version))
         .route("/run", post(run_task))
 }
 
-pub async fn start_api() -> anyhow::Result<()> {
-    let router = Router::new();
-    let app = create_router(router);
+pub async fn start_api(app_module: AppModule) -> anyhow::Result<()> {
+    let router = Router::<AppModule>::new();
+    let app = create_router(router).with_state(app_module);
     let port = std::env::var("PORT").unwrap_or("9001".to_string());
     log::info!("Listen port: {}", port);
     let listener = tokio::net::TcpListener::bind(&format!("0.0.0.0:{}", port)).await?;

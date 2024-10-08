@@ -7,10 +7,11 @@ use reqwest::Url;
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub(crate) struct TaskService {
     pub(crate) task_repo: Arc<dyn TaskRepo>,
-    pub(crate) episode_service: Arc<EpisodeService>,
-    pub(crate) scrape_service: Arc<ScrapeService>,
+    pub(crate) episode_service: EpisodeService,
+    pub(crate) scrape_service: ScrapeService,
 }
 
 impl TaskService {

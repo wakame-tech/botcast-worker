@@ -6,6 +6,7 @@ use reqwest::Url;
 use std::{fs::File, io::Write, sync::Arc};
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub(crate) struct ScrapeService {
     pub(crate) episode_repo: Arc<dyn EpisodeRepo>,
 }

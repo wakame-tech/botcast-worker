@@ -6,6 +6,7 @@ use crate::infra::{
 use std::{fs::File, io::Read, sync::Arc};
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub(crate) struct EpisodeService {
     pub(crate) episode_repo: Arc<dyn EpisodeRepo>,
     pub(crate) storage: Arc<dyn Storage>,
