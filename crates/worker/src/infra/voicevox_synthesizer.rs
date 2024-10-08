@@ -1,15 +1,26 @@
-use crate::{
-    episode::episode_service::{AudioSynthesizer, SynthesisResult},
-    infra::{
-        ffmpeg::{concat_audios, get_duration},
-        voicevox_client::{VoiceVoxClient, VoiceVoxSpeaker},
-        workdir::WorkDir,
-    },
+use crate::infra::{
+    ffmpeg::{concat_audios, get_duration},
+    voicevox_client::{VoiceVoxClient, VoiceVoxSpeaker},
+    workdir::WorkDir,
 };
 use axum::async_trait;
 use srtlib::{Subtitle, Subtitles, Timestamp};
-use std::{fs::File, time::Duration};
+use std::{fs::File, path::PathBuf, time::Duration};
 use wavers::Wav;
+
+pub(crate) struct SynthesisResult {
+    pub(crate) out_path: PathBuf,
+    pub(crate) srt: String,
+}
+
+#[async_trait]
+pub(crate) trait AudioSynthesizer: Send + Sync {
+    async fn synthesis_sentences(
+        &self,
+        work_dir: &WorkDir,
+        sentences: Vec<String>,
+    ) -> anyhow::Result<SynthesisResult>;
+}
 
 pub(crate) struct VoiceVoxAudioSynthesizer {
     client: VoiceVoxClient,

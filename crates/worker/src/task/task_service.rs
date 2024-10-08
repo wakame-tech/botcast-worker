@@ -1,19 +1,32 @@
 use super::{Task, TaskRepo, TaskStatus};
-use crate::{api::Args, episode::episode_service::EpisodeService};
+use crate::{
+    api::Args,
+    episode::{episode_service::EpisodeService, scrape_service::ScrapeService},
+};
+use reqwest::Url;
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub(crate) struct TaskService {
-    pub(crate) task_repo: Box<dyn TaskRepo>,
+    pub(crate) task_repo: Arc<dyn TaskRepo>,
     pub(crate) episode_service: Arc<EpisodeService>,
+    pub(crate) scrape_service: Arc<ScrapeService>,
 }
 
 impl TaskService {
+    async fn run(&self, task_id: Uuid, episode_id: Uuid, url: Url) -> anyhow::Result<()> {
+        let sentences = self
+            .scrape_service
+            .generate_script_from_url(task_id, episode_id, url)
+            .await?;
+        self.episode_service
+            .synthesis_audio(task_id, episode_id, sentences)
+            .await?;
+        Ok(())
+    }
+
     async fn run_task(&self, mut task: Task, args: Args) -> anyhow::Result<()> {
-        task.status = match self
-            .episode_service
-            .run(task.id, args.episode_id, args.url.parse()?)
-            .await
-        {
+        task.status = match self.run(task.id, args.episode_id, args.url.parse()?).await {
             Ok(()) => TaskStatus::Completed,
             Err(e) => {
                 log::error!("Failed to run task: {:?}", e);

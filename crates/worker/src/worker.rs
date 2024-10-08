@@ -1,5 +1,5 @@
 use crate::{
-    episode::episode_service::EpisodeService,
+    episode::{episode_service::EpisodeService, scrape_service::ScrapeService},
     infra::{
         episode_repo::PostgresEpisodeRepo, r2_storage::R2Storage, task_repo::PostgresTaskRepo,
         voicevox_synthesizer::VoiceVoxAudioSynthesizer,
@@ -15,18 +15,23 @@ pub fn start_worker() {
         let pool = sqlx::PgPool::connect(&database_url)
             .await
             .expect("Failed to connect to DB");
-        let episode_repo = PostgresEpisodeRepo::new(pool.clone());
-        let storage = R2Storage::new().expect("Failed to create storage");
+        let episode_repo = Arc::new(PostgresEpisodeRepo::new(pool.clone()));
+        let storage = Arc::new(R2Storage::new().expect("Failed to create storage"));
+        let synthesizer = Arc::new(VoiceVoxAudioSynthesizer::default());
         let episode_service = Arc::new(EpisodeService {
-            episode_repo: Box::new(episode_repo),
-            storage: Box::new(storage),
-            synthesizer: Box::new(VoiceVoxAudioSynthesizer::default()),
+            episode_repo: episode_repo.clone(),
+            storage: storage.clone(),
+            synthesizer: synthesizer.clone(),
+        });
+        let scrape_service = Arc::new(ScrapeService {
+            episode_repo: episode_repo.clone(),
         });
 
-        let task_repo = PostgresTaskRepo::new(pool.clone());
+        let task_repo = Arc::new(PostgresTaskRepo::new(pool.clone()));
         let task_service = Arc::new(TaskService {
-            task_repo: Box::new(task_repo),
+            task_repo: task_repo.clone(),
             episode_service: episode_service.clone(),
+            scrape_service,
         });
 
         loop {

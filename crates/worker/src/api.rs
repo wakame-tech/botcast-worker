@@ -1,3 +1,4 @@
+use crate::infra::voicevox_client::VoiceVoxClient;
 use axum::{
     http::StatusCode,
     response::IntoResponse,
@@ -6,14 +7,6 @@ use axum::{
 };
 use serde_json::{json, Value};
 use uuid::Uuid;
-
-use crate::{
-    episode::episode_service::EpisodeService,
-    infra::{
-        episode_repo::DummyEpisodeRepo, r2_storage::DummyStorage, voicevox_client::VoiceVoxClient,
-        voicevox_synthesizer::VoiceVoxAudioSynthesizer,
-    },
-};
 
 #[derive(Debug)]
 struct AppError(anyhow::Error);
@@ -33,16 +26,6 @@ where
     }
 }
 
-impl EpisodeService {
-    fn dummy() -> Self {
-        Self {
-            episode_repo: Box::new(DummyEpisodeRepo),
-            storage: Box::new(DummyStorage),
-            synthesizer: Box::new(VoiceVoxAudioSynthesizer::default()),
-        }
-    }
-}
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Args {
     pub(crate) episode_id: Uuid,
@@ -52,10 +35,9 @@ pub(crate) struct Args {
 async fn run_task(Json(body): Json<Value>) -> Result<impl IntoResponse, AppError> {
     let args: Args = serde_json::from_value(body)?;
     let task_id = Uuid::new_v4();
-    let episode_service = EpisodeService::dummy();
-    episode_service
-        .run(task_id, args.episode_id, args.url.parse()?)
-        .await?;
+    // episode_service
+    //     .run(task_id, args.episode_id, args.url.parse()?)
+    //     .await?;
     Ok("")
 }
 
