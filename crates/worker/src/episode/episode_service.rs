@@ -1,9 +1,9 @@
 use super::{
     generate_audio::{generate_audio, SynthesisResult},
     script_service::ScriptService,
-    EpisodeRepo, ScriptRepo,
 };
 use crate::infra::{workdir::WorkDir, Storage};
+use repos::repo::{EpisodeRepo, ScriptRepo};
 use script_runtime::Manuscript;
 use std::{fs::File, io::Read, sync::Arc};
 use uuid::Uuid;

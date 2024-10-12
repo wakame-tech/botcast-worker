@@ -1,4 +1,4 @@
-use super::ScriptRepo;
+use repos::repo::ScriptRepo;
 use script_runtime::Manuscript;
 use std::sync::Arc;
 

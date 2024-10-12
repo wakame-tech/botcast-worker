@@ -17,6 +17,7 @@ readable_text = { path = "../readable_text" }
 script_http_client = { path = "../script_http_client" }
 script_runtime = { path = "../script_runtime" }
 script_audio_generator = { path = "../script_audio_generator" }
+repos = { path = "../repos" }
 anyhow = "1.0.86"
 axum = "0.7.5"
 log = "0.4.22"

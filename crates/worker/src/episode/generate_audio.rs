@@ -1,4 +1,4 @@
-use super::resolve_urn::{resolve_generator, resolve_urn};
+use super::resolve_urn::{resolve_audio_generator, resolve_urn};
 use crate::infra::{
     ffmpeg::{concat_audios, get_duration},
     workdir::WorkDir,
@@ -61,7 +61,7 @@ pub(crate) async fn generate_audio(
         },
     ) in sentences.iter().enumerate()
     {
-        let generator = resolve_generator(&generator)?;
+        let generator = resolve_audio_generator(&generator)?;
         let sentence_wav_path = work_dir.dir().join(format!("{}.wav", i));
         let wav = generator.generate(speaker_id, text).await?;
         let mut sentence_wav = File::create(&sentence_wav_path)?;

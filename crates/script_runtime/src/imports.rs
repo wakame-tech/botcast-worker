@@ -25,9 +25,12 @@ impl Imports {
         Ok(chrono::Local::now().format(&format).to_string())
     }
 
-    pub(crate) async fn get(&self, urn: Urn) -> Result<String> {
+    pub(crate) async fn get(&self, _urn: Urn) -> Result<Value> {
         // TODO
-        Ok(urn.0)
+        let dummy = serde_json::json!({
+            "name": "dummy",
+        });
+        Ok(dummy.into())
     }
 
     pub(crate) async fn fetch(&self, url: String) -> Result<String> {
@@ -65,7 +68,7 @@ fn get<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>> {
         match args {
             [Value::String(urn)] => {
                 let resource = imports.get(Urn(urn.clone())).await?;
-                Ok(Value::String(resource))
+                Ok(resource)
             }
             _ => Err(anyhow::anyhow!("get only supports a string".to_string())),
         }

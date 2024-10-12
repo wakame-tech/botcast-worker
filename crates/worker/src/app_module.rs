@@ -1,11 +1,9 @@
 use crate::{
     episode::{episode_service::EpisodeService, script_service::ScriptService},
-    infra::{
-        episode_repo::PostgresEpisodeRepo, r2_storage::R2Storage, script_repo::PostgresScriptRepo,
-        task_repo::PostgresTaskRepo,
-    },
+    infra::{r2_storage::R2Storage, task_repo::PostgresTaskRepo},
     task::task_service::TaskService,
 };
+use repos::postgres::{PostgresEpisodeRepo, PostgresScriptRepo};
 use std::sync::Arc;
 
 #[derive(Clone)]
