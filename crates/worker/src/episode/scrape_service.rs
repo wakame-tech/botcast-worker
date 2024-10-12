@@ -1,8 +1,9 @@
 use super::EpisodeRepo;
-use crate::{episode::use_work_dir, infra::http_client::HttpClient};
+use crate::episode::use_work_dir;
 use anyhow::{anyhow, Context};
 use readable_text::{html2md::Html2MdExtractor, Extractor};
 use reqwest::Url;
+use script_http_client::HttpClient;
 use std::{fs::File, io::Write, sync::Arc};
 use uuid::Uuid;
 
@@ -25,7 +26,7 @@ impl ScrapeService {
             .await?
             .ok_or_else(|| anyhow!("Episode not found"))?;
 
-        let client = HttpClient::default();
+        let client = HttpClient::new(std::env::var("USER_AGENT").ok());
         let html = client
             .fetch_content_as_utf8(url)
             .await
