@@ -13,7 +13,7 @@ struct Args {
 async fn main() -> anyhow::Result<()> {
     let client = HttpClient::new(std::env::var("USER_AGENT").ok());
     let args = Args::try_parse()?;
-    let html = client.fetch_content_as_utf8(args.url.parse()?).await?;
+    let html = client.fetch_content_as_utf8(args.url).await?;
     let mut out_html = OpenOptions::new()
         .write(true)
         .create(true)

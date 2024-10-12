@@ -13,3 +13,4 @@ json-e = { git = "https://github.com/wakame-tech/json-e", branch = "fix-pub-cont
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
 tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread", "time"] }
+script_http_client = { path = "../script_http_client" }

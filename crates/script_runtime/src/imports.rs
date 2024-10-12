@@ -5,35 +5,49 @@ use json_e::{
     value::{Function, Value},
     Context,
 };
+use script_http_client::HttpClient;
 
-pub(crate) struct Imports;
+pub(crate) struct Imports {
+    http_client: HttpClient,
+}
+
+impl Default for Imports {
+    fn default() -> Self {
+        Self {
+            http_client: HttpClient::new(std::env::var("USER_AGENT").ok()),
+        }
+    }
+}
 
 impl Imports {
-    pub(crate) async fn today(&self, format: String) -> String {
-        chrono::Local::now().format(&format).to_string()
+    pub(crate) async fn today(&self, format: String) -> Result<String> {
+        Ok(chrono::Local::now().format(&format).to_string())
     }
 
-    pub(crate) async fn get(&self, urn: Urn) -> String {
+    pub(crate) async fn get(&self, urn: Urn) -> Result<String> {
         // TODO
-        urn.0
+        Ok(urn.0)
     }
 
-    pub(crate) async fn fetch(&self, url: String) -> String {
-        // TODO
-        url
+    pub(crate) async fn fetch(&self, url: String) -> Result<String> {
+        let html = self.http_client.fetch_content_as_utf8(url).await?;
+        Ok(html)
     }
 
-    pub(crate) async fn llm(&self, _prompt: String) -> String {
+    pub(crate) async fn llm(&self, _prompt: String) -> Result<String> {
         // TODO
-        "llm".to_string()
+        Ok("llm".to_string())
     }
 }
 
 fn today<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>> {
     async move {
-        let imports = Imports;
+        let imports = Imports::default();
         match args {
-            [Value::String(format)] => Ok(Value::String(imports.today(format.clone()).await)),
+            [Value::String(format)] => {
+                let today = imports.today(format.clone()).await?;
+                Ok(Value::String(today))
+            }
             _ => Err(anyhow::anyhow!("today only supports a string".to_string())),
         }
     }
@@ -42,9 +56,12 @@ fn today<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>>
 
 fn get<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>> {
     async move {
-        let imports = Imports;
+        let imports = Imports::default();
         match args {
-            [Value::String(urn)] => Ok(Value::String(imports.get(Urn(urn.clone())).await)),
+            [Value::String(urn)] => {
+                let resource = imports.get(Urn(urn.clone())).await?;
+                Ok(Value::String(resource))
+            }
             _ => Err(anyhow::anyhow!("get only supports a string".to_string())),
         }
     }
@@ -53,9 +70,12 @@ fn get<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>> {
 
 fn fetch<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>> {
     async move {
-        let imports = Imports;
+        let imports = Imports::default();
         match args {
-            [Value::String(url)] => Ok(Value::String(imports.fetch(url.clone()).await)),
+            [Value::String(url)] => {
+                let html = imports.fetch(url.clone()).await?;
+                Ok(Value::String(html))
+            }
             _ => Err(anyhow::anyhow!("fetch only supports a string".to_string())),
         }
     }
@@ -64,9 +84,12 @@ fn fetch<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>>
 
 fn llm<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>> {
     async move {
-        let imports = Imports;
+        let imports = Imports::default();
         match args {
-            [Value::String(prompt)] => Ok(Value::String(imports.llm(prompt.clone()).await)),
+            [Value::String(prompt)] => {
+                let res = imports.llm(prompt.clone()).await?;
+                Ok(Value::String(res))
+            }
             _ => Err(anyhow::anyhow!("llm only supports a string".to_string())),
         }
     }

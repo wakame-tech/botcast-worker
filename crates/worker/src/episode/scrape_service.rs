@@ -28,7 +28,7 @@ impl ScrapeService {
 
         let client = HttpClient::new(std::env::var("USER_AGENT").ok());
         let html = client
-            .fetch_content_as_utf8(url)
+            .fetch_content_as_utf8(url.to_string())
             .await
             .context("Failed to fetch content")?;
         let content = Html2MdExtractor::extract(&html).context("Failed to extract content")?;

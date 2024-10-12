@@ -1,5 +1,4 @@
 use encoding::{all::UTF_8, DecoderTrap, Encoding};
-use reqwest::Url;
 use std::time::Duration;
 
 pub struct HttpClient {
@@ -17,7 +16,7 @@ impl HttpClient {
         }
     }
 
-    pub async fn fetch_content_as_utf8(&self, url: Url) -> anyhow::Result<String> {
+    pub async fn fetch_content_as_utf8(&self, url: String) -> anyhow::Result<String> {
         let res = self.client.get(url).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!("Failed to fetch: {}", res.status());
