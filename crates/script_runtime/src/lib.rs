@@ -1,32 +1,18 @@
-#[cfg(test)]
-mod tests {
-    use anyhow::Result;
-    use json_e::{
-        value::{Function, Value},
-        Context,
-    };
-    use serde_json::json;
+pub mod imports;
+pub mod runtime;
 
-    fn add(_: &Context<'_>, args: &[Value]) -> Result<Value> {
-        match (&args[0], &args[1]) {
-            (Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
-            _ => Err(anyhow::anyhow!("add only supports numbers, got {:?}", args)),
-        }
-    }
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Urn(pub String);
 
-    fn custom_context<'a>() -> Context<'a> {
-        let mut context = Context::default();
-        context.insert("today", Value::String("xx月yy日".to_string()));
-        context.insert("add", Value::Function(Function::new("add", add)));
-        context
-    }
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "type")]
+pub enum Section {
+    Serif { speaker: Urn, text: String },
+}
 
-    #[test]
-    fn test_custom_function() -> Result<()> {
-        let template = json!("こんにちは、${today} 1+2=${add(1, 2)}");
-        let context = custom_context();
-        let result = json_e::render(&template, &context)?;
-        assert_eq!(result, json!("こんにちは、xx月yy日 1+2=3"));
-        Ok(())
-    }
+/// evaluated script
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Manuscript {
+    pub title: String,
+    pub sections: Vec<Section>,
 }
