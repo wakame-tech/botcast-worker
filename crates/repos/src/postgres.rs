@@ -4,15 +4,22 @@ use crate::{
 };
 use async_trait::async_trait;
 use chrono::Local;
-use sqlx::{Pool, Postgres};
+use sqlx::{PgPool, Pool, Postgres};
+use std::sync::LazyLock;
 use uuid::Uuid;
 
 pub struct PostgresEpisodeRepo {
     pool: Pool<Postgres>,
 }
 
+pub static PG_POOL: LazyLock<Pool<Postgres>> = LazyLock::new(|| {
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is required");
+    PgPool::connect_lazy(&database_url).expect("Failed to connect to DB")
+});
+
 impl PostgresEpisodeRepo {
-    pub fn new(pool: Pool<Postgres>) -> Self {
+    pub fn new() -> Self {
+        let pool = PG_POOL.clone();
         Self { pool }
     }
 }
@@ -69,7 +76,8 @@ pub struct PostgresScriptRepo {
 }
 
 impl PostgresScriptRepo {
-    pub fn new(pool: Pool<Postgres>) -> Self {
+    pub fn new() -> Self {
+        let pool = PG_POOL.clone();
         Self { pool }
     }
 }

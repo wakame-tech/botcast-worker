@@ -1,7 +1,13 @@
 use crate::task::{Task, TaskRepo, TaskStatus};
 use axum::async_trait;
+use repos::postgres::PG_POOL;
 use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 use uuid::Uuid;
+
+pub(crate) fn task_repo() -> Arc<dyn TaskRepo> {
+    Arc::new(PostgresTaskRepo::new())
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct PostgresTaskRepo {
@@ -9,7 +15,8 @@ pub(crate) struct PostgresTaskRepo {
 }
 
 impl PostgresTaskRepo {
-    pub(crate) fn new(pool: Pool<Postgres>) -> Self {
+    pub(crate) fn new() -> Self {
+        let pool = PG_POOL.clone();
         Self { pool }
     }
 }

@@ -12,8 +12,6 @@ pub async fn run(template: &serde_json::Value) -> Result<Manuscript> {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use anyhow::Result;
     use futures::{future::BoxFuture, FutureExt};
     use json_e::{
@@ -21,6 +19,7 @@ mod tests {
         Context,
     };
     use serde_json::json;
+    use std::time::Duration;
 
     fn add<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>> {
         async move {

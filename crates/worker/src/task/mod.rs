@@ -1,6 +1,9 @@
+pub mod postgres;
 pub mod task_service;
 
 use axum::async_trait;
+use postgres::PostgresTaskRepo;
+use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]
@@ -26,4 +29,8 @@ pub(crate) trait TaskRepo: Send + Sync {
     async fn create(&self, task: &Task) -> anyhow::Result<()>;
     async fn update(&self, task: &Task) -> anyhow::Result<()>;
     async fn delete(&self, id: &Uuid) -> anyhow::Result<()>;
+}
+
+pub(crate) fn task_repo() -> Arc<dyn TaskRepo> {
+    Arc::new(PostgresTaskRepo::new())
 }

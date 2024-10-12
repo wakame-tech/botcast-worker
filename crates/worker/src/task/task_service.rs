@@ -1,11 +1,22 @@
-use super::{Task, TaskRepo, TaskStatus};
+use super::{postgres::task_repo, Task, TaskRepo, TaskStatus};
 use crate::{
     api::Args,
-    episode::{episode_service::EpisodeService, script_service::ScriptService},
+    episode::{
+        episode_service::{episode_service, EpisodeService},
+        script_service::{script_service, ScriptService},
+    },
 };
 use reqwest::Url;
 use std::sync::Arc;
 use uuid::Uuid;
+
+pub(crate) fn task_service() -> TaskService {
+    TaskService {
+        task_repo: task_repo(),
+        episode_service: episode_service(),
+        script_service: script_service(),
+    }
+}
 
 #[derive(Clone)]
 pub(crate) struct TaskService {

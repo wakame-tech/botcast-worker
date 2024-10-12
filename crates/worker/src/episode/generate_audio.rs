@@ -1,9 +1,9 @@
-use super::resolve_urn::{resolve_audio_generator, resolve_urn};
+use super::resolve_urn::resolve_audio_generator;
 use crate::infra::{
     ffmpeg::{concat_audios, get_duration},
     workdir::WorkDir,
 };
-use script_runtime::{Manuscript, Section};
+use script_runtime::{parse_urn, Manuscript, Section};
 use srtlib::{Subtitle, Subtitles, Timestamp};
 use std::{fs::File, io::Write, path::PathBuf, time::Duration};
 use uuid::Uuid;
@@ -35,14 +35,14 @@ pub(crate) async fn generate_audio(
     for section in manuscript.sections.iter() {
         match section {
             Section::Serif { text, speaker } => {
-                let (generator, speaker_id) = resolve_urn(speaker)?;
+                let (resource, speaker_id) = parse_urn(speaker)?;
                 for sentence in text.split(['\n', '。']) {
                     let sentence = sentence.trim();
                     if sentence.is_empty() {
                         continue;
                     }
                     sentences.push(Sentence {
-                        generator: generator.clone(),
+                        generator: resource.clone(),
                         speaker_id: speaker_id.clone(),
                         text: text.to_string(),
                     });

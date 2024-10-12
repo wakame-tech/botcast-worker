@@ -1,4 +1,4 @@
-use crate::app_module::AppModule;
+use crate::episode::script_service::script_service;
 use axum::{
     http::StatusCode,
     response::IntoResponse,
@@ -33,11 +33,7 @@ pub(crate) struct Args {
 }
 
 async fn eval_script(Json(template): Json<Value>) -> Result<impl IntoResponse, AppError> {
-    let app_module = AppModule::new().await;
-    let manuscript = app_module
-        .script_service
-        .evaluate_to_manuscript(template)
-        .await?;
+    let manuscript = script_service().evaluate_to_manuscript(template).await?;
     Ok(Json(serde_json::to_value(manuscript)?))
 }
 
@@ -48,15 +44,15 @@ async fn version() -> Result<impl IntoResponse, AppError> {
     })))
 }
 
-fn create_router(router: Router<AppModule>) -> Router<AppModule> {
+fn create_router(router: Router) -> Router {
     router
         .route("/version", get(version))
         .route("/evalScript", post(eval_script))
 }
 
-pub async fn start_api(app_module: AppModule) -> anyhow::Result<()> {
-    let router = Router::<AppModule>::new();
-    let app = create_router(router).with_state(app_module);
+pub async fn start_api() -> anyhow::Result<()> {
+    let router = Router::new();
+    let app = create_router(router);
     let port = std::env::var("PORT").unwrap_or("9001".to_string());
     log::info!("Listen port: {}", port);
     let listener = tokio::net::TcpListener::bind(&format!("0.0.0.0:{}", port)).await?;

@@ -1,10 +1,16 @@
-use repos::repo::ScriptRepo;
+use repos::{repo::ScriptRepo, script_repo};
 use script_runtime::Manuscript;
 use std::sync::Arc;
 
+pub(crate) fn script_service() -> ScriptService {
+    ScriptService {
+        script_repo: script_repo(),
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct ScriptService {
-    pub(crate) script_repo: Arc<dyn ScriptRepo>,
+    script_repo: Arc<dyn ScriptRepo>,
 }
 
 impl ScriptService {

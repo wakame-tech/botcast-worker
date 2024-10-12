@@ -1,12 +1,28 @@
 use super::{
     generate_audio::{generate_audio, SynthesisResult},
-    script_service::ScriptService,
+    script_service::{script_service, ScriptService},
 };
-use crate::infra::{workdir::WorkDir, Storage};
-use repos::repo::{EpisodeRepo, ScriptRepo};
+use crate::infra::{
+    r2_storage::{storage, Storage},
+    workdir::WorkDir,
+};
+use repos::{
+    episode_repo,
+    repo::{EpisodeRepo, ScriptRepo},
+    script_repo,
+};
 use script_runtime::Manuscript;
 use std::{fs::File, io::Read, sync::Arc};
 use uuid::Uuid;
+
+pub fn episode_service() -> EpisodeService {
+    EpisodeService {
+        episode_repo: episode_repo(),
+        script_repo: script_repo(),
+        storage: storage(),
+        script_service: script_service(),
+    }
+}
 
 #[derive(Clone)]
 pub(crate) struct EpisodeService {
