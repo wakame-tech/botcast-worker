@@ -11,7 +11,7 @@ use uuid::Uuid;
 pub(crate) struct TaskService {
     pub(crate) task_repo: Arc<dyn TaskRepo>,
     pub(crate) episode_service: EpisodeService,
-    pub(crate) scrape_service: ScriptService,
+    pub(crate) script_service: ScriptService,
 }
 
 impl TaskService {

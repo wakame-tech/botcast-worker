@@ -26,11 +26,11 @@ impl EpisodeRepo for PostgresEpisodeRepo {
     async fn update(&self, episode: &Episode) -> anyhow::Result<()> {
         sqlx::query_as!(
             Episode,
-            "update episodes set title = $2, audio_url = $3, script_url = $4 where id = $1",
+            "update episodes set title = $2, audio_url = $3, manuscript = $4 where id = $1",
             episode.id,
             episode.title,
             episode.audio_url,
-            episode.script_url,
+            episode.manuscript,
         )
         .execute(&self.pool)
         .await?;
@@ -47,7 +47,8 @@ impl EpisodeRepo for DummyEpisodeRepo {
             id: *id,
             title: "dummy".to_string(),
             audio_url: None,
-            script_url: None,
+            script_id: Uuid::new_v4(),
+            manuscript: None,
             podcast_id: Uuid::new_v4(),
             user_id: None,
             created_at: Local::now().to_utc().to_rfc3339(),

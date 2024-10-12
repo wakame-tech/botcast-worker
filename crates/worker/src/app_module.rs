@@ -1,8 +1,8 @@
 use crate::{
     episode::{episode_service::EpisodeService, script_service::ScriptService},
     infra::{
-        episode_repo::PostgresEpisodeRepo, r2_storage::R2Storage, task_repo::PostgresTaskRepo,
-        voicevox_synthesizer::VoiceVoxAudioSynthesizer,
+        episode_repo::PostgresEpisodeRepo, r2_storage::R2Storage, script_repo::PostgresScriptRepo,
+        task_repo::PostgresTaskRepo, voicevox_synthesizer::VoiceVoxAudioSynthesizer,
     },
     task::task_service::TaskService,
 };
@@ -12,7 +12,7 @@ use std::sync::Arc;
 pub struct AppModule {
     pub(crate) task_service: TaskService,
     pub(crate) episode_service: EpisodeService,
-    pub(crate) scrape_service: ScriptService,
+    pub(crate) script_service: ScriptService,
 }
 
 impl AppModule {
@@ -30,21 +30,22 @@ impl AppModule {
             storage: storage.clone(),
             synthesizer: synthesizer.clone(),
         };
-        let scrape_service = ScriptService {
-            episode_repo: episode_repo.clone(),
+        let script_repo = Arc::new(PostgresScriptRepo::new(pool.clone()));
+        let script_service = ScriptService {
+            script_repo: script_repo.clone(),
         };
 
         let task_repo = Arc::new(PostgresTaskRepo::new(pool.clone()));
         let task_service = TaskService {
             task_repo: task_repo.clone(),
             episode_service: episode_service.clone(),
-            scrape_service: scrape_service.clone(),
+            script_service: script_service.clone(),
         };
 
         Self {
             task_service,
             episode_service,
-            scrape_service,
+            script_service,
         }
     }
 }

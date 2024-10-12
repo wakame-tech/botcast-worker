@@ -1,6 +1,7 @@
 pub mod episode_repo;
 pub mod ffmpeg;
 pub mod r2_storage;
+pub mod script_repo;
 pub mod task_repo;
 pub mod voicevox_client;
 pub mod voicevox_synthesizer;
