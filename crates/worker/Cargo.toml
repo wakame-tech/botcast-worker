@@ -40,7 +40,5 @@ tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
 clap = { version = "4.5.17", features = ["derive"] }
-wavers = "1.4.3"
-srtlib = "0.2.0"
 chrono = "0.4.38"
 async-trait = "0.1.83"

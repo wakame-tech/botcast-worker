@@ -2,10 +2,10 @@ use std::{fs, path::PathBuf};
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub(crate) struct WorkDir(PathBuf, bool /* keep */);
+pub struct WorkDir(PathBuf, bool /* keep */);
 
 impl WorkDir {
-    pub(crate) fn new(task_id: &Uuid, keep: bool) -> anyhow::Result<Self> {
+    pub fn new(task_id: &Uuid, keep: bool) -> anyhow::Result<Self> {
         let task_id = task_id.hyphenated().to_string();
         let work_dir = PathBuf::from("temp").join(&task_id);
         if !work_dir.exists() {
@@ -14,7 +14,7 @@ impl WorkDir {
         Ok(Self(PathBuf::from("temp").join(&task_id), keep))
     }
 
-    pub(crate) fn dir(&self) -> &PathBuf {
+    pub fn dir(&self) -> &PathBuf {
         &self.0
     }
 }

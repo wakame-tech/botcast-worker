@@ -1,56 +1,49 @@
-use super::{resolve_urn::resolve_audio_generator, Manuscript, Section};
-use crate::infra::{
+use crate::{
     ffmpeg::{concat_audios, get_duration},
+    voicevox::client::VoiceVoxClient,
     workdir::WorkDir,
+    AudioGenerator,
 };
-use script_runtime::parse_urn;
+use anyhow::Result;
 use srtlib::{Subtitle, Subtitles, Timestamp};
 use std::{fs::File, io::Write, path::PathBuf, time::Duration};
-use uuid::Uuid;
 use wavers::Wav;
 
-fn use_work_dir(task_id: &Uuid) -> anyhow::Result<WorkDir> {
-    let keep = std::env::var("KEEP_WORKDIR")
-        .unwrap_or("false".to_string())
-        .parse()?;
-    WorkDir::new(task_id, keep)
+fn resolve_audio_generator(resource: &str) -> Result<Box<dyn AudioGenerator>> {
+    match resource {
+        "voicevox" => {
+            let end_point = std::env::var("VOICEVOX_ENDPOINT")?;
+            Ok(Box::new(VoiceVoxClient::new(end_point)))
+        }
+        _ => anyhow::bail!("Unsupported generator: {}", resource),
+    }
 }
 
-struct Sentence {
+pub struct Sentence {
     generator: String,
     speaker_id: String,
     text: String,
 }
 
-pub(crate) struct SynthesisResult {
-    pub(crate) out_path: PathBuf,
-    pub(crate) srt: String,
-}
-
-pub(crate) async fn generate_audio(
-    work_dir: &WorkDir,
-    manuscript: &Manuscript,
-) -> anyhow::Result<SynthesisResult> {
-    let mut sentences = vec![];
-    for section in manuscript.sections.iter() {
-        match section {
-            Section::Serif { text, speaker } => {
-                let (resource, speaker_id) = parse_urn(speaker)?;
-                for sentence in text.split(['\n', '。']) {
-                    let sentence = sentence.trim();
-                    if sentence.is_empty() {
-                        continue;
-                    }
-                    sentences.push(Sentence {
-                        generator: resource.clone(),
-                        speaker_id: speaker_id.clone(),
-                        text: text.to_string(),
-                    });
-                }
-            }
+impl Sentence {
+    pub fn new(generator: String, speaker_id: String, text: String) -> Self {
+        Self {
+            generator,
+            speaker_id,
+            text,
         }
     }
+}
 
+pub struct SynthesisResult {
+    pub out_path: PathBuf,
+    pub srt: String,
+}
+
+pub async fn generate_audio(
+    work_dir: &WorkDir,
+    sentences: &[Sentence],
+) -> anyhow::Result<SynthesisResult> {
     let mut paths = vec![];
     for (
         i,

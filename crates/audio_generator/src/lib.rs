@@ -1,4 +1,7 @@
+pub mod ffmpeg;
+pub mod generate_audio;
 pub mod voicevox;
+pub mod workdir;
 
 use async_trait::async_trait;
 

@@ -6,7 +6,6 @@ use axum::{
     Json, Router,
 };
 use serde_json::{json, Value};
-use uuid::Uuid;
 
 #[derive(Debug)]
 struct AppError(anyhow::Error);
@@ -24,12 +23,6 @@ where
     fn from(err: E) -> Self {
         Self(err.into())
     }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) struct Args {
-    pub(crate) episode_id: Uuid,
-    pub(crate) url: String,
 }
 
 async fn eval_script(Json(template): Json<Value>) -> Result<impl IntoResponse, AppError> {

@@ -175,7 +175,11 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "srtlib",
+ "tokio",
  "urlencoding",
+ "uuid",
+ "wavers",
 ]
 
 [[package]]
@@ -3621,12 +3625,10 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
- "srtlib",
  "tokio",
  "tracing",
  "tracing-subscriber",
  "uuid",
- "wavers",
 ]
 
 [[package]]

@@ -1,10 +1,10 @@
 use super::{
-    generate_audio::{generate_audio, SynthesisResult},
     script_service::{script_service, ScriptService},
-    Manuscript,
+    Manuscript, Section,
 };
-use crate::infra::{
-    r2_storage::{storage, Storage},
+use crate::r2_storage::{storage, Storage};
+use audio_generator::{
+    generate_audio::{generate_audio, Sentence, SynthesisResult},
     workdir::WorkDir,
 };
 use repos::{
@@ -12,6 +12,7 @@ use repos::{
     repo::{EpisodeRepo, ScriptRepo},
     script_repo,
 };
+use script_runtime::parse_urn;
 use std::{fs::File, io::Read, sync::Arc};
 use uuid::Uuid;
 
@@ -34,7 +35,6 @@ pub(crate) struct EpisodeService {
 
 impl EpisodeService {
     pub(crate) async fn generate_manuscript(&self, episode_id: Uuid) -> anyhow::Result<()> {
-        // let work_dir = use_work_dir(&task_id)?;
         let mut episode = self
             .episode_repo
             .find_by_id(&episode_id)
@@ -72,7 +72,26 @@ impl EpisodeService {
         let manuscript: Manuscript = serde_json::from_value(manuscript)?;
         episode.title = manuscript.title.clone();
 
-        let SynthesisResult { out_path, srt, .. } = generate_audio(work_dir, &manuscript).await?;
+        let mut sentences = vec![];
+        for section in manuscript.sections.iter() {
+            match section {
+                Section::Serif { text, speaker } => {
+                    let (resource, speaker_id) = parse_urn(speaker)?;
+                    for sentence in text.split(['\n', '。']) {
+                        let sentence = sentence.trim();
+                        if sentence.is_empty() {
+                            continue;
+                        }
+                        sentences.push(Sentence::new(
+                            resource.clone(),
+                            speaker_id.clone(),
+                            text.to_string(),
+                        ));
+                    }
+                }
+            }
+        }
+        let SynthesisResult { out_path, srt, .. } = generate_audio(work_dir, &sentences).await?;
 
         self.episode_repo.update(&episode).await?;
 

@@ -23,6 +23,12 @@ pub(crate) struct Task {
     pub args: serde_json::Value,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub(crate) struct Args {
+    pub(crate) episode_id: Uuid,
+    pub(crate) url: String,
+}
+
 #[async_trait]
 pub(crate) trait TaskRepo: Send + Sync {
     async fn pop(&self) -> anyhow::Result<Option<Task>>;

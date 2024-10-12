@@ -1,10 +1,7 @@
-use super::{postgres::task_repo, Task, TaskRepo, TaskStatus};
-use crate::{
-    api::Args,
-    episode::{
-        episode_service::{episode_service, EpisodeService},
-        script_service::{script_service, ScriptService},
-    },
+use super::{postgres::task_repo, Args, Task, TaskRepo, TaskStatus};
+use crate::episode::{
+    episode_service::{episode_service, EpisodeService},
+    script_service::{script_service, ScriptService},
 };
 use reqwest::Url;
 use std::sync::Arc;
