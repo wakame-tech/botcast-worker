@@ -55,7 +55,7 @@ impl EpisodeService {
         Ok(())
     }
 
-    pub(crate) async fn synthesis_audio(
+    pub(crate) async fn generate_audio(
         &self,
         work_dir: &WorkDir,
         episode_id: Uuid,

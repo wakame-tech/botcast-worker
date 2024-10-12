@@ -1,9 +1,11 @@
-use super::{postgres::task_repo, Args, Task, TaskRepo, TaskStatus};
-use crate::episode::{
-    episode_service::{episode_service, EpisodeService},
-    script_service::{script_service, ScriptService},
+use super::{
+    model::{Args, Task, TaskStatus},
+    repo::{task_repo, TaskRepo},
 };
-use reqwest::Url;
+use crate::{
+    episode::episode_service::{episode_service, EpisodeService},
+    worker::use_work_dir,
+};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -11,31 +13,33 @@ pub(crate) fn task_service() -> TaskService {
     TaskService {
         task_repo: task_repo(),
         episode_service: episode_service(),
-        script_service: script_service(),
     }
 }
 
 #[derive(Clone)]
 pub(crate) struct TaskService {
-    pub(crate) task_repo: Arc<dyn TaskRepo>,
-    pub(crate) episode_service: EpisodeService,
-    pub(crate) script_service: ScriptService,
+    task_repo: Arc<dyn TaskRepo>,
+    episode_service: EpisodeService,
 }
 
 impl TaskService {
-    async fn run(&self, task_id: Uuid, episode_id: Uuid, url: Url) -> anyhow::Result<()> {
-        // let sentences = self
-        //     .scrape_service
-        //     .evaluate_to_manuscript(task_id, episode_id, url)
-        //     .await?;
-        // self.episode_service
-        //     .synthesis_audio(task_id, episode_id, sentences)
-        //     .await?;
+    async fn execute(&self, task_id: Uuid, args: Args) -> anyhow::Result<()> {
+        match args {
+            Args::GenerateAudio { episode_id } => {
+                let work_dir = use_work_dir(&task_id)?;
+                self.episode_service
+                    .generate_audio(&work_dir, episode_id)
+                    .await?;
+            }
+            Args::EvaluateScript { episode_id } => {
+                self.episode_service.generate_manuscript(episode_id).await?;
+            }
+        }
         Ok(())
     }
 
     async fn run_task(&self, mut task: Task, args: Args) -> anyhow::Result<()> {
-        task.status = match self.run(task.id, args.episode_id, args.url.parse()?).await {
+        task.status = match self.execute(task.id, args).await {
             Ok(()) => TaskStatus::Completed,
             Err(e) => {
                 log::error!("Failed to run task: {:?}", e);

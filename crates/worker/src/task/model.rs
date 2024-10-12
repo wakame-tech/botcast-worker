@@ -1,0 +1,25 @@
+use uuid::Uuid;
+
+#[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]
+#[sqlx(type_name = "task_status", rename_all = "UPPERCASE")]
+pub(crate) enum TaskStatus {
+    None,
+    Pending,
+    Running,
+    Completed,
+    Failed,
+}
+
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
+pub(crate) struct Task {
+    pub id: Uuid,
+    pub status: TaskStatus,
+    pub args: serde_json::Value,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "type")]
+pub(crate) enum Args {
+    GenerateAudio { episode_id: Uuid },
+    EvaluateScript { episode_id: Uuid },
+}
