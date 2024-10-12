@@ -7,7 +7,7 @@ use serde_json::Value;
 #[async_trait]
 impl AudioGenerator for VoiceVoxClient {
     async fn generate(&self, speaker_id: &str, text: &str) -> Result<Vec<u8>> {
-        let speaker = serde_json::from_str(speaker_id)?;
+        let speaker = speaker_id.parse()?;
         let query = self.query(text, &speaker).await?;
         let audio = self.synthesis(query, &speaker).await?;
         Ok(audio)
@@ -54,6 +54,7 @@ impl VoiceVoxClient {
             urlencoding::encode(text),
             speaker.id()
         );
+        log::info!("Query: {}", url);
         let res = self.client.post(url).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!(
@@ -72,13 +73,8 @@ impl VoiceVoxClient {
         speaker: &VoiceVoxSpeaker,
     ) -> anyhow::Result<Vec<u8>> {
         let url = format!("{}/synthesis?speaker={}", self.endpoint, speaker.id());
-        let res = self
-            .client
-            .post(url)
-            .header("Content-Type", "application/json")
-            .json(&query)
-            .send()
-            .await?;
+        log::info!("Synthesis: {}", url);
+        let res = self.client.post(url).json(&query).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!(
                 "Failed to synthesis: {} {}",

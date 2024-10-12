@@ -7,53 +7,35 @@
 GET {{worker_origin}}/version
 
 ###
-POST {{worker_origin}}/evalScript
+POST {{worker_origin}}/updateEpisodeScript/972bb33e-f6be-41f4-a1c9-2904d1ae6096
 Content-Type: application/json
 
-{
-  "$let": {
-      "year": { "$eval": "today('%Y')" },
-      "url": "https://www.aozora.gr.jp/cards/000081/files/45630_23908.html"
-  },
-  "in": {
-    "title": "テスト",
-    "sections": [
-      {
-        "type": "Serif",
-        "speaker": "urn:voicevox:zunda:normal",
-        "text": "今年は${year}年です。"
-      },
-      {
-        "type": "Serif",
-        "speaker": "a",
-        "text": { "$eval": "text(fetch(url))" }
-      }
-    ]
-  }
-}
+< test.json
 
 ###
 POST {{worker_origin}}/evalScript
 Content-Type: application/json
 
+< test.json
+
+###
+POST {{worker_origin}}/insertTask
+Content-Type: application/json
+
 {
-  "$let": {
-      "year": { "$eval": "today('%Y')" },
-      "url": "https://www.aozora.gr.jp/cards/000081/files/45630_23908.html"
-  },
-  "in": {
-    "title": "テスト",
-    "sections": [
-      {
-        "type": "Serif",
-        "speaker": "urn:voicevox:zunda_normal",
-        "text": "今年は${year}年です。"
-      },
-      {
-        "type": "Serif",
-        "speaker": "a",
-        "text": { "$eval": "get('urn:episode:5769cf17-001d-45ad-84cd-6c941f0cc8fe').title" }
-      }
-    ]
-  }
+  "type": "EvaluateScript",
+  "episode_id": "5769cf17-001d-45ad-84cd-6c941f0cc8fe"
 }
+
+###
+POST {{worker_origin}}/insertTask
+Content-Type: application/json
+
+{
+  "type": "GenerateAudio",
+  "episode_id": "5769cf17-001d-45ad-84cd-6c941f0cc8fe"
+}
+
+###
+
+POST http://localhost:50021/audio_query?text=こんにちは&speaker=3

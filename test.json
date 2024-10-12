@@ -1,0 +1,23 @@
+{
+    "$let": {
+        "year": { "$eval": "today('%Y')" },
+        "url": "https://www.aozora.gr.jp/cards/000081/files/45630_23908.html"
+    },
+    "in": {
+        "title": "テスト",
+        "sections": [
+            {
+                "type": "Serif",
+                "speaker": "urn:voicevox:zunda_normal",
+                "text": "今年は${year}年です。"
+            },
+            {
+                "type": "Serif",
+                "speaker": "urn:voicevox:zunda_normal",
+                "text": {
+                    "$eval": "get('urn:episode:5769cf17-001d-45ad-84cd-6c941f0cc8fe').title"
+                }
+            }
+        ]
+    }
+}

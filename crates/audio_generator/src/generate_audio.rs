@@ -19,6 +19,7 @@ fn resolve_audio_generator(resource: &str) -> Result<Box<dyn AudioGenerator>> {
     }
 }
 
+#[derive(Debug)]
 pub struct Sentence {
     generator: String,
     speaker_id: String,

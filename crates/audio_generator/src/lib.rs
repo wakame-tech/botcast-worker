@@ -6,6 +6,6 @@ pub mod workdir;
 use async_trait::async_trait;
 
 #[async_trait]
-pub trait AudioGenerator {
+pub trait AudioGenerator: Send + Sync {
     async fn generate(&self, speaker_id: &str, text: &str) -> anyhow::Result<Vec<u8>>;
 }

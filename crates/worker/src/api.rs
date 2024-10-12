@@ -1,11 +1,13 @@
-use crate::episode::script_service::script_service;
+use crate::{episode::script_service::script_service, task::task_service::task_service};
 use axum::{
+    extract::Path,
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
 use serde_json::{json, Value};
+use uuid::Uuid;
 
 #[derive(Debug)]
 struct AppError(anyhow::Error);
@@ -25,9 +27,22 @@ where
     }
 }
 
+async fn update_episode_script(
+    Path(episode_id): Path<Uuid>,
+    Json(template): Json<Value>,
+) -> Result<impl IntoResponse, AppError> {
+    script_service().update_script(episode_id, template).await?;
+    Ok(StatusCode::CREATED)
+}
+
 async fn eval_script(Json(template): Json<Value>) -> Result<impl IntoResponse, AppError> {
     let manuscript = script_service().evaluate_to_manuscript(template).await?;
     Ok(Json(serde_json::to_value(manuscript)?))
+}
+
+async fn insert_task(Json(args): Json<Value>) -> Result<impl IntoResponse, AppError> {
+    task_service().insert_task(args).await?;
+    Ok(StatusCode::CREATED)
 }
 
 async fn version() -> Result<impl IntoResponse, AppError> {
@@ -41,6 +56,11 @@ fn create_router(router: Router) -> Router {
     router
         .route("/version", get(version))
         .route("/evalScript", post(eval_script))
+        .route(
+            "/updateEpisodeScript/:episode_id",
+            post(update_episode_script),
+        )
+        .route("/insertTask", post(insert_task))
 }
 
 pub async fn start_api() -> anyhow::Result<()> {

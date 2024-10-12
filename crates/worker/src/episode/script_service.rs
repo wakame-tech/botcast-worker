@@ -1,6 +1,7 @@
 use super::Manuscript;
 use repos::{repo::ScriptRepo, script_repo};
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub(crate) fn script_service() -> ScriptService {
     ScriptService {
@@ -20,5 +21,20 @@ impl ScriptService {
     ) -> anyhow::Result<Manuscript> {
         let evaluated = script_runtime::runtime::run(&template).await?;
         Ok(serde_json::from_value(evaluated)?)
+    }
+
+    pub(crate) async fn update_script(
+        &self,
+        id: Uuid,
+        template: serde_json::Value,
+    ) -> anyhow::Result<()> {
+        let mut script = self
+            .script_repo
+            .find_by_id(&id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Script not found"))?;
+        script.template = template;
+        self.script_repo.update(&script).await?;
+        Ok(())
     }
 }

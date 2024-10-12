@@ -50,6 +50,17 @@ impl TaskService {
         Ok(())
     }
 
+    pub(crate) async fn insert_task(&self, args: serde_json::Value) -> anyhow::Result<()> {
+        let args: Args = serde_json::from_value(args)?;
+        let task = Task {
+            id: Uuid::new_v4(),
+            status: TaskStatus::Pending,
+            args: serde_json::to_value(args)?,
+        };
+        self.task_repo.create(&task).await?;
+        Ok(())
+    }
+
     pub(crate) async fn batch(&self) -> anyhow::Result<()> {
         let Some(mut task) = self.task_repo.pop().await? else {
             return Ok(());
