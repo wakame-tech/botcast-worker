@@ -15,6 +15,7 @@ path = "src/bin/cli.rs"
 [dependencies]
 readable_text = { path = "../readable_text" }
 script_http_client = { path = "../script_http_client" }
+script_runtime = { path = "../script_runtime" }
 anyhow = "1.0.86"
 axum = "0.7.5"
 log = "0.4.22"

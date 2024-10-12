@@ -1,5 +1,5 @@
 use clap::Parser;
-use readable_text::{html2md::Html2MdExtractor, Extractor};
+use readable_text::ReadableText;
 use script_http_client::HttpClient;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -20,7 +20,7 @@ async fn main() -> anyhow::Result<()> {
         .truncate(true)
         .open("out.html")?;
     writeln!(out_html, "{}", html)?;
-    let md = Html2MdExtractor::extract(&html)?;
+    let md = ReadableText::extract(&html)?;
     let mut out_md = OpenOptions::new()
         .write(true)
         .create(true)

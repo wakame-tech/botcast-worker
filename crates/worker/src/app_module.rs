@@ -1,5 +1,5 @@
 use crate::{
-    episode::{episode_service::EpisodeService, scrape_service::ScrapeService},
+    episode::{episode_service::EpisodeService, script_service::ScriptService},
     infra::{
         episode_repo::PostgresEpisodeRepo, r2_storage::R2Storage, task_repo::PostgresTaskRepo,
         voicevox_synthesizer::VoiceVoxAudioSynthesizer,
@@ -12,7 +12,7 @@ use std::sync::Arc;
 pub struct AppModule {
     pub(crate) task_service: TaskService,
     pub(crate) episode_service: EpisodeService,
-    pub(crate) scrape_service: ScrapeService,
+    pub(crate) scrape_service: ScriptService,
 }
 
 impl AppModule {
@@ -30,7 +30,7 @@ impl AppModule {
             storage: storage.clone(),
             synthesizer: synthesizer.clone(),
         };
-        let scrape_service = ScrapeService {
+        let scrape_service = ScriptService {
             episode_repo: episode_repo.clone(),
         };
 

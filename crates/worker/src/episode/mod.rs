@@ -1,5 +1,5 @@
 pub mod episode_service;
-pub mod scrape_service;
+pub mod script_service;
 
 use axum::async_trait;
 use uuid::Uuid;

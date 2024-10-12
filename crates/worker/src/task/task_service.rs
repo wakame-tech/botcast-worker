@@ -1,7 +1,7 @@
 use super::{Task, TaskRepo, TaskStatus};
 use crate::{
     api::Args,
-    episode::{episode_service::EpisodeService, scrape_service::ScrapeService},
+    episode::{episode_service::EpisodeService, script_service::ScriptService},
 };
 use reqwest::Url;
 use std::sync::Arc;
@@ -11,18 +11,18 @@ use uuid::Uuid;
 pub(crate) struct TaskService {
     pub(crate) task_repo: Arc<dyn TaskRepo>,
     pub(crate) episode_service: EpisodeService,
-    pub(crate) scrape_service: ScrapeService,
+    pub(crate) scrape_service: ScriptService,
 }
 
 impl TaskService {
     async fn run(&self, task_id: Uuid, episode_id: Uuid, url: Url) -> anyhow::Result<()> {
-        let sentences = self
-            .scrape_service
-            .generate_script_from_url(task_id, episode_id, url)
-            .await?;
-        self.episode_service
-            .synthesis_audio(task_id, episode_id, sentences)
-            .await?;
+        // let sentences = self
+        //     .scrape_service
+        //     .evaluate_to_manuscript(task_id, episode_id, url)
+        //     .await?;
+        // self.episode_service
+        //     .synthesis_audio(task_id, episode_id, sentences)
+        //     .await?;
         Ok(())
     }
 
