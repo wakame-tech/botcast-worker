@@ -1,13 +1,11 @@
-use crate::{imports::define_imports, Manuscript};
+use crate::imports::define_imports;
 use anyhow::Result;
 use json_e::Context;
 
-pub async fn run(template: &serde_json::Value) -> Result<Manuscript> {
+pub async fn run(template: &serde_json::Value) -> Result<serde_json::Value> {
     let mut context = Context::new();
     define_imports(&mut context);
-    let result = json_e::render_with_context(template, &context).await?;
-    let manuscript: Manuscript = serde_json::from_value(result)?;
-    Ok(manuscript)
+    json_e::render_with_context(template, &context).await
 }
 
 #[cfg(test)]

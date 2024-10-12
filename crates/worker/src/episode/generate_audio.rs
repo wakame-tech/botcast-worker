@@ -1,9 +1,9 @@
-use super::resolve_urn::resolve_audio_generator;
+use super::{resolve_urn::resolve_audio_generator, Manuscript, Section};
 use crate::infra::{
     ffmpeg::{concat_audios, get_duration},
     workdir::WorkDir,
 };
-use script_runtime::{parse_urn, Manuscript, Section};
+use script_runtime::parse_urn;
 use srtlib::{Subtitle, Subtitles, Timestamp};
 use std::{fs::File, io::Write, path::PathBuf, time::Duration};
 use uuid::Uuid;

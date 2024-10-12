@@ -1,5 +1,5 @@
 use anyhow::Result;
-use script_audio_generator::{voicevox::api::VoiceVoxClient, AudioGenerator};
+use audio_generator::{voicevox::client::VoiceVoxClient, AudioGenerator};
 
 pub(crate) fn resolve_audio_generator(resource: &str) -> Result<Box<dyn AudioGenerator>> {
     match resource {

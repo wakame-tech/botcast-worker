@@ -1,5 +1,5 @@
+use super::Manuscript;
 use repos::{repo::ScriptRepo, script_repo};
-use script_runtime::Manuscript;
 use std::sync::Arc;
 
 pub(crate) fn script_service() -> ScriptService {
@@ -18,7 +18,7 @@ impl ScriptService {
         &self,
         template: serde_json::Value,
     ) -> anyhow::Result<Manuscript> {
-        let manuscript = script_runtime::runtime::run(&template).await?;
-        Ok(manuscript)
+        let evaluated = script_runtime::runtime::run(&template).await?;
+        Ok(serde_json::from_value(evaluated)?)
     }
 }

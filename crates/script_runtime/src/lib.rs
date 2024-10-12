@@ -17,16 +17,3 @@ pub fn parse_urn(urn: &Urn) -> Result<(String, String)> {
     anyhow::ensure!(sig == "urn", "Invalid URN: {}", urn.0);
     Ok((resource.to_string(), resource_id.to_string()))
 }
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "type")]
-pub enum Section {
-    Serif { speaker: Urn, text: String },
-}
-
-/// evaluated script
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Manuscript {
-    pub title: String,
-    pub sections: Vec<Section>,
-}
