@@ -12,15 +12,21 @@ Content-Type: application/json
 
 {
   "$let": {
-      "year": { "$eval": "today('%Y')" }
+      "year": { "$eval": "today('%Y')" },
+      "url": "https://www.aozora.gr.jp/cards/000081/files/45630_23908.html"
   },
   "in": {
     "title": "テスト",
     "sections": [
       {
         "type": "Serif",
-        "speaker": "a",
+        "speaker": "urn:voicevox:zunda:normal",
         "text": "今年は${year}年です。"
+      },
+      {
+        "type": "Serif",
+        "speaker": "a",
+        "text": { "$eval": "text(fetch(url))" }
       }
     ]
   }

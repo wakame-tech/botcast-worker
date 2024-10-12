@@ -1,17 +1,10 @@
 pub mod episode_service;
+mod generate_audio;
+mod resolve_urn;
 pub mod script_service;
 
 use axum::async_trait;
 use uuid::Uuid;
-
-use crate::infra::workdir::WorkDir;
-
-fn use_work_dir(task_id: &Uuid) -> anyhow::Result<WorkDir> {
-    let keep = std::env::var("KEEP_WORKDIR")
-        .unwrap_or("false".to_string())
-        .parse()?;
-    WorkDir::new(task_id, keep)
-}
 
 #[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
 pub(crate) struct Episode {

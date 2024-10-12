@@ -1,4 +1,4 @@
-use crate::{app_module::AppModule, infra::voicevox_client::VoiceVoxClient};
+use crate::app_module::AppModule;
 use axum::{
     http::StatusCode,
     response::IntoResponse,
@@ -43,11 +43,8 @@ async fn eval_script(Json(template): Json<Value>) -> Result<impl IntoResponse, A
 
 async fn version() -> Result<impl IntoResponse, AppError> {
     let worker_version = env!("CARGO_PKG_VERSION");
-    let voicevox = VoiceVoxClient::new();
-    let voicevox_version = voicevox.version().await.map_err(AppError)?;
     Ok(Json(json!({
         "worker": worker_version,
-        "voicevox": voicevox_version,
     })))
 }
 

@@ -2,7 +2,7 @@ use crate::{
     episode::{episode_service::EpisodeService, script_service::ScriptService},
     infra::{
         episode_repo::PostgresEpisodeRepo, r2_storage::R2Storage, script_repo::PostgresScriptRepo,
-        task_repo::PostgresTaskRepo, voicevox_synthesizer::VoiceVoxAudioSynthesizer,
+        task_repo::PostgresTaskRepo,
     },
     task::task_service::TaskService,
 };
@@ -24,7 +24,6 @@ impl AppModule {
 
         let episode_repo = Arc::new(PostgresEpisodeRepo::new(pool.clone()));
         let storage = Arc::new(R2Storage::new().expect("Failed to create storage"));
-        let synthesizer = Arc::new(VoiceVoxAudioSynthesizer::default());
         let script_repo = Arc::new(PostgresScriptRepo::new(pool.clone()));
         let script_service = ScriptService {
             script_repo: script_repo.clone(),
@@ -34,7 +33,6 @@ impl AppModule {
             script_service: script_service.clone(),
             episode_repo: episode_repo.clone(),
             storage: storage.clone(),
-            synthesizer: synthesizer.clone(),
         };
 
         let task_repo = Arc::new(PostgresTaskRepo::new(pool.clone()));

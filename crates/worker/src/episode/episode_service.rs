@@ -1,10 +1,10 @@
-use super::{script_service::ScriptService, EpisodeRepo, ScriptRepo};
-use crate::infra::{
-    voicevox_synthesizer::{AudioSynthesizer, SynthesisResult},
-    workdir::WorkDir,
-    Storage,
+use super::{
+    generate_audio::{generate_audio, SynthesisResult},
+    script_service::ScriptService,
+    EpisodeRepo, ScriptRepo,
 };
-use script_runtime::{Manuscript, Section};
+use crate::infra::{workdir::WorkDir, Storage};
+use script_runtime::Manuscript;
 use std::{fs::File, io::Read, sync::Arc};
 use uuid::Uuid;
 
@@ -13,7 +13,6 @@ pub(crate) struct EpisodeService {
     pub(crate) episode_repo: Arc<dyn EpisodeRepo>,
     pub(crate) script_repo: Arc<dyn ScriptRepo>,
     pub(crate) storage: Arc<dyn Storage>,
-    pub(crate) synthesizer: Arc<dyn AudioSynthesizer>,
     pub(crate) script_service: ScriptService,
 }
 
@@ -56,18 +55,8 @@ impl EpisodeService {
         };
         let manuscript: Manuscript = serde_json::from_value(manuscript)?;
         episode.title = manuscript.title.clone();
-        let sentences = manuscript
-            .sections
-            .iter()
-            .flat_map(|s| match s {
-                Section::Serif { text, .. } => text.split(['。']).map(|s| s.to_string()),
-            })
-            .collect();
 
-        let SynthesisResult { out_path, srt, .. } = self
-            .synthesizer
-            .synthesis_sentences(work_dir, sentences)
-            .await?;
+        let SynthesisResult { out_path, srt, .. } = generate_audio(work_dir, &manuscript).await?;
 
         self.episode_repo.update(&episode).await?;
 

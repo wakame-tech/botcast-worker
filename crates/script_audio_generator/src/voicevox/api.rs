@@ -1,30 +1,14 @@
+use super::speaker::VoiceVoxSpeaker;
 use serde_json::Value;
-use std::path::PathBuf;
-use tokio::{fs, io::AsyncWriteExt};
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) enum VoiceVoxSpeaker {
-    ZundaNormal,
-}
-
-impl VoiceVoxSpeaker {
-    pub(crate) fn id(&self) -> &str {
-        match self {
-            Self::ZundaNormal => "3",
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
-pub(crate) struct VoiceVoxClient {
+pub struct VoiceVoxClient {
     endpoint: String,
     client: reqwest::Client,
 }
 
 impl VoiceVoxClient {
-    pub(crate) fn new() -> Self {
-        let endpoint =
-            std::env::var("VOICEVOX_ENDPOINT").unwrap_or("http://localhost:50021".to_string());
+    pub fn new(endpoint: String) -> Self {
         log::info!("VoiceVox endpoint: {}", endpoint);
         Self {
             endpoint,
@@ -73,8 +57,7 @@ impl VoiceVoxClient {
         &self,
         query: Value,
         speaker: &VoiceVoxSpeaker,
-        out: &PathBuf,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Vec<u8>> {
         let url = format!("{}/synthesis?speaker={}", self.endpoint, speaker.id());
         let res = self
             .client
@@ -91,8 +74,6 @@ impl VoiceVoxClient {
             );
         }
         let res = res.bytes().await?;
-        let mut f = fs::File::create(out).await?;
-        f.write_all(&res).await?;
-        Ok(())
+        Ok(res.to_vec())
     }
 }

@@ -2273,6 +2273,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
+name = "script_audio_generator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "urlencoding",
+]
+
+[[package]]
 name = "script_http_client"
 version = "0.1.0"
 dependencies = [
@@ -3585,6 +3598,7 @@ dependencies = [
  "readable_text",
  "reqwest",
  "rust-s3",
+ "script_audio_generator",
  "script_http_client",
  "script_runtime",
  "serde",
@@ -3594,7 +3608,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "urlencoding",
  "uuid",
  "wavers",
 ]
