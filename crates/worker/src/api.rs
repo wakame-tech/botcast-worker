@@ -32,13 +32,13 @@ pub(crate) struct Args {
     pub(crate) url: String,
 }
 
-async fn run_task(Json(body): Json<Value>) -> Result<impl IntoResponse, AppError> {
-    let args: Args = serde_json::from_value(body)?;
-    let task_id = Uuid::new_v4();
-    // episode_service
-    //     .run(task_id, args.episode_id, args.url.parse()?)
-    //     .await?;
-    Ok("")
+async fn eval_script(Json(template): Json<Value>) -> Result<impl IntoResponse, AppError> {
+    let app_module = AppModule::new().await;
+    let manuscript = app_module
+        .script_service
+        .evaluate_to_manuscript(template)
+        .await?;
+    Ok(Json(serde_json::to_value(manuscript)?))
 }
 
 async fn version() -> Result<impl IntoResponse, AppError> {
@@ -54,7 +54,7 @@ async fn version() -> Result<impl IntoResponse, AppError> {
 fn create_router(router: Router<AppModule>) -> Router<AppModule> {
     router
         .route("/version", get(version))
-        .route("/run", post(run_task))
+        .route("/evalScript", post(eval_script))
 }
 
 pub async fn start_api(app_module: AppModule) -> anyhow::Result<()> {

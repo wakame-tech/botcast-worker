@@ -1,33 +1,72 @@
-use super::{use_work_dir, EpisodeRepo};
+use super::{script_service::ScriptService, EpisodeRepo, ScriptRepo};
 use crate::infra::{
     voicevox_synthesizer::{AudioSynthesizer, SynthesisResult},
+    workdir::WorkDir,
     Storage,
 };
+use script_runtime::{Manuscript, Section};
 use std::{fs::File, io::Read, sync::Arc};
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub(crate) struct EpisodeService {
     pub(crate) episode_repo: Arc<dyn EpisodeRepo>,
+    pub(crate) script_repo: Arc<dyn ScriptRepo>,
     pub(crate) storage: Arc<dyn Storage>,
     pub(crate) synthesizer: Arc<dyn AudioSynthesizer>,
+    pub(crate) script_service: ScriptService,
 }
 
 impl EpisodeService {
+    pub(crate) async fn generate_manuscript(&self, episode_id: Uuid) -> anyhow::Result<()> {
+        // let work_dir = use_work_dir(&task_id)?;
+        let mut episode = self
+            .episode_repo
+            .find_by_id(&episode_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Episode not found"))?;
+        let script = self
+            .script_repo
+            .find_by_id(&episode.script_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Script not found"))?;
+        let manuscript = self
+            .script_service
+            .evaluate_to_manuscript(script.template)
+            .await?;
+
+        episode.manuscript = Some(serde_json::to_value(manuscript)?);
+        self.episode_repo.update(&episode).await?;
+        Ok(())
+    }
+
     pub(crate) async fn synthesis_audio(
         &self,
-        task_id: Uuid,
+        work_dir: &WorkDir,
         episode_id: Uuid,
-        sentences: Vec<String>,
     ) -> anyhow::Result<()> {
-        let work_dir = use_work_dir(&task_id)?;
-        let Some(mut episode) = self.episode_repo.find_by_id(&episode_id).await? else {
-            return Err(anyhow::anyhow!("Episode not found"));
+        let mut episode = self
+            .episode_repo
+            .find_by_id(&episode_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Episode not found"))?;
+
+        let Some(manuscript) = episode.manuscript.clone() else {
+            return Err(anyhow::anyhow!("Manuscript not found"));
         };
+        let manuscript: Manuscript = serde_json::from_value(manuscript)?;
+        episode.title = manuscript.title.clone();
+        let sentences = manuscript
+            .sections
+            .iter()
+            .flat_map(|s| match s {
+                Section::Serif { text, .. } => text.split(['。']).map(|s| s.to_string()),
+            })
+            .collect();
 
         let SynthesisResult { out_path, srt, .. } = self
             .synthesizer
-            .synthesis_sentences(&work_dir, sentences)
+            .synthesis_sentences(work_dir, sentences)
             .await?;
 
         self.episode_repo.update(&episode).await?;
@@ -44,7 +83,6 @@ impl EpisodeService {
         self.storage
             .upload(&srt_path, srt.as_bytes(), "text/plain")
             .await?;
-        episode.script_url = Some(format!("{}/{}", self.storage.get_endpoint(), srt_path));
 
         self.episode_repo.update(&episode).await?;
         Ok(())
