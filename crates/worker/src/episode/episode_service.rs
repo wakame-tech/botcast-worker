@@ -15,7 +15,7 @@ use script_runtime::Manuscript;
 use std::{fs::File, io::Read, sync::Arc};
 use uuid::Uuid;
 
-pub fn episode_service() -> EpisodeService {
+pub(crate) fn episode_service() -> EpisodeService {
     EpisodeService {
         episode_repo: episode_repo(),
         script_repo: script_repo(),

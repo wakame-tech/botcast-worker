@@ -1,17 +1,7 @@
-use std::str::FromStr;
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub(crate) enum VoiceVoxSpeaker {
     ZundaNormal,
-}
-
-impl FromStr for VoiceVoxSpeaker {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        serde_json::from_str(s).map_err(Into::into)
-    }
 }
 
 impl VoiceVoxSpeaker {
@@ -24,9 +14,11 @@ impl VoiceVoxSpeaker {
 
 #[cfg(test)]
 mod tests {
+    use crate::voicevox::speaker::VoiceVoxSpeaker;
+
     #[test]
     fn test_parse_speaker_id() {
-        let speaker: super::VoiceVoxSpeaker = "zundanormal".parse().unwrap();
+        let speaker: VoiceVoxSpeaker = serde_json::from_str(r#""zunda_normal""#).unwrap();
         assert_eq!(speaker.id(), "3");
     }
 }
