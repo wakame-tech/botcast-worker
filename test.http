@@ -7,10 +7,35 @@
 GET {{worker_origin}}/version
 
 ###
-POST {{worker_origin}}/run
+POST {{worker_origin}}/updateEpisodeScript/972bb33e-f6be-41f4-a1c9-2904d1ae6096
+Content-Type: application/json
+
+< test.json
+
+###
+POST {{worker_origin}}/evalScript
+Content-Type: application/json
+
+< test.json
+
+###
+POST {{worker_origin}}/insertTask
 Content-Type: application/json
 
 {
-  "episode_id": "11111111-1111-1111-1111-111111111111",
-  "url": "https://qiita.com/wakame_tech/items/dad2a1bdbdeeb0b41fca"
+  "type": "evaluateScript",
+  "episodeId": "5769cf17-001d-45ad-84cd-6c941f0cc8fe"
 }
+
+###
+POST {{worker_origin}}/insertTask
+Content-Type: application/json
+
+{
+  "type": "generateAudio",
+  "episodeId": "5769cf17-001d-45ad-84cd-6c941f0cc8fe"
+}
+
+###
+
+POST http://localhost:50021/audio_query?text=こんにちは&speaker=3

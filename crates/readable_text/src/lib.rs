@@ -1,6 +1,3 @@
-pub mod html2md;
-pub mod html2text;
+mod html2md;
 
-pub trait Extractor {
-    fn extract(html: &str) -> anyhow::Result<String>;
-}
+pub use html2md::ReadableText;

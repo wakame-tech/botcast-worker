@@ -1,6 +1,16 @@
-use super::Storage;
 use axum::async_trait;
 use s3::{creds::Credentials, Bucket, Region};
+use std::sync::Arc;
+
+#[async_trait]
+pub(crate) trait Storage: Send + Sync {
+    async fn upload(&self, path: &str, data: &[u8], content_type: &str) -> anyhow::Result<()>;
+    fn get_endpoint(&self) -> String;
+}
+
+pub(crate) fn storage() -> Arc<dyn Storage> {
+    Arc::new(R2Storage::new().expect("Failed to create storage"))
+}
 
 #[derive(Debug, Clone)]
 pub struct R2Storage {

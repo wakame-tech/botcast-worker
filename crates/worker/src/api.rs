@@ -1,5 +1,6 @@
-use crate::{app_module::AppModule, infra::voicevox_client::VoiceVoxClient};
+use crate::{episode::script_service::script_service, task::task_service::task_service};
 use axum::{
+    extract::Path,
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
@@ -26,40 +27,45 @@ where
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) struct Args {
-    pub(crate) episode_id: Uuid,
-    pub(crate) url: String,
+async fn update_episode_script(
+    Path(episode_id): Path<Uuid>,
+    Json(template): Json<Value>,
+) -> Result<impl IntoResponse, AppError> {
+    script_service().update_script(episode_id, template).await?;
+    Ok(StatusCode::CREATED)
 }
 
-async fn run_task(Json(body): Json<Value>) -> Result<impl IntoResponse, AppError> {
-    let args: Args = serde_json::from_value(body)?;
-    let task_id = Uuid::new_v4();
-    // episode_service
-    //     .run(task_id, args.episode_id, args.url.parse()?)
-    //     .await?;
-    Ok("")
+async fn eval_script(Json(template): Json<Value>) -> Result<impl IntoResponse, AppError> {
+    let manuscript = script_service().evaluate_to_manuscript(template).await?;
+    Ok(Json(serde_json::to_value(manuscript)?))
+}
+
+async fn insert_task(Json(args): Json<Value>) -> Result<impl IntoResponse, AppError> {
+    task_service().insert_task(args).await?;
+    Ok(StatusCode::CREATED)
 }
 
 async fn version() -> Result<impl IntoResponse, AppError> {
     let worker_version = env!("CARGO_PKG_VERSION");
-    let voicevox = VoiceVoxClient::new();
-    let voicevox_version = voicevox.version().await.map_err(AppError)?;
     Ok(Json(json!({
         "worker": worker_version,
-        "voicevox": voicevox_version,
     })))
 }
 
-fn create_router(router: Router<AppModule>) -> Router<AppModule> {
+fn create_router(router: Router) -> Router {
     router
         .route("/version", get(version))
-        .route("/run", post(run_task))
+        .route("/evalScript", post(eval_script))
+        .route(
+            "/updateEpisodeScript/:episode_id",
+            post(update_episode_script),
+        )
+        .route("/insertTask", post(insert_task))
 }
 
-pub async fn start_api(app_module: AppModule) -> anyhow::Result<()> {
-    let router = Router::<AppModule>::new();
-    let app = create_router(router).with_state(app_module);
+pub async fn start_api() -> anyhow::Result<()> {
+    let router = Router::new();
+    let app = create_router(router);
     let port = std::env::var("PORT").unwrap_or("9001".to_string());
     log::info!("Listen port: {}", port);
     let listener = tokio::net::TcpListener::bind(&format!("0.0.0.0:{}", port)).await?;

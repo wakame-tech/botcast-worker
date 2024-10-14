@@ -1,30 +1,27 @@
+use super::speaker::VoiceVoxSpeaker;
+use crate::AudioGenerator;
+use anyhow::Result;
+use async_trait::async_trait;
 use serde_json::Value;
-use std::path::PathBuf;
-use tokio::{fs, io::AsyncWriteExt};
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) enum VoiceVoxSpeaker {
-    ZundaNormal,
-}
-
-impl VoiceVoxSpeaker {
-    pub(crate) fn id(&self) -> &str {
-        match self {
-            Self::ZundaNormal => "3",
-        }
+#[async_trait]
+impl AudioGenerator for VoiceVoxClient {
+    async fn generate(&self, speaker_id: &str, text: &str) -> Result<Vec<u8>> {
+        let speaker = speaker_id.parse()?;
+        let query = self.query(text, &speaker).await?;
+        let audio = self.synthesis(query, &speaker).await?;
+        Ok(audio)
     }
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct VoiceVoxClient {
+pub struct VoiceVoxClient {
     endpoint: String,
     client: reqwest::Client,
 }
 
 impl VoiceVoxClient {
-    pub(crate) fn new() -> Self {
-        let endpoint =
-            std::env::var("VOICEVOX_ENDPOINT").unwrap_or("http://localhost:50021".to_string());
+    pub fn new(endpoint: String) -> Self {
         log::info!("VoiceVox endpoint: {}", endpoint);
         Self {
             endpoint,
@@ -57,6 +54,7 @@ impl VoiceVoxClient {
             urlencoding::encode(text),
             speaker.id()
         );
+        log::info!("Query: {}", url);
         let res = self.client.post(url).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!(
@@ -73,16 +71,10 @@ impl VoiceVoxClient {
         &self,
         query: Value,
         speaker: &VoiceVoxSpeaker,
-        out: &PathBuf,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Vec<u8>> {
         let url = format!("{}/synthesis?speaker={}", self.endpoint, speaker.id());
-        let res = self
-            .client
-            .post(url)
-            .header("Content-Type", "application/json")
-            .json(&query)
-            .send()
-            .await?;
+        log::info!("Synthesis: {}", url);
+        let res = self.client.post(url).json(&query).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!(
                 "Failed to synthesis: {} {}",
@@ -91,8 +83,6 @@ impl VoiceVoxClient {
             );
         }
         let res = res.bytes().await?;
-        let mut f = fs::File::create(out).await?;
-        f.write_all(&res).await?;
-        Ok(())
+        Ok(res.to_vec())
     }
 }

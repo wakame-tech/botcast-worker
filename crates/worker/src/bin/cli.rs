@@ -1,8 +1,8 @@
 use clap::Parser;
-use readable_text::{html2md::Html2MdExtractor, Extractor};
+use readable_text::ReadableText;
+use script_http_client::HttpClient;
 use std::fs::OpenOptions;
 use std::io::Write;
-use worker::infra::http_client::HttpClient;
 
 #[derive(Debug, clap::Parser)]
 struct Args {
@@ -11,16 +11,16 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let client = HttpClient::default();
+    let client = HttpClient::new(std::env::var("USER_AGENT").ok());
     let args = Args::try_parse()?;
-    let html = client.fetch_content_as_utf8(args.url.parse()?).await?;
+    let html = client.fetch_content_as_utf8(args.url).await?;
     let mut out_html = OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
         .open("out.html")?;
     writeln!(out_html, "{}", html)?;
-    let md = Html2MdExtractor::extract(&html)?;
+    let md = ReadableText::extract(&html)?;
     let mut out_md = OpenOptions::new()
         .write(true)
         .create(true)

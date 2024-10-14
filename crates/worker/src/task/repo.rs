@@ -1,7 +1,22 @@
-use crate::task::{Task, TaskRepo, TaskStatus};
+use super::model::Task;
+use crate::task::model::TaskStatus;
 use axum::async_trait;
+use repos::postgres::PG_POOL;
 use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 use uuid::Uuid;
+
+#[async_trait]
+pub(crate) trait TaskRepo: Send + Sync {
+    async fn pop(&self) -> anyhow::Result<Option<Task>>;
+    async fn create(&self, task: &Task) -> anyhow::Result<()>;
+    async fn update(&self, task: &Task) -> anyhow::Result<()>;
+    async fn delete(&self, id: &Uuid) -> anyhow::Result<()>;
+}
+
+pub(crate) fn task_repo() -> Arc<dyn TaskRepo> {
+    Arc::new(PostgresTaskRepo::new())
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct PostgresTaskRepo {
@@ -9,7 +24,8 @@ pub(crate) struct PostgresTaskRepo {
 }
 
 impl PostgresTaskRepo {
-    pub(crate) fn new(pool: Pool<Postgres>) -> Self {
+    pub(crate) fn new() -> Self {
+        let pool = PG_POOL.clone();
         Self { pool }
     }
 }

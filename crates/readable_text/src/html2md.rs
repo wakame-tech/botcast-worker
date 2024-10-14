@@ -1,11 +1,10 @@
-use crate::Extractor;
 use html2md::{dummy::DummyHandler, TagHandler, TagHandlerFactory};
 use std::collections::HashMap;
 
-pub struct Html2MdExtractor;
+pub struct ReadableText;
 
-impl Extractor for Html2MdExtractor {
-    fn extract(html: &str) -> anyhow::Result<String> {
+impl ReadableText {
+    pub fn extract(html: &str) -> anyhow::Result<String> {
         let mut handlers = HashMap::<String, Box<dyn TagHandlerFactory>>::new();
         handlers.insert("head".to_string(), Box::new(IgnoreHandlerFactory));
         handlers.insert("h1".to_string(), Box::new(HeaderHandlerFactory));

@@ -1,33 +1,45 @@
-use super::{Task, TaskRepo, TaskStatus};
-use crate::{
-    api::Args,
-    episode::{episode_service::EpisodeService, scrape_service::ScrapeService},
+use super::{
+    model::{Args, Task, TaskStatus},
+    repo::{task_repo, TaskRepo},
 };
-use reqwest::Url;
+use crate::{
+    episode::episode_service::{episode_service, EpisodeService},
+    worker::use_work_dir,
+};
 use std::sync::Arc;
 use uuid::Uuid;
 
+pub(crate) fn task_service() -> TaskService {
+    TaskService {
+        task_repo: task_repo(),
+        episode_service: episode_service(),
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct TaskService {
-    pub(crate) task_repo: Arc<dyn TaskRepo>,
-    pub(crate) episode_service: EpisodeService,
-    pub(crate) scrape_service: ScrapeService,
+    task_repo: Arc<dyn TaskRepo>,
+    episode_service: EpisodeService,
 }
 
 impl TaskService {
-    async fn run(&self, task_id: Uuid, episode_id: Uuid, url: Url) -> anyhow::Result<()> {
-        let sentences = self
-            .scrape_service
-            .generate_script_from_url(task_id, episode_id, url)
-            .await?;
-        self.episode_service
-            .synthesis_audio(task_id, episode_id, sentences)
-            .await?;
+    async fn execute(&self, task_id: Uuid, args: Args) -> anyhow::Result<()> {
+        match args {
+            Args::GenerateAudio { episode_id } => {
+                let work_dir = use_work_dir(&task_id)?;
+                self.episode_service
+                    .generate_audio(&work_dir, episode_id)
+                    .await?;
+            }
+            Args::EvaluateScript { episode_id } => {
+                self.episode_service.generate_manuscript(episode_id).await?;
+            }
+        }
         Ok(())
     }
 
     async fn run_task(&self, mut task: Task, args: Args) -> anyhow::Result<()> {
-        task.status = match self.run(task.id, args.episode_id, args.url.parse()?).await {
+        task.status = match self.execute(task.id, args).await {
             Ok(()) => TaskStatus::Completed,
             Err(e) => {
                 log::error!("Failed to run task: {:?}", e);
@@ -35,6 +47,17 @@ impl TaskService {
             }
         };
         self.task_repo.update(&task).await?;
+        Ok(())
+    }
+
+    pub(crate) async fn insert_task(&self, args: serde_json::Value) -> anyhow::Result<()> {
+        let args: Args = serde_json::from_value(args)?;
+        let task = Task {
+            id: Uuid::new_v4(),
+            status: TaskStatus::Pending,
+            args: serde_json::to_value(args)?,
+        };
+        self.task_repo.create(&task).await?;
         Ok(())
     }
 

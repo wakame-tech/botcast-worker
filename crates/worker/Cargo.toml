@@ -14,6 +14,10 @@ path = "src/bin/cli.rs"
 
 [dependencies]
 readable_text = { path = "../readable_text" }
+script_http_client = { path = "../script_http_client" }
+script_runtime = { path = "../script_runtime" }
+audio_generator = { path = "../audio_generator" }
+repos = { path = "../repos" }
 anyhow = "1.0.86"
 axum = "0.7.5"
 log = "0.4.22"
@@ -34,12 +38,7 @@ tokio = { version = "1.39.3", features = [
 ] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
-urlencoding = "2.1.3"
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
-xmldecl = "0.2.0"
-encoding = "0.2.33"
 clap = { version = "4.5.17", features = ["derive"] }
-wavers = "1.4.3"
-srtlib = "0.2.0"
 chrono = "0.4.38"
 async-trait = "0.1.83"
