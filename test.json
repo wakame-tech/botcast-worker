@@ -15,14 +15,7 @@
                 "type": "Serif",
                 "speaker": "urn:voicevox:zunda_normal",
                 "text": {
-                    "$eval": "get('urn:episode:5769cf17-001d-45ad-84cd-6c941f0cc8fe').title"
-                }
-            },
-            {
-                "type": "Serif",
-                "speaker": "urn:voicevox:zunda_normal",
-                "text": {
-                    "$eval": "llm('1+1は?')"
+                    "$eval": "get('urn:episode:eef62961-e4b5-4cf2-934e-7af54187d5b3').comments"
                 }
             }
         ]

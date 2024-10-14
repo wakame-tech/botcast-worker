@@ -1,4 +1,5 @@
 mod fetch;
+mod jq;
 mod llm;
 mod time;
 mod urn;
@@ -20,4 +21,5 @@ pub fn define_imports<'a>(context: &mut Context<'a>) {
     );
     context.insert("text", Value::Function(Function::new("text", fetch::text)));
     context.insert("llm", Value::Function(Function::new("llm", llm::llm)));
+    context.insert("jq", Value::Function(Function::new("jq", jq::jq)));
 }
