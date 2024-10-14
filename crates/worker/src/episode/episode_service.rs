@@ -35,7 +35,7 @@ pub(crate) struct EpisodeService {
 
 impl EpisodeService {
     pub(crate) async fn generate_manuscript(&self, episode_id: Uuid) -> anyhow::Result<()> {
-        let mut episode = self
+        let (mut episode, _) = self
             .episode_repo
             .find_by_id(&episode_id)
             .await?
@@ -45,10 +45,8 @@ impl EpisodeService {
             .find_by_id(&episode.script_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Script not found"))?;
-        let manuscript = self
-            .script_service
-            .evaluate_to_manuscript(script.template)
-            .await?;
+        let evaluated = self.script_service.evaluate(script.template).await?;
+        let manuscript: Manuscript = serde_json::from_value(evaluated)?;
 
         episode.title = manuscript.title.clone();
         episode.manuscript = Some(serde_json::to_value(manuscript)?);
@@ -61,7 +59,7 @@ impl EpisodeService {
         work_dir: &WorkDir,
         episode_id: Uuid,
     ) -> anyhow::Result<()> {
-        let mut episode = self
+        let (mut episode, _) = self
             .episode_repo
             .find_by_id(&episode_id)
             .await?

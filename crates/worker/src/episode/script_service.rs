@@ -1,4 +1,3 @@
-use super::Manuscript;
 use repos::{repo::ScriptRepo, script_repo};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -15,12 +14,11 @@ pub(crate) struct ScriptService {
 }
 
 impl ScriptService {
-    pub(crate) async fn evaluate_to_manuscript(
+    pub(crate) async fn evaluate(
         &self,
         template: serde_json::Value,
-    ) -> anyhow::Result<Manuscript> {
-        let evaluated = script_runtime::runtime::run(&template).await?;
-        Ok(serde_json::from_value(evaluated)?)
+    ) -> anyhow::Result<serde_json::Value> {
+        script_runtime::runtime::run(&template).await
     }
 
     pub(crate) async fn update_script(

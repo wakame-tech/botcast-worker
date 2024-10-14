@@ -36,8 +36,8 @@ async fn update_episode_script(
 }
 
 async fn eval_script(Json(template): Json<Value>) -> Result<impl IntoResponse, AppError> {
-    let manuscript = script_service().evaluate_to_manuscript(template).await?;
-    Ok(Json(serde_json::to_value(manuscript)?))
+    let evaluated = script_service().evaluate(template).await?;
+    Ok(Json(evaluated))
 }
 
 async fn insert_task(Json(args): Json<Value>) -> Result<impl IntoResponse, AppError> {
