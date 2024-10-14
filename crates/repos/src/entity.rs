@@ -7,6 +7,7 @@ pub struct Episode {
     pub audio_url: Option<String>,
     pub script_id: Uuid,
     pub manuscript: Option<serde_json::Value>,
+    pub srt_url: Option<String>,
     pub podcast_id: Uuid,
     pub user_id: Option<Uuid>,
     pub created_at: String,

@@ -107,6 +107,7 @@ impl EpisodeService {
         self.storage
             .upload(&srt_path, srt.as_bytes(), "text/plain")
             .await?;
+        episode.srt_url = Some(format!("{}/{}", self.storage.get_endpoint(), srt_path));
 
         self.episode_repo.update(&episode).await?;
         Ok(())
