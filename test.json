@@ -15,7 +15,7 @@
                 "type": "Serif",
                 "speaker": "urn:voicevox:zunda_normal",
                 "text": {
-                    "$eval": "get('urn:episode:eef62961-e4b5-4cf2-934e-7af54187d5b3').comments"
+                    "$eval": "jq(get('urn:episode:eef62961-e4b5-4cf2-934e-7af54187d5b3').comments, '.[1].content')"
                 }
             }
         ]
