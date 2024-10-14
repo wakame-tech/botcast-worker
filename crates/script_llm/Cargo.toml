@@ -1,0 +1,9 @@
+[package]
+name = "script_llm"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.89"
+log = "0.4.22"
+langchain-rust = "=4.6.0"

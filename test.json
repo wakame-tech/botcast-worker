@@ -17,6 +17,13 @@
                 "text": {
                     "$eval": "get('urn:episode:5769cf17-001d-45ad-84cd-6c941f0cc8fe').title"
                 }
+            },
+            {
+                "type": "Serif",
+                "speaker": "urn:voicevox:zunda_normal",
+                "text": {
+                    "$eval": "llm('1+1は?')"
+                }
             }
         ]
     }
