@@ -19,6 +19,7 @@ pub(crate) struct Task {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type")]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub(crate) enum Args {
     GenerateAudio { episode_id: Uuid },
     EvaluateScript { episode_id: Uuid },

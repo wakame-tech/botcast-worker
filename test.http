@@ -23,8 +23,8 @@ POST {{worker_origin}}/insertTask
 Content-Type: application/json
 
 {
-  "type": "EvaluateScript",
-  "episode_id": "5769cf17-001d-45ad-84cd-6c941f0cc8fe"
+  "type": "evaluateScript",
+  "episodeId": "5769cf17-001d-45ad-84cd-6c941f0cc8fe"
 }
 
 ###
@@ -32,8 +32,8 @@ POST {{worker_origin}}/insertTask
 Content-Type: application/json
 
 {
-  "type": "GenerateAudio",
-  "episode_id": "5769cf17-001d-45ad-84cd-6c941f0cc8fe"
+  "type": "generateAudio",
+  "episodeId": "5769cf17-001d-45ad-84cd-6c941f0cc8fe"
 }
 
 ###

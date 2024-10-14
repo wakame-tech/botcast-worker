@@ -50,6 +50,7 @@ impl EpisodeService {
             .evaluate_to_manuscript(script.template)
             .await?;
 
+        episode.title = manuscript.title.clone();
         episode.manuscript = Some(serde_json::to_value(manuscript)?);
         self.episode_repo.update(&episode).await?;
         Ok(())
@@ -70,7 +71,6 @@ impl EpisodeService {
             return Err(anyhow::anyhow!("Manuscript not found"));
         };
         let manuscript: Manuscript = serde_json::from_value(manuscript)?;
-        episode.title = manuscript.title.clone();
 
         let mut sentences = vec![];
         for section in manuscript.sections.iter() {
@@ -92,8 +92,6 @@ impl EpisodeService {
             }
         }
         let SynthesisResult { out_path, srt, .. } = generate_audio(work_dir, &sentences).await?;
-
-        self.episode_repo.update(&episode).await?;
 
         let mut file = File::open(&out_path)?;
         let mut audio = vec![];
