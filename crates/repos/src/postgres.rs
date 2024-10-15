@@ -1,6 +1,6 @@
 use crate::{
-    entity::{Episode, Script},
-    repo::{EpisodeRepo, ScriptRepo},
+    entity::{Comment, Episode, Script},
+    repo::{CommentRepo, EpisodeRepo, ScriptRepo},
 };
 use async_trait::async_trait;
 use chrono::Local;
@@ -26,11 +26,17 @@ impl PostgresEpisodeRepo {
 
 #[async_trait]
 impl EpisodeRepo for PostgresEpisodeRepo {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Episode>> {
-        let episode = sqlx::query_as!(Episode, "select * from episodes where id = $1", id)
+    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<(Episode, Vec<Comment>)>> {
+        let Some(episode) = sqlx::query_as!(Episode, "select * from episodes where id = $1", id)
             .fetch_optional(&self.pool)
+            .await?
+        else {
+            return Ok(None);
+        };
+        let comments = sqlx::query_as!(Comment, "select * from comments where episode_id = $1", id)
+            .fetch_all(&self.pool)
             .await?;
-        Ok(episode)
+        Ok(Some((episode, comments)))
     }
 
     async fn update(&self, episode: &Episode) -> anyhow::Result<()> {
@@ -53,7 +59,7 @@ pub struct DummyEpisodeRepo;
 
 #[async_trait]
 impl EpisodeRepo for DummyEpisodeRepo {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Episode>> {
+    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<(Episode, Vec<Comment>)>> {
         let episode = Episode {
             id: *id,
             title: "dummy".to_string(),
@@ -65,11 +71,43 @@ impl EpisodeRepo for DummyEpisodeRepo {
             user_id: None,
             created_at: Local::now().to_utc().to_rfc3339(),
         };
-        Ok(Some(episode))
+        Ok(Some((episode, vec![])))
     }
 
     async fn update(&self, episode: &Episode) -> anyhow::Result<()> {
         Ok(())
+    }
+}
+
+pub struct PostgresCommentRepo {
+    pool: Pool<Postgres>,
+}
+
+impl PostgresCommentRepo {
+    pub fn new() -> Self {
+        let pool = PG_POOL.clone();
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl CommentRepo for PostgresCommentRepo {
+    async fn find_all(&self, episode_id: &Uuid) -> anyhow::Result<Vec<Comment>> {
+        let comments = sqlx::query_as!(
+            Comment,
+            "select * from comments where episode_id = $1",
+            episode_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(comments)
+    }
+
+    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Comment>> {
+        let comment = sqlx::query_as!(Comment, "select * from comments where id = $1", id)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(comment)
     }
 }
 

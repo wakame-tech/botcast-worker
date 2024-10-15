@@ -14,6 +14,15 @@ pub struct Episode {
 }
 
 #[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
+pub struct Comment {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub episode_id: Uuid,
+    pub content: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
 pub struct Script {
     pub id: Uuid,
     pub user_id: Uuid,
