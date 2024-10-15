@@ -46,7 +46,8 @@ impl TaskService {
         Ok(())
     }
 
-    async fn run_task(&self, mut task: Task, args: Args) -> anyhow::Result<()> {
+    async fn run_task(&self, task: &mut Task) -> anyhow::Result<()> {
+        let args: Args = serde_json::from_value(task.args.clone())?;
         task.status = match self.execute(task.id, args).await {
             Ok(()) => TaskStatus::Completed,
             Err(e) => {
@@ -76,7 +77,8 @@ impl TaskService {
         log::info!("Found task: {} args={}", task.id, task.args);
         task.status = TaskStatus::Running;
         self.task_repo.update(&task).await?;
-        let args: Args = serde_json::from_value(task.args.clone())?;
-        self.run_task(task, args).await
+        self.run_task(&mut task).await?;
+        log::info!("task: {} completed", task.id);
+        Ok(())
     }
 }
