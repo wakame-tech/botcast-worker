@@ -1,9 +1,15 @@
-use super::{
-    model::{Args, Task, TaskStatus},
-    repo::{task_repo, TaskRepo},
+use crate::{
+    episode::script_service::script_service,
+    task::{
+        model::{Args, Task, TaskStatus},
+        repo::{task_repo, TaskRepo},
+    },
 };
 use crate::{
-    episode::episode_service::{episode_service, EpisodeService},
+    episode::{
+        episode_service::{episode_service, EpisodeService},
+        script_service::ScriptService,
+    },
     worker::use_work_dir,
 };
 use std::sync::Arc;
@@ -13,6 +19,7 @@ pub(crate) fn task_service() -> TaskService {
     TaskService {
         task_repo: task_repo(),
         episode_service: episode_service(),
+        script_service: script_service(),
     }
 }
 
@@ -20,6 +27,7 @@ pub(crate) fn task_service() -> TaskService {
 pub(crate) struct TaskService {
     task_repo: Arc<dyn TaskRepo>,
     episode_service: EpisodeService,
+    script_service: ScriptService,
 }
 
 impl TaskService {
@@ -31,14 +39,15 @@ impl TaskService {
                     .generate_audio(&work_dir, episode_id)
                     .await?;
             }
-            Args::EvaluateScript { episode_id } => {
-                self.episode_service.generate_manuscript(episode_id).await?;
+            Args::EvaluateScript { script_id } => {
+                self.script_service.evaluate_script(script_id).await?;
             }
         }
         Ok(())
     }
 
-    async fn run_task(&self, mut task: Task, args: Args) -> anyhow::Result<()> {
+    async fn run_task(&self, task: &mut Task) -> anyhow::Result<()> {
+        let args: Args = serde_json::from_value(task.args.clone())?;
         task.status = match self.execute(task.id, args).await {
             Ok(()) => TaskStatus::Completed,
             Err(e) => {
@@ -68,7 +77,8 @@ impl TaskService {
         log::info!("Found task: {} args={}", task.id, task.args);
         task.status = TaskStatus::Running;
         self.task_repo.update(&task).await?;
-        let args: Args = serde_json::from_value(task.args.clone())?;
-        self.run_task(task, args).await
+        self.run_task(&mut task).await?;
+        log::info!("task: {} completed", task.id);
+        Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use super::{
+use crate::episode::{
     script_service::{script_service, ScriptService},
     Manuscript, Section,
 };
@@ -45,11 +45,7 @@ impl EpisodeService {
             .find_by_id(&episode.script_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Script not found"))?;
-        let evaluated = self.script_service.evaluate(script.template).await?;
-        let manuscript: Manuscript = serde_json::from_value(evaluated)?;
-
-        episode.title = manuscript.title.clone();
-        episode.manuscript = Some(serde_json::to_value(manuscript)?);
+        let evaluated = self.script_service.evaluate_once(script.template).await?;
         self.episode_repo.update(&episode).await?;
         Ok(())
     }
@@ -64,11 +60,15 @@ impl EpisodeService {
             .find_by_id(&episode_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Episode not found"))?;
-
-        let Some(manuscript) = episode.manuscript.clone() else {
+        let script = self
+            .script_repo
+            .find_by_id(&episode.script_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Script not found"))?;
+        let Some(result) = script.result.clone() else {
             return Err(anyhow::anyhow!("Manuscript not found"));
         };
-        let manuscript: Manuscript = serde_json::from_value(manuscript)?;
+        let manuscript: Manuscript = serde_json::from_value(result)?;
 
         let mut sentences = vec![];
         for section in manuscript.sections.iter() {

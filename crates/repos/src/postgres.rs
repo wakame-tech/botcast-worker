@@ -42,11 +42,10 @@ impl EpisodeRepo for PostgresEpisodeRepo {
     async fn update(&self, episode: &Episode) -> anyhow::Result<()> {
         sqlx::query_as!(
             Episode,
-            "update episodes set title = $2, audio_url = $3, manuscript = $4, srt_url = $5 where id = $1",
+            "update episodes set title = $2, audio_url = $3, srt_url = $4 where id = $1",
             episode.id,
             episode.title,
             episode.audio_url,
-            episode.manuscript,
             episode.srt_url,
         )
         .execute(&self.pool)
@@ -65,7 +64,6 @@ impl EpisodeRepo for DummyEpisodeRepo {
             title: "dummy".to_string(),
             audio_url: None,
             script_id: Uuid::new_v4(),
-            manuscript: None,
             srt_url: None,
             podcast_id: Uuid::new_v4(),
             user_id: None,
@@ -134,9 +132,11 @@ impl ScriptRepo for PostgresScriptRepo {
     async fn update(&self, script: &Script) -> anyhow::Result<()> {
         sqlx::query_as!(
             Episode,
-            "update scripts set template = $2 where id = $1",
+            "update scripts set title = $2, template = $3, result = $4 where id = $1",
             script.id,
+            script.title,
             script.template,
+            script.result,
         )
         .execute(&self.pool)
         .await?;
@@ -154,7 +154,9 @@ impl ScriptRepo for DummyScriptRepo {
         let script = Script {
             id: *id,
             user_id: Uuid::new_v4(),
+            title: "dummy".to_string(),
             template: self.template.clone(),
+            result: None,
         };
         Ok(Some(script))
     }

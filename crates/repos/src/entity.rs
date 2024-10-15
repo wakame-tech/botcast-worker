@@ -6,7 +6,6 @@ pub struct Episode {
     pub title: String,
     pub audio_url: Option<String>,
     pub script_id: Uuid,
-    pub manuscript: Option<serde_json::Value>,
     pub srt_url: Option<String>,
     pub podcast_id: Uuid,
     pub user_id: Option<Uuid>,
@@ -26,5 +25,7 @@ pub struct Comment {
 pub struct Script {
     pub id: Uuid,
     pub user_id: Uuid,
+    pub title: String,
     pub template: serde_json::Value,
+    pub result: Option<serde_json::Value>,
 }

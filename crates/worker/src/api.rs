@@ -27,16 +27,16 @@ where
     }
 }
 
-async fn update_episode_script(
-    Path(episode_id): Path<Uuid>,
+async fn update_script(
+    Path(script_id): Path<Uuid>,
     Json(template): Json<Value>,
 ) -> Result<impl IntoResponse, AppError> {
-    script_service().update_script(episode_id, template).await?;
+    script_service().update_script(script_id, template).await?;
     Ok(StatusCode::CREATED)
 }
 
 async fn eval_script(Json(template): Json<Value>) -> Result<impl IntoResponse, AppError> {
-    let evaluated = script_service().evaluate(template).await?;
+    let evaluated = script_service().evaluate_once(template).await?;
     Ok(Json(evaluated))
 }
 
@@ -56,10 +56,7 @@ fn create_router(router: Router) -> Router {
     router
         .route("/version", get(version))
         .route("/evalScript", post(eval_script))
-        .route(
-            "/updateEpisodeScript/:episode_id",
-            post(update_episode_script),
-        )
+        .route("/updateEpisodeScript/:episode_id", post(update_script))
         .route("/insertTask", post(insert_task))
 }
 
