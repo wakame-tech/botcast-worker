@@ -1,5 +1,4 @@
-use super::model::Task;
-use crate::task::model::TaskStatus;
+use crate::task::model::{Task, TaskStatus};
 use axum::async_trait;
 use repos::postgres::PG_POOL;
 use sqlx::{Pool, Postgres};

@@ -22,5 +22,5 @@ pub(crate) struct Task {
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub(crate) enum Args {
     GenerateAudio { episode_id: Uuid },
-    EvaluateScript { episode_id: Uuid },
+    EvaluateScript { script_id: Uuid },
 }

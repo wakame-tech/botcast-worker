@@ -14,21 +14,36 @@ pub(crate) struct ScriptService {
 }
 
 impl ScriptService {
-    pub(crate) async fn evaluate(
+    pub(crate) async fn evaluate_once(
         &self,
         template: serde_json::Value,
     ) -> anyhow::Result<serde_json::Value> {
         script_runtime::runtime::run(&template).await
     }
 
+    pub(crate) async fn evaluate_script(
+        &self,
+        script_id: Uuid,
+    ) -> anyhow::Result<serde_json::Value> {
+        let mut script = self
+            .script_repo
+            .find_by_id(&script_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Script not found"))?;
+        let result = script_runtime::runtime::run(&script.template).await?;
+        script.result = Some(result.clone());
+        self.script_repo.update(&script).await?;
+        Ok(result)
+    }
+
     pub(crate) async fn update_script(
         &self,
-        id: Uuid,
+        script_id: Uuid,
         template: serde_json::Value,
     ) -> anyhow::Result<()> {
         let mut script = self
             .script_repo
-            .find_by_id(&id)
+            .find_by_id(&script_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Script not found"))?;
         script.template = template;
