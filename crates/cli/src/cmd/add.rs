@@ -16,6 +16,7 @@ pub(crate) fn cmd_add(project: Project, args: AddArgs) -> Result<()> {
 
     let input = NewScript::new(args.title);
     let script = client.new_script(input)?;
-    println!("{}", serde_json::to_string_pretty(&script)?);
+    let path = project.instantiate_script(&script)?;
+    println!("created {}", path.display());
     Ok(())
 }

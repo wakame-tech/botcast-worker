@@ -22,6 +22,7 @@ fn main() -> Result<()> {
     match args {
         Args::New(args) => cmd::new::cmd_new(args)?,
         Args::List(args) => cmd::list::cmd_list(project, args)?,
+        Args::Pull(args) => cmd::pull::cmd_pull(project, args)?,
         Args::Add(args) => cmd::add::cmd_add(project, args)?,
         Args::Login(_) => (),
     };

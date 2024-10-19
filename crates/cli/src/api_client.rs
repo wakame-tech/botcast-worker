@@ -7,9 +7,9 @@ use serde_json::{json, Value};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Script {
-    id: String,
+    pub(crate) id: String,
     title: String,
-    template: Value,
+    pub(crate) template: Value,
     result: Value,
     user_id: String,
 }

@@ -2,14 +2,16 @@ use crate::{api_client::ApiClient, credential::Credential, project::Project};
 use anyhow::Result;
 
 #[derive(Debug, clap::Parser)]
-pub(crate) struct ListArgs {}
+pub(crate) struct PullArgs {}
 
-pub(crate) fn cmd_list(project: Project, _args: ListArgs) -> Result<()> {
+pub(crate) fn cmd_pull(project: Project, _args: PullArgs) -> Result<()> {
     let credential = Credential::load(&project.credential_path())?;
     let client = ApiClient::from_credential(&credential);
+
     let scripts = client.scripts()?;
     for script in scripts {
-        println!("{}", serde_json::to_string_pretty(&script)?);
+        let path = project.instantiate_script(&script)?;
+        println!("pulled {}", path.display());
     }
     Ok(())
 }

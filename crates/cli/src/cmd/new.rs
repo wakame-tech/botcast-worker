@@ -1,7 +1,6 @@
-use std::path::PathBuf;
-
 use crate::project::Project;
 use anyhow::Result;
+use std::path::PathBuf;
 
 #[derive(Debug, clap::Parser)]
 pub(crate) struct NewArgs {
