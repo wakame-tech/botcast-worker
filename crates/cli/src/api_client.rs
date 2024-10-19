@@ -113,6 +113,12 @@ impl ApiClient {
         Ok(script)
     }
 
+    pub(crate) fn scripts(&self) -> Result<Vec<Script>> {
+        let resp = self.query("scripts", json!({}))?;
+        let scripts: Vec<Script> = serde_json::from_value(resp["scripts"].clone())?;
+        Ok(scripts)
+    }
+
     pub(crate) fn new_script(&self, input: NewScript) -> Result<Script> {
         let resp = self.mutation("newScript", serde_json::to_value(input)?)?;
         let script: Script = serde_json::from_value(resp["script"].clone())?;

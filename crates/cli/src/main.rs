@@ -20,9 +20,10 @@ fn main() -> Result<()> {
     }
 
     match args {
-        Args::Add(args) => cmd::add::cmd_add(project, args)?,
         Args::New(args) => cmd::new::cmd_new(args)?,
-        _ => (),
+        Args::List(args) => cmd::list::cmd_list(project, args)?,
+        Args::Add(args) => cmd::add::cmd_add(project, args)?,
+        Args::Login(_) => (),
     };
     Ok(())
 }
