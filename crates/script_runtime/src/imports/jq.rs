@@ -1,6 +1,8 @@
 use anyhow::Result;
-use futures::{future::BoxFuture, FutureExt};
-use json_e::{value::Value, Context};
+use json_e::{
+    value::{AsyncCallable, Value},
+    Context,
+};
 use std::iter::{self, empty};
 use xq::module_loader::PreludeLoader;
 
@@ -25,18 +27,19 @@ fn run_xq(query: &str, value: serde_json::Value) -> Result<Value> {
     Ok(Value::Array(values))
 }
 
-pub fn jq<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>> {
-    async move {
-        let ret = match args {
+#[derive(Clone)]
+pub(crate) struct Jq;
+
+#[async_trait::async_trait]
+impl AsyncCallable for Jq {
+    async fn call(&self, _: &Context<'_>, args: &[Value]) -> Result<Value> {
+        match args {
             [value, Value::String(query)] => {
                 let value: serde_json::Value = value.try_into()?;
                 let result = run_xq(query, value)?;
                 Ok(result)
             }
             _ => Err(anyhow::anyhow!("invalid arguments")),
-        };
-        dbg!(&ret);
-        ret
+        }
     }
-    .boxed()
 }

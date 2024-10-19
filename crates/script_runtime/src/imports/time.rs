@@ -1,9 +1,15 @@
 use anyhow::Result;
-use futures::{future::BoxFuture, FutureExt};
-use json_e::{value::Value, Context};
+use json_e::{
+    value::{AsyncCallable, Value},
+    Context,
+};
 
-pub fn today<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>> {
-    async move {
+#[derive(Clone)]
+pub(crate) struct Today;
+
+#[async_trait::async_trait]
+impl AsyncCallable for Today {
+    async fn call(&self, _: &Context<'_>, args: &[Value]) -> Result<Value> {
         match args {
             [Value::String(format)] => {
                 let today = chrono::Local::now().format(&format).to_string();
@@ -12,17 +18,17 @@ pub fn today<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Val
             _ => Err(anyhow::anyhow!("today only supports a string".to_string())),
         }
     }
-    .boxed()
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::imports::define_imports;
+    use crate::imports::create_context;
+    use json_e::Context;
 
     #[tokio::test]
     async fn test_call_today() {
-        let mut context = json_e::Context::new();
-        define_imports(&mut context);
+        let mut context = Context::new();
+        create_context(&mut context);
         let result = json_e::render_with_context(
             &serde_json::json!({ "$eval": "today('%Y/%m/%d')" }),
             &context,

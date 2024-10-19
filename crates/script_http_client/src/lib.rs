@@ -30,4 +30,13 @@ impl HttpClient {
         };
         Ok(html)
     }
+
+    pub async fn fetch_json(&self, url: String) -> anyhow::Result<serde_json::Value> {
+        let res = self.client.get(url).send().await?;
+        if res.status() != reqwest::StatusCode::OK {
+            anyhow::bail!("Failed to fetch: {}", res.status());
+        }
+        let json: serde_json::Value = res.json().await?;
+        Ok(json)
+    }
 }
