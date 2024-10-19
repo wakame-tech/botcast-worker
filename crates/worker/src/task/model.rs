@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]
@@ -15,6 +16,8 @@ pub(crate) struct Task {
     pub id: Uuid,
     pub status: TaskStatus,
     pub args: serde_json::Value,
+    pub execute_after: DateTime<Utc>,
+    pub executed_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

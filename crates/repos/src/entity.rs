@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
@@ -9,7 +10,7 @@ pub struct Episode {
     pub srt_url: Option<String>,
     pub podcast_id: Uuid,
     pub user_id: Option<Uuid>,
-    pub created_at: String,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
@@ -18,7 +19,7 @@ pub struct Comment {
     pub user_id: Uuid,
     pub episode_id: Uuid,
     pub content: String,
-    pub created_at: String,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]

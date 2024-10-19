@@ -67,7 +67,7 @@ impl EpisodeRepo for DummyEpisodeRepo {
             srt_url: None,
             podcast_id: Uuid::new_v4(),
             user_id: None,
-            created_at: Local::now().to_utc().to_rfc3339(),
+            created_at: Local::now().to_utc(),
         };
         Ok(Some((episode, vec![])))
     }

@@ -1,5 +1,6 @@
 use crate::task::model::{Task, TaskStatus};
 use axum::async_trait;
+use chrono::Utc;
 use repos::postgres::PG_POOL;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
@@ -32,19 +33,26 @@ impl PostgresTaskRepo {
 #[async_trait]
 impl TaskRepo for PostgresTaskRepo {
     async fn pop(&self) -> anyhow::Result<Option<Task>> {
-        let task =
-            sqlx::query_as(r#"select * from tasks where status = 'PENDING' order by id limit 1"#)
-                .fetch_optional(&self.pool)
-                .await?;
+        let task = sqlx::query_as!(
+            Task,
+            r#"select id, status as "status!: TaskStatus", args, execute_after, executed_at from tasks where status = $1 and $2 < execute_after order by id limit 1"#,
+            TaskStatus::Pending as TaskStatus,
+            Utc::now(),
+        )
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(task)
     }
 
     async fn create(&self, task: &Task) -> anyhow::Result<()> {
-        sqlx::query!(
-            "insert into tasks (id, status, args) values ($1, $2, $3)",
+        sqlx::query_as!(
+            Task,
+            "insert into tasks (id, status, args, execute_after, executed_at) values ($1, $2, $3, $4, $5)",
             task.id,
             &task.status as &TaskStatus,
             task.args,
+            task.execute_after,
+            task.executed_at,
         )
         .execute(&self.pool)
         .await?;
@@ -52,12 +60,17 @@ impl TaskRepo for PostgresTaskRepo {
     }
 
     async fn update(&self, task: &Task) -> anyhow::Result<()> {
-        sqlx::query("update tasks set status = $2, args = $3 where id = $1")
-            .bind(task.id)
-            .bind(&task.status as &TaskStatus)
-            .bind(&task.args)
-            .execute(&self.pool)
-            .await?;
+        sqlx::query_as!(
+            Task,
+            "update tasks set status = $2, args = $3, execute_after = $4, executed_at = $5 where id = $1",
+            task.id,
+            &task.status as &TaskStatus,
+            task.args,
+            task.execute_after,
+            task.executed_at,
+        )
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 

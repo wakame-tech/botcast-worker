@@ -12,6 +12,7 @@ use crate::{
     },
     worker::use_work_dir,
 };
+use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -55,6 +56,7 @@ impl TaskService {
                 TaskStatus::Failed
             }
         };
+        task.executed_at = Some(Utc::now());
         self.task_repo.update(&task).await?;
         Ok(())
     }
@@ -65,6 +67,8 @@ impl TaskService {
             id: Uuid::new_v4(),
             status: TaskStatus::Pending,
             args: serde_json::to_value(args)?,
+            execute_after: Utc::now(),
+            executed_at: None,
         };
         self.task_repo.create(&task).await?;
         Ok(())
