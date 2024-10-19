@@ -4,7 +4,7 @@ use json_e::{
     value::{AsyncCallable, Value},
     Context,
 };
-use repos::{comment_repo, episode_repo, script_repo};
+use repos::{comment_repo, episode_repo, podcast_repo, script_repo};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -43,6 +43,14 @@ impl AsyncCallable for UrnGet {
         }?;
 
         let value = match resource.as_str() {
+            "podcast" => {
+                let podcast_repo = podcast_repo();
+                let id: Uuid = id.parse()?;
+                let Some(podcast) = podcast_repo.find_by_id(&id).await? else {
+                    return Err(anyhow::anyhow!("ResourceId:{} Not found", id));
+                };
+                serde_json::to_value(podcast)
+            }
             "episode" => {
                 let episode_repo = episode_repo();
                 let id: Uuid = id.parse()?;

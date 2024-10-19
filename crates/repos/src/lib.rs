@@ -6,9 +6,13 @@ use crate::{
     postgres::{PostgresEpisodeRepo, PostgresScriptRepo},
     repo::{EpisodeRepo, ScriptRepo},
 };
-use postgres::PostgresCommentRepo;
-use repo::CommentRepo;
+use postgres::{PostgresCommentRepo, PostgresPodcastRepo};
+use repo::{CommentRepo, PodcastRepo};
 use std::sync::Arc;
+
+pub fn podcast_repo() -> Arc<dyn PodcastRepo> {
+    Arc::new(PostgresPodcastRepo::new())
+}
 
 pub fn episode_repo() -> Arc<dyn EpisodeRepo> {
     Arc::new(PostgresEpisodeRepo::new())

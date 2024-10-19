@@ -1,6 +1,6 @@
 use crate::{
-    entity::{Comment, Episode, Script},
-    repo::{CommentRepo, EpisodeRepo, ScriptRepo},
+    entity::{Comment, Episode, Podcast, Script},
+    repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo},
 };
 use async_trait::async_trait;
 use chrono::Local;
@@ -8,14 +8,50 @@ use sqlx::{PgPool, Pool, Postgres};
 use std::sync::LazyLock;
 use uuid::Uuid;
 
-pub struct PostgresEpisodeRepo {
-    pool: Pool<Postgres>,
-}
-
 pub static PG_POOL: LazyLock<Pool<Postgres>> = LazyLock::new(|| {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is required");
     PgPool::connect_lazy(&database_url).expect("Failed to connect to DB")
 });
+
+pub struct PostgresPodcastRepo {
+    pool: Pool<Postgres>,
+}
+
+impl PostgresPodcastRepo {
+    pub fn new() -> Self {
+        let pool = PG_POOL.clone();
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl PodcastRepo for PostgresPodcastRepo {
+    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Podcast>> {
+        let podcast = sqlx::query_as!(Podcast, "select * from podcasts where id = $1", id)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(podcast)
+    }
+
+    async fn update(&self, podcast: &Podcast) -> anyhow::Result<()> {
+        sqlx::query_as!(
+            Podcast,
+            "update podcasts set title = $2, icon = $3, script_id = $4, cron = $5 where id = $1",
+            podcast.id,
+            podcast.title,
+            podcast.icon,
+            podcast.script_id,
+            podcast.cron,
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+}
+
+pub struct PostgresEpisodeRepo {
+    pool: Pool<Postgres>,
+}
 
 impl PostgresEpisodeRepo {
     pub fn new() -> Self {

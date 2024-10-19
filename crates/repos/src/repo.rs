@@ -1,6 +1,12 @@
-use crate::entity::{Comment, Episode, Script};
+use crate::entity::{Comment, Episode, Podcast, Script};
 use async_trait::async_trait;
 use uuid::Uuid;
+
+#[async_trait]
+pub trait PodcastRepo: Send + Sync {
+    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Podcast>>;
+    async fn update(&self, podcast: &Podcast) -> anyhow::Result<()>;
+}
 
 #[async_trait]
 pub trait EpisodeRepo: Send + Sync {

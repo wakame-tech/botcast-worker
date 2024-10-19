@@ -2,6 +2,17 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
+pub struct Podcast {
+    pub id: Uuid,
+    pub title: String,
+    pub icon: String,
+    pub script_id: Uuid,
+    pub cron: Option<String>,
+    pub user_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
 pub struct Episode {
     pub id: Uuid,
     pub title: String,
