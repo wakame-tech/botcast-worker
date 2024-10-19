@@ -1,53 +1,28 @@
 mod api_client;
+mod cmd;
 mod credential;
+mod project;
 mod trpc;
 
 use anyhow::Result;
-use api_client::ApiClient;
 use clap::Parser;
+use cmd::Args;
 use credential::Credential;
-use std::path::PathBuf;
-
-#[derive(Debug, clap::Parser)]
-enum Args {
-    Login {
-        endpoint: String,
-        #[clap(long)]
-        email: String,
-        #[clap(long)]
-        password: String,
-    },
-    Script {
-        id: String,
-    },
-}
+use project::Project;
 
 fn main() -> Result<()> {
     let args = Args::try_parse()?;
-    let credential_path = PathBuf::from(".credential.json");
+    let pwd = std::env::current_dir()?;
+    let project = Project::new(pwd);
 
-    if let Args::Login {
-        endpoint,
-        email,
-        password,
-    } = args
-    {
-        let client = ApiClient::new(&endpoint);
-        let token = client.sign_in(&email, &password)?;
-        Credential::save(&credential_path, endpoint, token)?;
-        println!("credential saved to {:?}", credential_path);
-        return Ok(());
+    if let Args::Login(args) = args {
+        return cmd::login::cmd_login(project, args);
     }
-
-    let credential = Credential::load(&credential_path)?;
-    let client = ApiClient::from_credential(&credential);
 
     match args {
-        Args::Script { id } => {
-            let script = client.script(&id)?;
-            println!("{:?}", script);
-        }
-        _ => {}
-    }
+        Args::Add(args) => cmd::add::cmd_add(project, args)?,
+        Args::New(args) => cmd::new::cmd_new(args)?,
+        _ => (),
+    };
     Ok(())
 }

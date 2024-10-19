@@ -5,7 +5,7 @@ use crate::{
 use anyhow::Result;
 use serde_json::{json, Value};
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Script {
     id: String,
     title: String,
@@ -23,10 +23,24 @@ struct UpdateScript {
 }
 
 #[derive(Debug, serde::Serialize)]
-struct NewScript {
+pub(crate) struct NewScript {
     title: String,
     // json
     template: String,
+}
+
+impl NewScript {
+    pub(crate) fn new(title: String) -> Self {
+        let default_template = serde_json::to_string(&json!({
+            "$eval": "1+1"
+        }))
+        .unwrap();
+
+        Self {
+            title,
+            template: default_template,
+        }
+    }
 }
 
 #[derive(Debug)]

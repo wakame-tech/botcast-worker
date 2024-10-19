@@ -8,14 +8,17 @@ pub(crate) struct Credential {
 }
 
 impl Credential {
-    pub(crate) fn save(path: &PathBuf, endpoint: String, token: String) -> Result<()> {
-        let credential = Credential { endpoint, token };
+    pub(crate) fn new(endpoint: String, token: String) -> Self {
+        Self { endpoint, token }
+    }
+
+    pub(crate) fn save(&self, path: &PathBuf) -> Result<()> {
         let mut f = OpenOptions::new()
             .write(true)
             .truncate(true)
             .create(true)
             .open(path)?;
-        serde_json::to_writer(&mut f, &credential)?;
+        serde_json::to_writer(&mut f, &self)?;
         Ok(())
     }
 
