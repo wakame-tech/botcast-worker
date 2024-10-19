@@ -17,7 +17,7 @@ pub fn get<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value
                         let episode_repo = episode_repo();
                         let id: Uuid = id.parse()?;
                         let Some((episode, comments)) = episode_repo.find_by_id(&id).await? else {
-                            return Err(anyhow::anyhow!("Resource Not found"));
+                            return Err(anyhow::anyhow!("ResourceId:{} Not found", id));
                         };
                         let mut episode = serde_json::to_value(episode)?;
                         episode
@@ -26,27 +26,27 @@ pub fn get<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value
                             .insert("comments".to_string(), serde_json::to_value(comments)?);
                         Ok(episode)
                     }
-                    "comments" => {
+                    "comment" => {
                         let comment_repo = comment_repo();
                         let id = id.parse()?;
                         let Some(res) = comment_repo.find_by_id(&id).await? else {
-                            return Err(anyhow::anyhow!("Resource Not found"));
+                            return Err(anyhow::anyhow!("ResourceId:{} Not found", id));
                         };
                         serde_json::to_value(res)
                     }
-                    "scripts" => {
+                    "script" => {
                         let script_repo = script_repo();
                         let id = id.parse()?;
                         let Some(res) = script_repo.find_by_id(&id).await? else {
-                            return Err(anyhow::anyhow!("Resource Not found"));
+                            return Err(anyhow::anyhow!("Resource:{} Not found", id));
                         };
                         serde_json::to_value(res)
                     }
-                    _ => return Err(anyhow::anyhow!("Resource Not found")),
+                    resource => return Err(anyhow::anyhow!("Resource:{} Not found", resource)),
                 }?;
                 Ok(value.into())
             }
-            _ => Err(anyhow::anyhow!("get only supports a string".to_string())),
+            _ => Err(anyhow::anyhow!("invalid args".to_string())),
         }
     }
     .boxed()
