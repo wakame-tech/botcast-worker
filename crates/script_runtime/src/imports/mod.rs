@@ -14,6 +14,7 @@ pub fn create_context(context: &mut Context<'_>) {
     builtins(context);
     let functions = [
         ("today", Box::new(time::Today) as Box<dyn AsyncCallable>),
+        ("eval", Box::new(urn::Eval)),
         ("get", Box::new(urn::UrnGet)),
         ("fetch", Box::new(fetch::Fetch)),
         ("fetch_json", Box::new(fetch::FetchJson)),

@@ -1893,7 +1893,7 @@ dependencies = [
 [[package]]
 name = "json-e"
 version = "4.8.0"
-source = "git+https://github.com/wakame-tech/json-e?branch=fix-pub-context#b44c4d3ac014540d880eb510d7582c1411763c62"
+source = "git+https://github.com/wakame-tech/json-e?branch=fix-pub-context#0a4d53329983a17c6022dd1ff8f83635f4a60e89"
 dependencies = [
  "anyhow",
  "async-recursion",
