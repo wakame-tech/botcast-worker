@@ -16,12 +16,12 @@ impl Project {
         self.root.join(".credential.json")
     }
 
-    pub(crate) fn script_path(id: String) -> PathBuf {
-        PathBuf::from("scripts").join(format!("{}.json", id))
+    pub(crate) fn script_path(&self, id: &str) -> PathBuf {
+        self.root.join("scripts").join(format!("{}.json", id))
     }
 
     pub(crate) fn instantiate_script(&self, script: &Script) -> Result<PathBuf> {
-        let path = self.root.join(Self::script_path(script.id.clone()));
+        let path = self.root.join(self.script_path(&script.id));
         let mut f = std::fs::OpenOptions::new()
             .create(true)
             .write(true)

@@ -23,6 +23,7 @@ fn main() -> Result<()> {
         Args::New(args) => cmd::new::cmd_new(args)?,
         Args::List(args) => cmd::list::cmd_list(project, args)?,
         Args::Pull(args) => cmd::pull::cmd_pull(project, args)?,
+        Args::Push(args) => cmd::push::cmd_push(project, args)?,
         Args::Add(args) => cmd::add::cmd_add(project, args)?,
         Args::Login(_) => (),
     };
