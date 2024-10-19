@@ -1,23 +1,30 @@
-use crate::episode::{
-    script_service::{script_service, ScriptService},
-    Manuscript, Section,
-};
 use crate::r2_storage::{storage, Storage};
+use crate::{
+    episode::{
+        script_service::{script_service, ScriptService},
+        Manuscript, Section,
+    },
+    task::model::{Args, Task, TaskStatus},
+};
 use audio_generator::{
     generate_audio::{generate_audio, Sentence, SynthesisResult},
     workdir::WorkDir,
 };
+use chrono::Utc;
+use repos::entity::Episode;
+use repos::podcast_repo;
 use repos::{
     episode_repo,
-    repo::{EpisodeRepo, ScriptRepo},
+    repo::{EpisodeRepo, PodcastRepo, ScriptRepo},
     script_repo,
 };
 use script_runtime::parse_urn;
-use std::{fs::File, io::Read, sync::Arc};
+use std::{fs::File, io::Read, str::FromStr, sync::Arc};
 use uuid::Uuid;
 
 pub(crate) fn episode_service() -> EpisodeService {
     EpisodeService {
+        podcast_repo: podcast_repo(),
         episode_repo: episode_repo(),
         script_repo: script_repo(),
         storage: storage(),
@@ -27,6 +34,7 @@ pub(crate) fn episode_service() -> EpisodeService {
 
 #[derive(Clone)]
 pub(crate) struct EpisodeService {
+    pub(crate) podcast_repo: Arc<dyn PodcastRepo>,
     pub(crate) episode_repo: Arc<dyn EpisodeRepo>,
     pub(crate) script_repo: Arc<dyn ScriptRepo>,
     pub(crate) storage: Arc<dyn Storage>,
@@ -34,20 +42,53 @@ pub(crate) struct EpisodeService {
 }
 
 impl EpisodeService {
-    pub(crate) async fn generate_manuscript(&self, episode_id: Uuid) -> anyhow::Result<()> {
-        let (mut episode, _) = self
+    pub(crate) async fn new_episode(&self, pre_episode_id: Uuid) -> anyhow::Result<Task> {
+        let (pre_episode, _) = self
             .episode_repo
-            .find_by_id(&episode_id)
+            .find_by_id(&pre_episode_id)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Episode not found"))?;
-        let script = self
-            .script_repo
-            .find_by_id(&episode.script_id)
+            .ok_or_else(|| anyhow::anyhow!("Pre episode not found"))?;
+        let podcast = self
+            .podcast_repo
+            .find_by_id(&pre_episode.podcast_id)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Script not found"))?;
-        let evaluated = self.script_service.evaluate_once(script.template).await?;
-        self.episode_repo.update(&episode).await?;
-        Ok(())
+            .ok_or_else(|| anyhow::anyhow!("Podcast not found"))?;
+        let Some(cron) = podcast.cron else {
+            return Err(anyhow::anyhow!("Cron not found"));
+        };
+
+        let manuscript: Manuscript = serde_json::from_value(
+            self.script_service
+                .evaluate_script(pre_episode.script_id)
+                .await?,
+        )?;
+
+        let episode = Episode {
+            id: Uuid::new_v4(),
+            user_id: pre_episode.user_id,
+            title: manuscript.title,
+            podcast_id: pre_episode.podcast_id,
+            script_id: pre_episode.script_id,
+            audio_url: None,
+            srt_url: None,
+            created_at: Utc::now(),
+        };
+        self.episode_repo.create(&episode).await?;
+
+        let next = cron::Schedule::from_str(&cron)?
+            .upcoming(Utc)
+            .next()
+            .expect("next");
+        let task = Task {
+            id: Uuid::new_v4(),
+            status: TaskStatus::Pending,
+            args: serde_json::to_value(Args::NewEpisode {
+                pre_episode_id: episode.id,
+            })?,
+            execute_after: next,
+            executed_at: None,
+        };
+        Ok(task)
     }
 
     pub(crate) async fn generate_audio(

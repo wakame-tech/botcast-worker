@@ -11,6 +11,7 @@ pub trait PodcastRepo: Send + Sync {
 #[async_trait]
 pub trait EpisodeRepo: Send + Sync {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<(Episode, Vec<Comment>)>>;
+    async fn create(&self, episode: &Episode) -> anyhow::Result<()>;
     async fn update(&self, episode: &Episode) -> anyhow::Result<()>;
 }
 

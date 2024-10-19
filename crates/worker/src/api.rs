@@ -36,7 +36,7 @@ async fn update_script(
 }
 
 async fn eval_script(Json(template): Json<Value>) -> Result<impl IntoResponse, AppError> {
-    let evaluated = script_service().evaluate_once(template).await?;
+    let evaluated = script_service().evaluate_once(&template).await?;
     Ok(Json(evaluated))
 }
 

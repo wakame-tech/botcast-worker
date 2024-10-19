@@ -26,4 +26,5 @@ pub(crate) struct Task {
 pub(crate) enum Args {
     GenerateAudio { episode_id: Uuid },
     EvaluateScript { script_id: Uuid },
+    NewEpisode { pre_episode_id: Uuid },
 }

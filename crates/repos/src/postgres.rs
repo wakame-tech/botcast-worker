@@ -75,6 +75,22 @@ impl EpisodeRepo for PostgresEpisodeRepo {
         Ok(Some((episode, comments)))
     }
 
+    async fn create(&self, episode: &Episode) -> anyhow::Result<()> {
+        sqlx::query_as!(
+            Episode,
+            "insert into episodes (id, title, audio_url, srt_url, podcast_id, user_id) values ($1, $2, $3, $4, $5, $6)",
+            episode.id,
+            episode.title,
+            episode.audio_url,
+            episode.srt_url,
+            episode.podcast_id,
+            episode.user_id,
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     async fn update(&self, episode: &Episode) -> anyhow::Result<()> {
         sqlx::query_as!(
             Episode,
@@ -108,7 +124,11 @@ impl EpisodeRepo for DummyEpisodeRepo {
         Ok(Some((episode, vec![])))
     }
 
-    async fn update(&self, episode: &Episode) -> anyhow::Result<()> {
+    async fn create(&self, _episode: &Episode) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn update(&self, _episode: &Episode) -> anyhow::Result<()> {
         Ok(())
     }
 }
@@ -197,7 +217,7 @@ impl ScriptRepo for DummyScriptRepo {
         Ok(Some(script))
     }
 
-    async fn update(&self, script: &Script) -> anyhow::Result<()> {
+    async fn update(&self, _script: &Script) -> anyhow::Result<()> {
         Ok(())
     }
 }

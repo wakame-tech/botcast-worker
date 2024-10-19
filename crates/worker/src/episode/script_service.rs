@@ -16,9 +16,9 @@ pub(crate) struct ScriptService {
 impl ScriptService {
     pub(crate) async fn evaluate_once(
         &self,
-        template: serde_json::Value,
+        template: &serde_json::Value,
     ) -> anyhow::Result<serde_json::Value> {
-        script_runtime::runtime::run(&template).await
+        script_runtime::runtime::run(template).await
     }
 
     pub(crate) async fn evaluate_script(

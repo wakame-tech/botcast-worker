@@ -43,6 +43,10 @@ impl TaskService {
             Args::EvaluateScript { script_id } => {
                 self.script_service.evaluate_script(script_id).await?;
             }
+            Args::NewEpisode { pre_episode_id } => {
+                let task = self.episode_service.new_episode(pre_episode_id).await?;
+                self.task_repo.create(&task).await?;
+            }
         }
         Ok(())
     }
