@@ -1,4 +1,5 @@
 use add::AddArgs;
+use eval::EvalArgs;
 use list::ListArgs;
 use login::LoginArgs;
 use new::NewArgs;
@@ -6,6 +7,7 @@ use pull::PullArgs;
 use push::PushArgs;
 
 pub(crate) mod add;
+pub(crate) mod eval;
 pub(crate) mod list;
 pub(crate) mod login;
 pub(crate) mod new;
@@ -20,4 +22,5 @@ pub(crate) enum Args {
     Pull(PullArgs),
     Push(PushArgs),
     Add(AddArgs),
+    Eval(EvalArgs),
 }

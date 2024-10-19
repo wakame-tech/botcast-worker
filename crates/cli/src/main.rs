@@ -1,13 +1,11 @@
-mod api_client;
+mod api;
 mod cmd;
 mod credential;
 mod project;
-mod trpc;
 
 use anyhow::Result;
 use clap::Parser;
 use cmd::Args;
-use credential::Credential;
 use project::Project;
 
 fn main() -> Result<()> {
@@ -25,6 +23,7 @@ fn main() -> Result<()> {
         Args::Pull(args) => cmd::pull::cmd_pull(project, args)?,
         Args::Push(args) => cmd::push::cmd_push(project, args)?,
         Args::Add(args) => cmd::add::cmd_add(project, args)?,
+        Args::Eval(args) => cmd::eval::cmd_eval(project, args)?,
         Args::Login(_) => (),
     };
     Ok(())

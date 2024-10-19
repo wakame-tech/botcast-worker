@@ -1,4 +1,4 @@
-use crate::api_client::Script;
+use crate::{api::dto::Script, credential::Credential};
 use anyhow::Result;
 use std::{io::Write, path::PathBuf};
 
@@ -33,8 +33,11 @@ impl Project {
     pub(crate) fn instantiate(&self) -> Result<()> {
         anyhow::ensure!(!self.root.exists(), "{} exists", self.root.display());
         std::fs::create_dir_all(&self.root)?;
+
+        let credential = serde_json::to_string_pretty(&Credential::default())?;
         let templates = [
             (PathBuf::from(".gitignore"), Some(r#".credential.json"#)),
+            (PathBuf::from(".credential.json"), Some(&credential)),
             (PathBuf::from("scripts"), None),
         ];
 

@@ -3,15 +3,22 @@ use std::{fs::OpenOptions, path::PathBuf};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Credential {
-    pub(crate) endpoint: String,
+    pub(crate) worker_endpoint: String,
+    pub(crate) api_endpoint: String,
     pub(crate) token: String,
 }
 
-impl Credential {
-    pub(crate) fn new(endpoint: String, token: String) -> Self {
-        Self { endpoint, token }
+impl Default for Credential {
+    fn default() -> Self {
+        Self {
+            worker_endpoint: "".to_string(),
+            api_endpoint: "".to_string(),
+            token: "".to_string(),
+        }
     }
+}
 
+impl Credential {
     pub(crate) fn save(&self, path: &PathBuf) -> Result<()> {
         let mut f = OpenOptions::new()
             .write(true)

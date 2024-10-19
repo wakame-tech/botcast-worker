@@ -1,5 +1,5 @@
 use crate::{
-    api_client::{ApiClient, UpdateScript},
+    api::{client::ApiClient, dto::UpdateScript},
     credential::Credential,
     project::Project,
 };
@@ -13,7 +13,7 @@ pub(crate) struct PushArgs {
 
 pub(crate) fn cmd_push(project: Project, args: PushArgs) -> Result<()> {
     let credential = Credential::load(&project.credential_path())?;
-    let client = ApiClient::from_credential(&credential);
+    let client = ApiClient::new(&credential.api_endpoint, &credential.token);
 
     let script = client.script(&args.id)?;
     let path = project.script_path(&args.id);

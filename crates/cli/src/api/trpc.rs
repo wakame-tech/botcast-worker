@@ -14,7 +14,7 @@ pub(crate) fn trpc_query(
     endpoint: &str,
     name: &str,
     input: Value,
-    authorization: Option<String>,
+    authorization: String,
 ) -> Result<Value> {
     let url = format!(
         "{}/trpc/{}?input={}",
@@ -24,10 +24,7 @@ pub(crate) fn trpc_query(
     );
     let response = client
         .get(url)
-        .header(
-            AUTHORIZATION,
-            authorization.clone().unwrap_or("".to_string()),
-        )
+        .header(AUTHORIZATION, authorization)
         .send()?;
     let status = response.status();
     let body: Value = response.json()?;
@@ -44,16 +41,13 @@ pub(crate) fn trpc_mutation(
     endpoint: &str,
     name: &str,
     input: Value,
-    authorization: Option<String>,
+    authorization: String,
 ) -> Result<Value> {
     let url = format!("{}/trpc/{}", endpoint, name);
     let response = client
         .post(url)
         .json(&input)
-        .header(
-            AUTHORIZATION,
-            authorization.clone().unwrap_or("".to_string()),
-        )
+        .header(AUTHORIZATION, authorization)
         .send()?;
     let status = response.status();
     let body: Value = response.json()?;

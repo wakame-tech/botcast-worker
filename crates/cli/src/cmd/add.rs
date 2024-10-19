@@ -1,5 +1,5 @@
 use crate::{
-    api_client::{ApiClient, NewScript},
+    api::{client::ApiClient, dto::NewScript},
     credential::Credential,
     project::Project,
 };
@@ -12,7 +12,7 @@ pub(crate) struct AddArgs {
 
 pub(crate) fn cmd_add(project: Project, args: AddArgs) -> Result<()> {
     let credential = Credential::load(&project.credential_path())?;
-    let client = ApiClient::from_credential(&credential);
+    let client = ApiClient::new(&credential.api_endpoint, &credential.token);
 
     let input = NewScript::new(args.title);
     let script = client.new_script(input)?;
