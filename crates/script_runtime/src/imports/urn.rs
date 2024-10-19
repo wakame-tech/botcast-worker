@@ -1,12 +1,18 @@
 use crate::{parse_urn, Urn};
 use anyhow::Result;
-use futures::{future::BoxFuture, FutureExt};
-use json_e::{value::Value, Context};
+use json_e::{
+    value::{AsyncCallable, Value},
+    Context,
+};
 use repos::{comment_repo, episode_repo, script_repo};
 use uuid::Uuid;
 
-pub fn get<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>> {
-    async move {
+#[derive(Clone)]
+pub(crate) struct UrnGet;
+
+#[async_trait::async_trait]
+impl AsyncCallable for UrnGet {
+    async fn call(&self, context: &Context<'_>, args: &[Value]) -> Result<Value> {
         match args {
             [Value::String(urn)] => {
                 let urn = Urn(urn.clone());
@@ -40,7 +46,9 @@ pub fn get<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value
                         let Some(res) = script_repo.find_by_id(&id).await? else {
                             return Err(anyhow::anyhow!("Resource:{} Not found", id));
                         };
-                        serde_json::to_value(res)
+                        let template = serde_json::to_value(res)?;
+                        let evaluated = json_e::render_with_context(&template, context).await?;
+                        Ok(evaluated.into())
                     }
                     resource => return Err(anyhow::anyhow!("Resource:{} Not found", resource)),
                 }?;
@@ -49,5 +57,4 @@ pub fn get<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value
             _ => Err(anyhow::anyhow!("invalid args".to_string())),
         }
     }
-    .boxed()
 }

@@ -5,21 +5,23 @@ mod time;
 mod urn;
 
 use json_e::{
-    value::{Function, Value},
+    builtins::builtins,
+    value::{AsyncCallable, Function, Value},
     Context,
 };
 
-pub fn define_imports<'a>(context: &mut Context<'a>) {
-    context.insert(
-        "today",
-        Value::Function(Function::new("today", time::today)),
-    );
-    context.insert("get", Value::Function(Function::new("get", urn::get)));
-    context.insert(
-        "fetch",
-        Value::Function(Function::new("fetch", fetch::fetch)),
-    );
-    context.insert("text", Value::Function(Function::new("text", fetch::text)));
-    context.insert("llm", Value::Function(Function::new("llm", llm::llm)));
-    context.insert("jq", Value::Function(Function::new("jq", jq::jq)));
+pub fn create_context(context: &mut Context<'_>) {
+    builtins(context);
+    let functions = [
+        ("today", Box::new(time::Today) as Box<dyn AsyncCallable>),
+        ("get", Box::new(urn::UrnGet)),
+        ("fetch", Box::new(fetch::Fetch)),
+        ("fetch_json", Box::new(fetch::FetchJson)),
+        ("text", Box::new(fetch::Text)),
+        ("llm", Box::new(llm::Llm)),
+        ("jq", Box::new(jq::Jq)),
+    ];
+    for (name, f) in functions.into_iter() {
+        context.insert(name.to_string(), Value::Function(Function::new(name, f)));
+    }
 }

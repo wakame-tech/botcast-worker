@@ -1,39 +1,39 @@
-use crate::imports::define_imports;
+use crate::imports::create_context;
 use anyhow::Result;
 use json_e::Context;
 
 pub async fn run(template: &serde_json::Value) -> Result<serde_json::Value> {
     let mut context = Context::new();
-    define_imports(&mut context);
+    create_context(&mut context);
     json_e::render_with_context(template, &context).await
 }
 
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use futures::{future::BoxFuture, FutureExt};
     use json_e::{
-        value::{Function, Value},
+        value::{AsyncCallable, Function, Value},
         Context,
     };
     use serde_json::json;
-    use std::time::Duration;
 
-    fn add<'a>(_: &Context<'_>, args: &'a [Value]) -> BoxFuture<'a, Result<Value>> {
-        async move {
-            tokio::time::sleep(Duration::from_secs(3)).await;
+    #[derive(Clone)]
+    struct Add;
+
+    #[async_trait::async_trait]
+    impl AsyncCallable for Add {
+        async fn call(&self, _: &Context<'_>, args: &[Value]) -> Result<Value> {
             match (&args[0], &args[1]) {
                 (Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
                 _ => Err(anyhow::anyhow!("add only supports numbers, got {:?}", args)),
             }
         }
-        .boxed()
     }
 
     fn custom_context<'a>() -> Context<'a> {
         let mut context = Context::new();
         context.insert("today", Value::String("xx月yy日".to_string()));
-        context.insert("add", Value::Function(Function::new("add", add)));
+        context.insert("add", Value::Function(Function::new("add", Box::new(Add))));
         context
     }
 
