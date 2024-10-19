@@ -24,6 +24,7 @@ impl Project {
         let path = self.root.join(self.script_path(&script.id));
         let mut f = std::fs::OpenOptions::new()
             .create(true)
+            .truncate(true)
             .write(true)
             .open(&path)?;
         serde_json::to_writer_pretty(&mut f, &script.template)?;
