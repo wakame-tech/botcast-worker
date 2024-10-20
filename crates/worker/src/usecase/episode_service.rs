@@ -1,7 +1,7 @@
-use crate::r2_storage::{ProviderStorage, Storage};
+use super::script_service::ScriptService;
 use crate::{
-    episode::{script_service::ScriptService, Manuscript, Section},
-    task::Args,
+    model::{Args, Manuscript, Section},
+    r2_storage::{ProviderStorage, Storage},
 };
 use audio_generator::{
     generate_audio::{generate_audio, Sentence, SynthesisResult},

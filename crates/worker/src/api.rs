@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use crate::{episode::script_service::ScriptService, task::task_service::TaskService};
+use crate::usecase::{script_service::ScriptService, task_service::TaskService};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -10,6 +8,7 @@ use axum::{
 };
 use repos::{entity::ScriptId, provider::Provider};
 use serde_json::{json, Value};
+use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]

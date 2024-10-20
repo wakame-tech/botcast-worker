@@ -1,5 +1,5 @@
 pub mod api;
-pub mod episode;
+pub mod model;
 pub mod r2_storage;
-pub mod task;
+pub mod usecase;
 pub mod worker;

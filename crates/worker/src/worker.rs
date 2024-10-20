@@ -1,4 +1,4 @@
-use crate::task::task_service::TaskService;
+use crate::usecase::task_service::TaskService;
 use audio_generator::workdir::WorkDir;
 use repos::provider::Provider;
 use std::time::Duration;
