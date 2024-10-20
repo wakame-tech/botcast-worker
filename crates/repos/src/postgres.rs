@@ -7,7 +7,7 @@ use crate::{
     repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo, TaskRepo},
 };
 use async_trait::async_trait;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Pool, Postgres};
 use std::sync::LazyLock;
 use uuid::Uuid;
@@ -233,12 +233,12 @@ impl PostgresTaskRepo {
 
 #[async_trait]
 impl TaskRepo for PostgresTaskRepo {
-    async fn pop(&self) -> anyhow::Result<Option<Task>, Error> {
+    async fn pop(&self, now: DateTime<Utc>) -> anyhow::Result<Option<Task>, Error> {
         let task = sqlx::query_as!(
             Task,
-            r#"select id, status as "status!: TaskStatus", args, execute_after, executed_at from tasks where status = $1 and $2 < execute_after order by id limit 1"#,
+            r#"select id, status as "status!: TaskStatus", args, execute_after, executed_at from tasks where status = $1 and execute_after < $2 order by execute_after limit 1"#,
             TaskStatus::Pending as TaskStatus,
-            Utc::now(),
+            now,
         )
         .fetch_optional(&self.pool)
         .await

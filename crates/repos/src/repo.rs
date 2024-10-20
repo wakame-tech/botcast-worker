@@ -5,6 +5,7 @@ use crate::{
     error::Error,
 };
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 
 #[async_trait]
 pub trait PodcastRepo: Send + Sync {
@@ -33,7 +34,7 @@ pub trait ScriptRepo: Send + Sync {
 
 #[async_trait]
 pub trait TaskRepo: Send + Sync {
-    async fn pop(&self) -> anyhow::Result<Option<Task>, Error>;
+    async fn pop(&self, now: DateTime<Utc>) -> anyhow::Result<Option<Task>, Error>;
     async fn create(&self, task: &Task) -> anyhow::Result<(), Error>;
     async fn update(&self, task: &Task) -> anyhow::Result<(), Error>;
     #[allow(dead_code)]

@@ -61,7 +61,9 @@ impl TaskService {
                 self.script_service.evaluate_script(&script_id).await?;
             }
             Args::NewEpisode { pre_episode_id } => {
-                let task = self.episode_service.new_episode(&pre_episode_id).await?;
+                let Some(task) = self.episode_service.new_episode(&pre_episode_id).await? else {
+                    return Ok(());
+                };
                 self.task_repo.create(&task).await?;
             }
         }
@@ -91,7 +93,7 @@ impl TaskService {
     }
 
     pub(crate) async fn execute_queued_tasks(&self) -> anyhow::Result<(), Error> {
-        let Some(task) = self.task_repo.pop().await? else {
+        let Some(task) = self.task_repo.pop(Utc::now()).await? else {
             return Ok(());
         };
         log::info!("Found task: {} args={}", task.id, task.args);

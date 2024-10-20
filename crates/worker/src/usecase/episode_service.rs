@@ -82,16 +82,12 @@ impl EpisodeService {
     pub(crate) async fn new_episode(
         &self,
         pre_episode_id: &EpisodeId,
-    ) -> anyhow::Result<Task, Error> {
+    ) -> anyhow::Result<Option<Task>, Error> {
         let (pre_episode, _) = self.episode_repo.find_by_id(&pre_episode_id).await?;
         let podcast = self
             .podcast_repo
             .find_by_id(&PodcastId(pre_episode.podcast_id))
             .await?;
-        let Some(cron) = podcast.cron else {
-            return Err(Error::Other(anyhow::anyhow!("Cron not found")));
-        };
-
         let manuscript: Manuscript = serde_json::from_value(
             self.script_service
                 .evaluate_script(&ScriptId(pre_episode.script_id))
@@ -102,17 +98,23 @@ impl EpisodeService {
         let episode = new_episode(&pre_episode, manuscript.title);
         self.episode_repo.create(&episode).await?;
 
-        let next = cron::Schedule::from_str(&cron)
-            .map_err(|e| Error::Other(anyhow::anyhow!("Invalid cron: {}", e)))?
-            .upcoming(Utc)
-            .next()
-            .ok_or_else(|| Error::Other(anyhow::anyhow!("Failed to get next cron")))?;
-        let task = new_task(
-            Args::NewEpisode {
-                pre_episode_id: EpisodeId(episode.id),
-            },
-            next,
-        );
+        let task = if let Some(cron) = podcast.cron {
+            let next = cron::Schedule::from_str(&cron)
+                .map_err(|e| Error::Other(anyhow::anyhow!("Invalid cron: {}", e)))?
+                .upcoming(Utc)
+                .next()
+                .ok_or_else(|| Error::Other(anyhow::anyhow!("Failed to get next cron")))?;
+
+            let task = new_task(
+                Args::NewEpisode {
+                    pre_episode_id: EpisodeId(episode.id),
+                },
+                next,
+            );
+            Some(task)
+        } else {
+            None
+        };
         Ok(task)
     }
 
@@ -158,59 +160,6 @@ impl EpisodeService {
         episode.srt_url = Some(format!("{}/{}", self.storage.get_endpoint(), srt_path));
 
         self.episode_repo.update(&episode).await?;
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use axum::async_trait;
-    use repos::entity::Comment;
-    use repos::error::Error as ReposError;
-
-    pub struct DummyEpisodeRepo {
-        episode: Episode,
-    }
-
-    impl DummyEpisodeRepo {
-        pub fn new() -> Self {
-            Self {
-                episode: Episode {
-                    id: Uuid::new_v4(),
-                    title: "dummy".to_string(),
-                    audio_url: None,
-                    script_id: Uuid::new_v4(),
-                    srt_url: None,
-                    podcast_id: Uuid::new_v4(),
-                    user_id: None,
-                    created_at: Utc::now(),
-                },
-            }
-        }
-    }
-
-    #[async_trait]
-    impl EpisodeRepo for DummyEpisodeRepo {
-        async fn find_by_id(
-            &self,
-            _id: &EpisodeId,
-        ) -> anyhow::Result<(Episode, Vec<Comment>), ReposError> {
-            Ok((self.episode.clone(), vec![]))
-        }
-
-        async fn create(&self, _episode: &Episode) -> anyhow::Result<(), ReposError> {
-            Ok(())
-        }
-
-        async fn update(&self, _episode: &Episode) -> anyhow::Result<(), ReposError> {
-            Ok(())
-        }
-    }
-
-    #[test]
-    fn test_new_episode() -> Result<()> {
-        // let episode_repo = TestProvider.episode_repo();
         Ok(())
     }
 }

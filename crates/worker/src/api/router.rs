@@ -27,7 +27,17 @@ async fn update_script(
     Ok(StatusCode::CREATED)
 }
 
-async fn eval_script(
+async fn run_script(
+    State(state): State<Arc<AppState>>,
+    Path(script_id): Path<Uuid>,
+) -> Result<impl IntoResponse, Error> {
+    let evaluated = ScriptService::new(*state.0)
+        .evaluate_script(&ScriptId(script_id))
+        .await?;
+    Ok(Json(evaluated))
+}
+
+async fn eval_template(
     State(state): State<Arc<AppState>>,
     Json(template): Json<Value>,
 ) -> Result<impl IntoResponse, Error> {
@@ -37,11 +47,10 @@ async fn eval_script(
     Ok(Json(evaluated))
 }
 
-async fn insert_task(
+async fn create_task(
     State(state): State<Arc<AppState>>,
-    Json(args): Json<Value>,
+    Json(args): Json<Args>,
 ) -> Result<impl IntoResponse, Error> {
-    let args: Args = serde_json::from_value(args).map_err(|e| Error::InvalidInput(e.into()))?;
     TaskService::new(*state.0).create_task(args).await?;
     Ok(StatusCode::CREATED)
 }
@@ -56,7 +65,8 @@ async fn version() -> Result<impl IntoResponse, Error> {
 pub(crate) fn routers() -> Router<Arc<AppState>> {
     Router::new()
         .route("/version", get(version))
-        .route("/evalScript", post(eval_script))
-        .route("/updateEpisodeScript/:episode_id", post(update_script))
-        .route("/insertTask", post(insert_task))
+        .route("/scripts/:script_id", post(update_script))
+        .route("/scripts/:script_id/run", post(run_script))
+        .route("/createTask", post(create_task))
+        .route("/evalTemplate", post(eval_template))
 }
