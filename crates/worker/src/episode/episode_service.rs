@@ -4,14 +4,14 @@ use crate::{
         script_service::{script_service, ScriptService},
         Manuscript, Section,
     },
-    task::model::{Args, Task, TaskStatus},
+    task::Args,
 };
 use audio_generator::{
     generate_audio::{generate_audio, Sentence, SynthesisResult},
     workdir::WorkDir,
 };
 use chrono::Utc;
-use repos::entity::Episode;
+use repos::entity::{Episode, Task, TaskStatus};
 use repos::podcast_repo;
 use repos::repo::{EpisodeId, ScriptId};
 use repos::{

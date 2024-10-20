@@ -41,3 +41,22 @@ pub struct Script {
     pub template: serde_json::Value,
     pub result: Option<serde_json::Value>,
 }
+
+#[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]
+#[sqlx(type_name = "task_status", rename_all = "UPPERCASE")]
+pub enum TaskStatus {
+    None,
+    Pending,
+    Running,
+    Completed,
+    Failed,
+}
+
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
+pub struct Task {
+    pub id: Uuid,
+    pub status: TaskStatus,
+    pub args: serde_json::Value,
+    pub execute_after: DateTime<Utc>,
+    pub executed_at: Option<DateTime<Utc>>,
+}

@@ -1,4 +1,4 @@
-use crate::entity::{Comment, Episode, Podcast, Script};
+use crate::entity::{Comment, Episode, Podcast, Script, Task};
 use async_trait::async_trait;
 use uuid::Uuid;
 
@@ -18,6 +18,10 @@ pub struct CommentId(pub Uuid);
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct ScriptId(pub Uuid);
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct TaskId(pub Uuid);
 
 #[async_trait]
 pub trait PodcastRepo: Send + Sync {
@@ -42,4 +46,13 @@ pub trait CommentRepo: Send + Sync {
 pub trait ScriptRepo: Send + Sync {
     async fn find_by_id(&self, id: &ScriptId) -> anyhow::Result<Script>;
     async fn update(&self, script: &Script) -> anyhow::Result<()>;
+}
+
+#[async_trait]
+pub trait TaskRepo: Send + Sync {
+    async fn pop(&self) -> anyhow::Result<Option<Task>>;
+    async fn create(&self, task: &Task) -> anyhow::Result<()>;
+    async fn update(&self, task: &Task) -> anyhow::Result<()>;
+    #[allow(dead_code)]
+    async fn delete(&self, id: &TaskId) -> anyhow::Result<()>;
 }
