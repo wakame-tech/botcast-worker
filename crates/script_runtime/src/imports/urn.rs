@@ -1,10 +1,10 @@
-use crate::{parse_urn, Urn};
+use crate::Urn;
 use anyhow::Result;
 use json_e::{
     value::{AsyncCallable, Value},
     Context,
 };
-use repos::{comment_repo, episode_repo, podcast_repo, script_repo};
+use repos::{comment_repo, episode_repo, error::Error, podcast_repo, repo::PodcastId, script_repo};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -34,29 +34,20 @@ pub(crate) struct UrnGet;
 #[async_trait::async_trait]
 impl AsyncCallable for UrnGet {
     async fn call(&self, _: &Context<'_>, args: &[Value]) -> Result<Value> {
-        let (resource, id) = match args {
-            [Value::String(urn)] => {
-                let urn = Urn(urn.clone());
-                parse_urn(&urn)
-            }
+        let urn = match args {
+            [Value::String(urn)] => urn.parse::<Urn>(),
             _ => return Err(anyhow::anyhow!("invalid args".to_string())),
         }?;
 
-        let value = match resource.as_str() {
-            "podcast" => {
+        let value = match urn {
+            Urn::Podcast(id) => {
                 let podcast_repo = podcast_repo();
-                let id: Uuid = id.parse()?;
-                let Some(podcast) = podcast_repo.find_by_id(&id).await? else {
-                    return Err(anyhow::anyhow!("ResourceId:{} Not found", id));
-                };
+                let podcast = podcast_repo.find_by_id(&id).await?;
                 serde_json::to_value(podcast)
             }
-            "episode" => {
+            Urn::Episode(id) => {
                 let episode_repo = episode_repo();
-                let id: Uuid = id.parse()?;
-                let Some((episode, comments)) = episode_repo.find_by_id(&id).await? else {
-                    return Err(anyhow::anyhow!("ResourceId:{} Not found", id));
-                };
+                let (episode, comments) = episode_repo.find_by_id(&id).await?;
                 let mut episode = serde_json::to_value(episode)?;
                 episode
                     .as_object_mut()
@@ -64,23 +55,17 @@ impl AsyncCallable for UrnGet {
                     .insert("comments".to_string(), serde_json::to_value(comments)?);
                 Ok(episode)
             }
-            "comment" => {
+            Urn::Comment(id) => {
                 let comment_repo = comment_repo();
-                let id = id.parse()?;
-                let Some(res) = comment_repo.find_by_id(&id).await? else {
-                    return Err(anyhow::anyhow!("ResourceId:{} Not found", id));
-                };
+                let res = comment_repo.find_by_id(&id).await?;
                 serde_json::to_value(res)
             }
-            "script" => {
+            Urn::Script(id) => {
                 let script_repo = script_repo();
-                let id = id.parse()?;
-                let Some(res) = script_repo.find_by_id(&id).await? else {
-                    return Err(anyhow::anyhow!("Resource:{} Not found", id));
-                };
+                let res = script_repo.find_by_id(&id).await?;
                 serde_json::to_value(res)
             }
-            resource => return Err(anyhow::anyhow!("Resource:{} Not found", resource)),
+            Urn::Other(resource, id) => return Err(Error::NotFound(resource, id).into()),
         }?;
         Ok(value.into())
     }

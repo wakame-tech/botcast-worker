@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use repos::repo::{EpisodeId, ScriptId};
 use uuid::Uuid;
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]
@@ -24,7 +25,7 @@ pub(crate) struct Task {
 #[serde(tag = "type")]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub(crate) enum Args {
-    GenerateAudio { episode_id: Uuid },
-    EvaluateScript { script_id: Uuid },
-    NewEpisode { pre_episode_id: Uuid },
+    GenerateAudio { episode_id: EpisodeId },
+    EvaluateScript { script_id: ScriptId },
+    NewEpisode { pre_episode_id: EpisodeId },
 }

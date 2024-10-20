@@ -21,18 +21,13 @@ fn resolve_audio_generator(resource: &str) -> Result<Box<dyn AudioGenerator>> {
 
 #[derive(Debug)]
 pub struct Sentence {
-    generator: String,
-    speaker_id: String,
+    speaker: (String, String),
     text: String,
 }
 
 impl Sentence {
-    pub fn new(generator: String, speaker_id: String, text: String) -> Self {
-        Self {
-            generator,
-            speaker_id,
-            text,
-        }
+    pub fn new(speaker: (String, String), text: String) -> Self {
+        Self { speaker, text }
     }
 }
 
@@ -49,8 +44,7 @@ pub async fn generate_audio(
     for (
         i,
         Sentence {
-            generator,
-            speaker_id,
+            speaker: (generator, speaker_id),
             text,
         },
     ) in sentences.iter().enumerate()

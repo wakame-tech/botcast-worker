@@ -16,6 +16,8 @@ use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use super::repo::TaskId;
+
 pub(crate) fn task_service() -> TaskService {
     TaskService {
         task_repo: task_repo(),
@@ -32,19 +34,19 @@ pub(crate) struct TaskService {
 }
 
 impl TaskService {
-    async fn execute(&self, task_id: Uuid, args: Args) -> anyhow::Result<()> {
+    async fn execute(&self, task_id: &TaskId, args: Args) -> anyhow::Result<()> {
         match args {
             Args::GenerateAudio { episode_id } => {
-                let work_dir = use_work_dir(&task_id)?;
+                let work_dir = use_work_dir(&task_id.0)?;
                 self.episode_service
-                    .generate_audio(&work_dir, episode_id)
+                    .generate_audio(&work_dir, &episode_id)
                     .await?;
             }
             Args::EvaluateScript { script_id } => {
-                self.script_service.evaluate_script(script_id).await?;
+                self.script_service.evaluate_script(&script_id).await?;
             }
             Args::NewEpisode { pre_episode_id } => {
-                let task = self.episode_service.new_episode(pre_episode_id).await?;
+                let task = self.episode_service.new_episode(&pre_episode_id).await?;
                 self.task_repo.create(&task).await?;
             }
         }
@@ -53,7 +55,7 @@ impl TaskService {
 
     async fn run_task(&self, task: &mut Task) -> anyhow::Result<()> {
         let args: Args = serde_json::from_value(task.args.clone())?;
-        task.status = match self.execute(task.id, args).await {
+        task.status = match self.execute(&TaskId(task.id), args).await {
             Ok(()) => TaskStatus::Completed,
             Err(e) => {
                 log::error!("Failed to run task: {:?}", e);

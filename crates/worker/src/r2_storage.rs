@@ -50,15 +50,26 @@ impl Storage for R2Storage {
     }
 }
 
-pub(crate) struct DummyStorage;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[async_trait]
-impl Storage for DummyStorage {
-    async fn upload(&self, _path: &str, _data: &[u8], _content_type: &str) -> anyhow::Result<()> {
-        Ok(())
-    }
+    #[allow(dead_code)]
+    pub(crate) struct DummyStorage;
 
-    fn get_endpoint(&self) -> String {
-        "dummy".to_string()
+    #[async_trait]
+    impl Storage for DummyStorage {
+        async fn upload(
+            &self,
+            _path: &str,
+            _data: &[u8],
+            _content_type: &str,
+        ) -> anyhow::Result<()> {
+            Ok(())
+        }
+
+        fn get_endpoint(&self) -> String {
+            "dummy".to_string()
+        }
     }
 }

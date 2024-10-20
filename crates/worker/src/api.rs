@@ -6,6 +6,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use repos::repo::ScriptId;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
@@ -31,7 +32,9 @@ async fn update_script(
     Path(script_id): Path<Uuid>,
     Json(template): Json<Value>,
 ) -> Result<impl IntoResponse, AppError> {
-    script_service().update_script(script_id, template).await?;
+    script_service()
+        .update_script(&ScriptId(script_id), template)
+        .await?;
     Ok(StatusCode::CREATED)
 }
 

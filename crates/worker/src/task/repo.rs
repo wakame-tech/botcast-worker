@@ -6,12 +6,17 @@ use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct TaskId(pub Uuid);
+
 #[async_trait]
 pub(crate) trait TaskRepo: Send + Sync {
     async fn pop(&self) -> anyhow::Result<Option<Task>>;
     async fn create(&self, task: &Task) -> anyhow::Result<()>;
     async fn update(&self, task: &Task) -> anyhow::Result<()>;
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<()>;
+    #[allow(dead_code)]
+    async fn delete(&self, id: &TaskId) -> anyhow::Result<()>;
 }
 
 pub(crate) fn task_repo() -> Arc<dyn TaskRepo> {
@@ -74,9 +79,9 @@ impl TaskRepo for PostgresTaskRepo {
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<()> {
+    async fn delete(&self, id: &TaskId) -> anyhow::Result<()> {
         sqlx::query("delete from tasks where id = $1")
-            .bind(id)
+            .bind(id.0)
             .fetch_one(&self.pool)
             .await?;
         Ok(())

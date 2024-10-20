@@ -1,4 +1,5 @@
 pub mod entity;
+pub mod error;
 pub mod postgres;
 pub mod repo;
 

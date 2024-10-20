@@ -1,6 +1,10 @@
 use crate::{
     entity::{Comment, Episode, Podcast, Script},
-    repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo},
+    error::Error,
+    repo::{
+        CommentId, CommentRepo, EpisodeId, EpisodeRepo, PodcastId, PodcastRepo, ScriptId,
+        ScriptRepo,
+    },
 };
 use async_trait::async_trait;
 use chrono::Local;
@@ -26,10 +30,13 @@ impl PostgresPodcastRepo {
 
 #[async_trait]
 impl PodcastRepo for PostgresPodcastRepo {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Podcast>> {
-        let podcast = sqlx::query_as!(Podcast, "select * from podcasts where id = $1", id)
+    async fn find_by_id(&self, id: &PodcastId) -> anyhow::Result<Podcast> {
+        let Some(podcast) = sqlx::query_as!(Podcast, "select * from podcasts where id = $1", id.0)
             .fetch_optional(&self.pool)
-            .await?;
+            .await?
+        else {
+            return Err(Error::NotFound("podcast".to_string(), id.0).into());
+        };
         Ok(podcast)
     }
 
@@ -62,17 +69,21 @@ impl PostgresEpisodeRepo {
 
 #[async_trait]
 impl EpisodeRepo for PostgresEpisodeRepo {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<(Episode, Vec<Comment>)>> {
-        let Some(episode) = sqlx::query_as!(Episode, "select * from episodes where id = $1", id)
+    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<(Episode, Vec<Comment>)> {
+        let Some(episode) = sqlx::query_as!(Episode, "select * from episodes where id = $1", id.0)
             .fetch_optional(&self.pool)
             .await?
         else {
-            return Ok(None);
+            return Err(Error::NotFound("episode".to_string(), id.0).into());
         };
-        let comments = sqlx::query_as!(Comment, "select * from comments where episode_id = $1", id)
-            .fetch_all(&self.pool)
-            .await?;
-        Ok(Some((episode, comments)))
+        let comments = sqlx::query_as!(
+            Comment,
+            "select * from comments where episode_id = $1",
+            id.0
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok((episode, comments))
     }
 
     async fn create(&self, episode: &Episode) -> anyhow::Result<()> {
@@ -110,9 +121,9 @@ pub struct DummyEpisodeRepo;
 
 #[async_trait]
 impl EpisodeRepo for DummyEpisodeRepo {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<(Episode, Vec<Comment>)>> {
+    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<(Episode, Vec<Comment>)> {
         let episode = Episode {
-            id: *id,
+            id: id.0,
             title: "dummy".to_string(),
             audio_url: None,
             script_id: Uuid::new_v4(),
@@ -121,7 +132,7 @@ impl EpisodeRepo for DummyEpisodeRepo {
             user_id: None,
             created_at: Local::now().to_utc(),
         };
-        Ok(Some((episode, vec![])))
+        Ok((episode, vec![]))
     }
 
     async fn create(&self, _episode: &Episode) -> anyhow::Result<()> {
@@ -146,19 +157,19 @@ impl PostgresCommentRepo {
 
 #[async_trait]
 impl CommentRepo for PostgresCommentRepo {
-    async fn find_all(&self, episode_id: &Uuid) -> anyhow::Result<Vec<Comment>> {
+    async fn find_all(&self, episode_id: &EpisodeId) -> anyhow::Result<Vec<Comment>> {
         let comments = sqlx::query_as!(
             Comment,
             "select * from comments where episode_id = $1",
-            episode_id
+            episode_id.0
         )
         .fetch_all(&self.pool)
         .await?;
         Ok(comments)
     }
 
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Comment>> {
-        let comment = sqlx::query_as!(Comment, "select * from comments where id = $1", id)
+    async fn find_by_id(&self, id: &CommentId) -> anyhow::Result<Option<Comment>> {
+        let comment = sqlx::query_as!(Comment, "select * from comments where id = $1", id.0)
             .fetch_optional(&self.pool)
             .await?;
         Ok(comment)
@@ -178,10 +189,13 @@ impl PostgresScriptRepo {
 
 #[async_trait]
 impl ScriptRepo for PostgresScriptRepo {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Script>> {
-        let script = sqlx::query_as!(Script, "select * from scripts where id = $1", id)
+    async fn find_by_id(&self, id: &ScriptId) -> anyhow::Result<Script> {
+        let Some(script) = sqlx::query_as!(Script, "select * from scripts where id = $1", id.0)
             .fetch_optional(&self.pool)
-            .await?;
+            .await?
+        else {
+            return Err(Error::NotFound("script".to_string(), id.0).into());
+        };
         Ok(script)
     }
 
@@ -206,15 +220,15 @@ pub struct DummyScriptRepo {
 
 #[async_trait]
 impl ScriptRepo for DummyScriptRepo {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Script>> {
+    async fn find_by_id(&self, id: &ScriptId) -> anyhow::Result<Script> {
         let script = Script {
-            id: *id,
+            id: id.0,
             user_id: Uuid::new_v4(),
             title: "dummy".to_string(),
             template: self.template.clone(),
             result: None,
         };
-        Ok(Some(script))
+        Ok(script)
     }
 
     async fn update(&self, _script: &Script) -> anyhow::Result<()> {
