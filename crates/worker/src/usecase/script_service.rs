@@ -31,6 +31,7 @@ impl ScriptService {
     ) -> anyhow::Result<serde_json::Value, Error> {
         let mut script = self.script_repo.find_by_id(&script_id).await?;
 
+        log::info!("Evaluating script: {:?}", script);
         let result = runtime::run(&script.template)
             .await
             .map_err(Error::Script)?;

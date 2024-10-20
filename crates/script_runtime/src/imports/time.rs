@@ -10,13 +10,12 @@ pub(crate) struct Today;
 #[async_trait::async_trait]
 impl AsyncCallable for Today {
     async fn call(&self, _: &Context<'_>, args: &[Value]) -> Result<Value> {
-        match args {
-            [Value::String(format)] => {
-                let today = chrono::Local::now().format(&format).to_string();
-                Ok(Value::String(today))
-            }
+        let format = match args {
+            [Value::String(format)] => Ok(format),
             _ => Err(anyhow::anyhow!("today only supports a string".to_string())),
-        }
+        }?;
+        let today = chrono::Local::now().format(&format).to_string();
+        Ok(Value::String(today))
     }
 }
 

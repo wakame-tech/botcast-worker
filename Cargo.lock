@@ -3428,6 +3428,7 @@ dependencies = [
  "chrono",
  "futures",
  "json-e",
+ "log",
  "readable_text",
  "repos",
  "script_http_client",

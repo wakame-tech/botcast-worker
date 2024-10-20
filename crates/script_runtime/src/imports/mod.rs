@@ -5,11 +5,30 @@ mod time;
 mod urn;
 
 use crate::provider::DefaultProvider;
+use anyhow::Result;
 use json_e::{
     builtins::builtins,
     value::{AsyncCallable, Function, Value},
     Context,
 };
+
+fn display_fn_io(name: &str, args: &[Value], ret: &Result<serde_json::Value>) -> Result<String> {
+    Ok(format!(
+        "{}(\n{}\n) = {}",
+        name,
+        args.iter()
+            .map(|v| serde_json::Value::try_from(v))
+            .collect::<Result<Vec<_>>>()?
+            .iter()
+            .map(|v| serde_json::to_string_pretty(v).unwrap())
+            .collect::<Vec<_>>()
+            .join(",\n"),
+        match ret {
+            Ok(v) => format!("Ok({})", serde_json::to_string_pretty(&v).unwrap()),
+            Err(e) => format!("Err({})", e),
+        },
+    ))
+}
 
 pub fn create_context(provider: DefaultProvider, context: &mut Context<'_>) {
     builtins(context);

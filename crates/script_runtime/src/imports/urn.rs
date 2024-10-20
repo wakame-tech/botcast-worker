@@ -1,4 +1,4 @@
-use crate::{provider::DefaultProvider, resolve::resolve_urn};
+use crate::{imports::display_fn_io, provider::DefaultProvider, resolve::resolve_urn};
 use anyhow::Result;
 use json_e::{
     value::{AsyncCallable, Value},
@@ -12,18 +12,23 @@ pub(crate) struct Eval;
 #[async_trait::async_trait]
 impl AsyncCallable for Eval {
     async fn call(&self, context: &Context<'_>, args: &[Value]) -> Result<Value> {
-        match args {
-            [template, Value::Object(values)] => {
-                let mut context = context.child();
-                for (k, v) in values.iter() {
-                    context.insert(k, v.clone());
-                }
-                let template = template.try_into()?;
-                let evaluated = json_e::render_with_context(&template, &context).await?;
-                Ok(evaluated.into())
-            }
-            _ => Err(anyhow::anyhow!("invalid args".to_string())),
+        let (template, values) = match args {
+            [template, Value::Object(values)] => (template, values),
+            _ => return Err(anyhow::anyhow!("invalid args".to_string())),
+        };
+
+        let mut context = context.child();
+        for (k, v) in values.iter() {
+            context.insert(k, v.clone());
         }
+        let template = template.try_into()?;
+        let ret = json_e::render_with_context(&template, &context)
+            .await
+            .map(Value::from)
+            .map_err(|e| anyhow::anyhow!("eval error: {}", e))
+            .and_then(|v| v.try_into());
+        log::info!("{}", display_fn_io("eval", args, &ret)?);
+        Ok(ret?.into())
     }
 }
 
@@ -39,7 +44,8 @@ impl AsyncCallable for UrnGet {
             [Value::String(urn)] => urn.parse::<Urn>(),
             _ => return Err(anyhow::anyhow!("invalid args".to_string())),
         }?;
-        let value = resolve_urn(self.provider, urn).await?;
-        Ok(value.into())
+        let value = resolve_urn(self.provider, urn).await;
+        log::info!("{}", display_fn_io("get", args, &value)?);
+        Ok(value?.into())
     }
 }

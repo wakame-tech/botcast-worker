@@ -11,13 +11,11 @@ pub(crate) struct Jq;
 #[async_trait::async_trait]
 impl AsyncCallable for Jq {
     async fn call(&self, _: &Context<'_>, args: &[Value]) -> Result<Value> {
-        match args {
-            [value, Value::String(query)] => {
-                let value: serde_json::Value = value.try_into()?;
-                let result = run_xq(query, value)?;
-                Ok(result.into())
-            }
+        let (value, query) = match args {
+            [value, Value::String(query)] => Ok((value.try_into()?, query)),
             _ => Err(anyhow::anyhow!("invalid arguments")),
-        }
+        }?;
+        let result = run_xq(query, value)?;
+        Ok(result.into())
     }
 }

@@ -16,13 +16,12 @@ pub(crate) struct Fetch;
 #[async_trait::async_trait]
 impl AsyncCallable for Fetch {
     async fn call(&self, _: &Context<'_>, args: &[Value]) -> Result<Value> {
-        match args {
-            [Value::String(url)] => {
-                let html = http_client().fetch_content_as_utf8(url.clone()).await?;
-                Ok(Value::String(html))
-            }
-            _ => Err(anyhow::anyhow!("fetch only supports a string".to_string())),
-        }
+        let url = match args {
+            [Value::String(url)] => Ok(url),
+            _ => Err(anyhow::anyhow!("invalid args".to_string())),
+        }?;
+        let html = http_client().fetch_content_as_utf8(url.clone()).await?;
+        Ok(Value::String(html))
     }
 }
 

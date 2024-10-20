@@ -93,13 +93,14 @@ impl EpisodeRepo for PostgresEpisodeRepo {
     async fn create(&self, episode: &Episode) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Episode,
-            "insert into episodes (id, title, audio_url, srt_url, podcast_id, user_id) values ($1, $2, $3, $4, $5, $6)",
+            "insert into episodes (id, user_id, title, podcast_id, script_id, audio_url, srt_url) values ($1, $2, $3, $4, $5, $6, $7)",
             episode.id,
+            episode.user_id,
             episode.title,
+            episode.podcast_id,
+            episode.script_id,
             episode.audio_url,
             episode.srt_url,
-            episode.podcast_id,
-            episode.user_id,
         )
         .execute(&self.pool)
         .await
