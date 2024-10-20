@@ -18,7 +18,8 @@ pub fn start_worker(provider: Provider) {
 
         loop {
             log::info!("Watching tasks...");
-            if let Err(e) = task_service.batch().await {
+
+            if let Err(e) = task_service.execute_queued_tasks().await {
                 log::error!("Error: {:?}", e);
             }
             tokio::time::sleep(interval).await;

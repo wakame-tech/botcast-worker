@@ -1,4 +1,7 @@
-use crate::usecase::{script_service::ScriptService, task_service::TaskService};
+use crate::{
+    model::Args,
+    usecase::{script_service::ScriptService, task_service::TaskService},
+};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -38,7 +41,7 @@ async fn update_script(
     Json(template): Json<Value>,
 ) -> Result<impl IntoResponse, AppError> {
     ScriptService::new(state.0)
-        .update_script(&ScriptId(script_id), template)
+        .update_template(&ScriptId(script_id), template)
         .await?;
     Ok(StatusCode::CREATED)
 }
@@ -55,7 +58,8 @@ async fn insert_task(
     State(state): State<Arc<AppState>>,
     Json(args): Json<Value>,
 ) -> Result<impl IntoResponse, AppError> {
-    TaskService::new(state.0).insert_task(args).await?;
+    let args: Args = serde_json::from_value(args)?;
+    TaskService::new(state.0).create_task(args).await?;
     Ok(StatusCode::CREATED)
 }
 

@@ -1,12 +1,23 @@
 use super::episode_service::EpisodeService;
 use super::script_service::ScriptService;
 use crate::{model::Args, worker::use_work_dir};
-use chrono::Utc;
-use repos::entity::{Task, TaskId, TaskStatus};
+use anyhow::Result;
+use chrono::{DateTime, Utc};
+use repos::entity::{Task, TaskStatus};
 use repos::provider::{ProvideTaskRepo, Provider};
 use repos::repo::TaskRepo;
 use std::sync::Arc;
 use uuid::Uuid;
+
+pub(crate) fn new_task(args: Args, execute_after: DateTime<Utc>) -> Result<Task> {
+    Ok(Task {
+        id: Uuid::new_v4(),
+        status: TaskStatus::Pending,
+        args: serde_json::to_value(args)?,
+        execute_after,
+        executed_at: None,
+    })
+}
 
 #[derive(Clone)]
 pub(crate) struct TaskService {
@@ -24,10 +35,11 @@ impl TaskService {
         }
     }
 
-    async fn execute(&self, task_id: &TaskId, args: Args) -> anyhow::Result<()> {
+    async fn execute(&self, task: &Task) -> anyhow::Result<()> {
+        let args: Args = serde_json::from_value(task.args.clone())?;
         match args {
             Args::GenerateAudio { episode_id } => {
-                let work_dir = use_work_dir(&task_id.0)?;
+                let work_dir = use_work_dir(&task.id)?;
                 self.episode_service
                     .generate_audio(&work_dir, &episode_id)
                     .await?;
@@ -43,9 +55,10 @@ impl TaskService {
         Ok(())
     }
 
-    async fn run_task(&self, task: &mut Task) -> anyhow::Result<()> {
-        let args: Args = serde_json::from_value(task.args.clone())?;
-        task.status = match self.execute(&TaskId(task.id), args).await {
+    async fn run_task(&self, mut task: Task) -> anyhow::Result<()> {
+        task.status = TaskStatus::Running;
+        self.task_repo.update(&task).await?;
+        task.status = match self.execute(&task).await {
             Ok(()) => TaskStatus::Completed,
             Err(e) => {
                 log::error!("Failed to run task: {:?}", e);
@@ -54,31 +67,22 @@ impl TaskService {
         };
         task.executed_at = Some(Utc::now());
         self.task_repo.update(&task).await?;
+        log::info!("task: {} completed", task.id);
         Ok(())
     }
 
-    pub(crate) async fn insert_task(&self, args: serde_json::Value) -> anyhow::Result<()> {
-        let args: Args = serde_json::from_value(args)?;
-        let task = Task {
-            id: Uuid::new_v4(),
-            status: TaskStatus::Pending,
-            args: serde_json::to_value(args)?,
-            execute_after: Utc::now(),
-            executed_at: None,
-        };
+    pub(crate) async fn create_task(&self, args: Args) -> anyhow::Result<()> {
+        let task = new_task(args, Utc::now())?;
         self.task_repo.create(&task).await?;
         Ok(())
     }
 
-    pub(crate) async fn batch(&self) -> anyhow::Result<()> {
-        let Some(mut task) = self.task_repo.pop().await? else {
+    pub(crate) async fn execute_queued_tasks(&self) -> anyhow::Result<()> {
+        let Some(task) = self.task_repo.pop().await? else {
             return Ok(());
         };
         log::info!("Found task: {} args={}", task.id, task.args);
-        task.status = TaskStatus::Running;
-        self.task_repo.update(&task).await?;
-        self.run_task(&mut task).await?;
-        log::info!("task: {} completed", task.id);
+        self.run_task(task).await?;
         Ok(())
     }
 }

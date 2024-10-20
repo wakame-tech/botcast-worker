@@ -3,6 +3,7 @@ use repos::{
     provider::{ProvideScriptRepo, Provider},
     repo::ScriptRepo,
 };
+use script_runtime::runtime;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -21,7 +22,7 @@ impl ScriptService {
         &self,
         template: &serde_json::Value,
     ) -> anyhow::Result<serde_json::Value> {
-        script_runtime::runtime::run(template).await
+        runtime::run(template).await
     }
 
     pub(crate) async fn evaluate_script(
@@ -29,18 +30,21 @@ impl ScriptService {
         script_id: &ScriptId,
     ) -> anyhow::Result<serde_json::Value> {
         let mut script = self.script_repo.find_by_id(&script_id).await?;
-        let result = script_runtime::runtime::run(&script.template).await?;
+
+        let result = runtime::run(&script.template).await?;
+
         script.result = Some(result.clone());
         self.script_repo.update(&script).await?;
         Ok(result)
     }
 
-    pub(crate) async fn update_script(
+    pub(crate) async fn update_template(
         &self,
         script_id: &ScriptId,
         template: serde_json::Value,
     ) -> anyhow::Result<()> {
         let mut script = self.script_repo.find_by_id(&script_id).await?;
+
         script.template = template;
         self.script_repo.update(&script).await?;
         Ok(())

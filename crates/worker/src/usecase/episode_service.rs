@@ -1,14 +1,15 @@
-use super::script_service::ScriptService;
+use super::{script_service::ScriptService, task_service::new_task};
 use crate::{
     model::{Args, Manuscript, Section},
     r2_storage::{ProviderStorage, Storage},
 };
+use anyhow::Result;
 use audio_generator::{
     generate_audio::{generate_audio, Sentence, SynthesisResult},
     workdir::WorkDir,
 };
 use chrono::Utc;
-use repos::entity::{Episode, EpisodeId, PodcastId, ScriptId, Task, TaskStatus};
+use repos::entity::{Episode, EpisodeId, PodcastId, ScriptId, Task};
 use repos::provider::{ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo, Provider};
 use repos::repo::{EpisodeRepo, PodcastRepo, ScriptRepo};
 use repos::urn::Urn;
@@ -35,6 +36,30 @@ fn new_episode(pre_episode: &Episode, title: String) -> Episode {
         srt_url: None,
         created_at: Utc::now(),
     }
+}
+
+fn new_sentences(manuscript: Manuscript) -> Result<Vec<Sentence>> {
+    let mut sentences = vec![];
+    for section in manuscript.sections.iter() {
+        match section {
+            Section::Serif { text, speaker } => {
+                let Urn::Other(resource, speaker_id) = speaker.parse()? else {
+                    return Err(anyhow::anyhow!("Invalid urn"));
+                };
+                for sentence in text.split(['\n', '。']) {
+                    let sentence = sentence.trim();
+                    if sentence.is_empty() {
+                        continue;
+                    }
+                    sentences.push(Sentence::new(
+                        (resource.clone(), speaker_id.to_string().parse()?),
+                        text.to_string(),
+                    ));
+                }
+            }
+        }
+    }
+    Ok(sentences)
 }
 
 impl EpisodeService {
@@ -71,15 +96,12 @@ impl EpisodeService {
             .upcoming(Utc)
             .next()
             .expect("next");
-        let task = Task {
-            id: Uuid::new_v4(),
-            status: TaskStatus::Pending,
-            args: serde_json::to_value(Args::NewEpisode {
+        let task = new_task(
+            Args::NewEpisode {
                 pre_episode_id: EpisodeId(episode.id),
-            })?,
-            execute_after: next,
-            executed_at: None,
-        };
+            },
+            next,
+        )?;
         Ok(task)
     }
 
@@ -97,27 +119,7 @@ impl EpisodeService {
             return Err(anyhow::anyhow!("Manuscript not found"));
         };
         let manuscript: Manuscript = serde_json::from_value(result)?;
-
-        let mut sentences = vec![];
-        for section in manuscript.sections.iter() {
-            match section {
-                Section::Serif { text, speaker } => {
-                    let Urn::Other(resource, speaker_id) = speaker.parse()? else {
-                        return Err(anyhow::anyhow!("Invalid urn"));
-                    };
-                    for sentence in text.split(['\n', '。']) {
-                        let sentence = sentence.trim();
-                        if sentence.is_empty() {
-                            continue;
-                        }
-                        sentences.push(Sentence::new(
-                            (resource.clone(), speaker_id.to_string().parse()?),
-                            text.to_string(),
-                        ));
-                    }
-                }
-            }
-        }
+        let sentences = new_sentences(manuscript)?;
         let SynthesisResult { out_path, srt, .. } = generate_audio(work_dir, &sentences).await?;
 
         let mut file = File::open(&out_path)?;
