@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 use repos::entity::{Task, TaskStatus};
 use repos::provider::{ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo, ProvideTaskRepo};
 use repos::repo::TaskRepo;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -58,7 +59,9 @@ impl TaskService {
                     .await?;
             }
             Args::EvaluateScript { script_id } => {
-                self.script_service.evaluate_script(&script_id).await?;
+                self.script_service
+                    .evaluate_script(&script_id, BTreeMap::new())
+                    .await?;
             }
             Args::NewEpisode { podcast_id } => {
                 let Some(task) = self

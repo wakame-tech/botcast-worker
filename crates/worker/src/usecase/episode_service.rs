@@ -14,7 +14,7 @@ use repos::entity::{Episode, EpisodeId, Podcast, PodcastId, ScriptId, Task};
 use repos::provider::{ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo};
 use repos::repo::{EpisodeRepo, PodcastRepo, ScriptRepo};
 use repos::urn::Urn;
-use std::{fs::File, io::Read, str::FromStr, sync::Arc};
+use std::{collections::BTreeMap, fs::File, io::Read, str::FromStr, sync::Arc};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -84,9 +84,13 @@ impl EpisodeService {
         podcast_id: &PodcastId,
     ) -> anyhow::Result<Option<Task>, Error> {
         let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
+        let context_values = BTreeMap::from_iter([(
+            "self".to_string(),
+            serde_json::Value::String(format!("urn:podcast:{}", podcast.id)),
+        )]);
         let manuscript: Manuscript = serde_json::from_value(
             self.script_service
-                .evaluate_script(&ScriptId(podcast.script_id))
+                .evaluate_script(&ScriptId(podcast.script_id), context_values)
                 .await?,
         )
         .map_err(|e| Error::Other(anyhow::anyhow!("evaluated script is not ManuScript: {}", e)))?;

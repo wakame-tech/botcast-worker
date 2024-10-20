@@ -7,10 +7,10 @@ mod urn;
 use crate::provider::DefaultProvider;
 use anyhow::Result;
 use json_e::{
-    builtins::builtins,
     value::{AsyncCallable, Function, Value},
     Context,
 };
+use std::collections::BTreeMap;
 
 fn display_fn_io(name: &str, args: &[Value], ret: &Result<serde_json::Value>) -> Result<String> {
     Ok(format!(
@@ -30,8 +30,7 @@ fn display_fn_io(name: &str, args: &[Value], ret: &Result<serde_json::Value>) ->
     ))
 }
 
-pub fn create_context(provider: DefaultProvider, context: &mut Context<'_>) {
-    builtins(context);
+pub(crate) fn insert_custom_functions(provider: DefaultProvider, context: &mut Context) {
     let functions = [
         ("today", Box::new(time::Today) as Box<dyn AsyncCallable>),
         ("eval", Box::new(urn::Eval)),
@@ -44,5 +43,11 @@ pub fn create_context(provider: DefaultProvider, context: &mut Context<'_>) {
     ];
     for (name, f) in functions.into_iter() {
         context.insert(name.to_string(), Value::Function(Function::new(name, f)));
+    }
+}
+
+pub(crate) fn insert_values<'a>(context: &mut Context, values: BTreeMap<String, Value>) {
+    for (k, v) in values {
+        context.insert(k, v);
     }
 }

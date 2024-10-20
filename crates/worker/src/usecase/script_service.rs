@@ -1,7 +1,7 @@
 use crate::error::Error;
 use repos::{entity::ScriptId, provider::ProvideScriptRepo, repo::ScriptRepo};
 use script_runtime::runtime;
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 #[derive(Clone)]
 pub(crate) struct ScriptService {
@@ -22,17 +22,20 @@ impl ScriptService {
         &self,
         template: &serde_json::Value,
     ) -> anyhow::Result<serde_json::Value, Error> {
-        runtime::run(template).await.map_err(Error::Other)
+        runtime::run(template, BTreeMap::new())
+            .await
+            .map_err(Error::Other)
     }
 
     pub(crate) async fn evaluate_script(
         &self,
         script_id: &ScriptId,
+        values: BTreeMap<String, serde_json::Value>,
     ) -> anyhow::Result<serde_json::Value, Error> {
         let mut script = self.script_repo.find_by_id(&script_id).await?;
 
         log::info!("Evaluating script: {:?}", script);
-        let result = runtime::run(&script.template)
+        let result = runtime::run(&script.template, values)
             .await
             .map_err(Error::Script)?;
 

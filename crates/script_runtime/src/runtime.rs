@@ -1,10 +1,26 @@
-use crate::{imports::create_context, provider::DefaultProvider};
+use crate::{
+    imports::{insert_custom_functions, insert_values},
+    provider::DefaultProvider,
+};
 use anyhow::Result;
-use json_e::Context;
+use json_e::{builtins::builtins, Context};
+use std::collections::BTreeMap;
 
-pub async fn run(template: &serde_json::Value) -> Result<serde_json::Value> {
+fn create_context(context: &mut Context, values: BTreeMap<String, serde_json::Value>) {
+    builtins(context);
+    insert_custom_functions(DefaultProvider, context);
+    insert_values(
+        context,
+        values.into_iter().map(|(k, v)| (k, v.into())).collect(),
+    );
+}
+
+pub async fn run(
+    template: &serde_json::Value,
+    values: BTreeMap<String, serde_json::Value>,
+) -> Result<serde_json::Value> {
     let mut context = Context::new();
-    create_context(DefaultProvider, &mut context);
+    create_context(&mut context, values);
     json_e::render_with_context(template, &context).await
 }
 

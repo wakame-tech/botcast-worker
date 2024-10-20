@@ -59,14 +59,14 @@ impl AsyncCallable for Text {
 
 #[cfg(test)]
 mod tests {
-    use crate::{imports::create_context, provider::DefaultProvider};
+    use crate::{imports::insert_custom_functions, provider::DefaultProvider};
     use json_e::Context;
 
     #[tokio::test]
     async fn test_call_fetch() {
         std::env::set_var("USER_AGENT", "mozilla/5.0 (x11; linux x86_64) applewebkit/537.36 (khtml, like gecko) chrome/127.0.0.0 safari/537.36");
         let mut context = Context::new();
-        create_context(DefaultProvider, &mut context);
+        insert_custom_functions(DefaultProvider, &mut context);
         let template = serde_json::json!({
             "$let": {
                 "html": { "$eval": "fetch('https://www.aozora.gr.jp/cards/000081/files/45630_23908.html')" },

@@ -1,4 +1,8 @@
-use crate::{imports::display_fn_io, provider::DefaultProvider, resolve::resolve_urn};
+use crate::{
+    imports::{display_fn_io, insert_values},
+    provider::DefaultProvider,
+    resolve::resolve_urn,
+};
 use anyhow::Result;
 use json_e::{
     value::{AsyncCallable, Value},
@@ -18,9 +22,7 @@ impl AsyncCallable for Eval {
         };
 
         let mut context = context.child();
-        for (k, v) in values.iter() {
-            context.insert(k, v.clone());
-        }
+        insert_values(&mut context, values.clone());
         let template = template.try_into()?;
         let ret = json_e::render_with_context(&template, &context)
             .await

@@ -13,7 +13,7 @@ use axum::{
 };
 use repos::entity::ScriptId;
 use serde_json::{json, Value};
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 use uuid::Uuid;
 
 async fn update_script(
@@ -32,7 +32,7 @@ async fn run_script(
     Path(script_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, Error> {
     let evaluated = ScriptService::new(*state.0)
-        .evaluate_script(&ScriptId(script_id))
+        .evaluate_script(&ScriptId(script_id), BTreeMap::new())
         .await?;
     Ok(Json(evaluated))
 }
