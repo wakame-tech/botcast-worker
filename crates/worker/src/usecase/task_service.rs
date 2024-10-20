@@ -60,8 +60,12 @@ impl TaskService {
             Args::EvaluateScript { script_id } => {
                 self.script_service.evaluate_script(&script_id).await?;
             }
-            Args::NewEpisode { pre_episode_id } => {
-                let Some(task) = self.episode_service.new_episode(&pre_episode_id).await? else {
+            Args::NewEpisode { podcast_id } => {
+                let Some(task) = self
+                    .episode_service
+                    .new_episode_from_template(&podcast_id)
+                    .await?
+                else {
                     return Ok(());
                 };
                 self.task_repo.create(&task).await?;

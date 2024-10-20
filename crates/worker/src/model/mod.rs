@@ -1,4 +1,4 @@
-use repos::entity::{EpisodeId, ScriptId};
+use repos::entity::{EpisodeId, PodcastId, ScriptId};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type")]
@@ -6,7 +6,7 @@ use repos::entity::{EpisodeId, ScriptId};
 pub(crate) enum Args {
     GenerateAudio { episode_id: EpisodeId },
     EvaluateScript { script_id: ScriptId },
-    NewEpisode { pre_episode_id: EpisodeId },
+    NewEpisode { podcast_id: PodcastId },
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

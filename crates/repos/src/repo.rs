@@ -16,14 +16,21 @@ pub trait PodcastRepo: Send + Sync {
 #[async_trait]
 pub trait EpisodeRepo: Send + Sync {
     async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<(Episode, Vec<Comment>), Error>;
+    async fn find_all_by_podcast_id(
+        &self,
+        podcast_id: &PodcastId,
+    ) -> anyhow::Result<Vec<Episode>, Error>;
     async fn create(&self, episode: &Episode) -> anyhow::Result<(), Error>;
     async fn update(&self, episode: &Episode) -> anyhow::Result<(), Error>;
 }
 
 #[async_trait]
 pub trait CommentRepo: Send + Sync {
-    async fn find_all(&self, episode_id: &EpisodeId) -> anyhow::Result<Vec<Comment>, Error>;
-    async fn find_by_id(&self, id: &CommentId) -> anyhow::Result<Option<Comment>, Error>;
+    async fn find_all_by_episode_id(
+        &self,
+        episode_id: &EpisodeId,
+    ) -> anyhow::Result<Vec<Comment>, Error>;
+    async fn find_by_id(&self, id: &CommentId) -> anyhow::Result<Comment, Error>;
 }
 
 #[async_trait]

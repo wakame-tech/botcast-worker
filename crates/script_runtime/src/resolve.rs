@@ -11,16 +11,17 @@ pub(crate) async fn resolve_urn(provider: DefaultProvider, urn: Urn) -> Result<s
         Urn::Podcast(id) => {
             let podcast_repo = provider.podcast_repo();
             let podcast = podcast_repo.find_by_id(&id).await?;
-            serde_json::to_value(podcast)?
+            let mut podcast = serde_json::to_value(podcast)?;
+            let episode_repo = provider.episode_repo();
+            let episodes = episode_repo.find_all_by_podcast_id(&id).await?;
+            podcast["episodes"] = serde_json::to_value(episodes)?;
+            podcast
         }
         Urn::Episode(id) => {
             let episode_repo = provider.episode_repo();
             let (episode, comments) = episode_repo.find_by_id(&id).await?;
             let mut episode = serde_json::to_value(episode)?;
-            episode
-                .as_object_mut()
-                .unwrap()
-                .insert("comments".to_string(), serde_json::to_value(comments)?);
+            episode["comments"] = serde_json::to_value(comments)?;
             episode
         }
         Urn::Comment(id) => {

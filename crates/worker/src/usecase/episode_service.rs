@@ -10,7 +10,7 @@ use audio_generator::{
     workdir::WorkDir,
 };
 use chrono::Utc;
-use repos::entity::{Episode, EpisodeId, PodcastId, ScriptId, Task};
+use repos::entity::{Episode, EpisodeId, Podcast, PodcastId, ScriptId, Task};
 use repos::provider::{ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo};
 use repos::repo::{EpisodeRepo, PodcastRepo, ScriptRepo};
 use repos::urn::Urn;
@@ -26,13 +26,13 @@ pub(crate) struct EpisodeService {
     script_service: ScriptService,
 }
 
-fn new_episode(pre_episode: &Episode, title: String) -> Episode {
+fn new_episode(podcast: &Podcast, title: String) -> Episode {
     Episode {
         id: Uuid::new_v4(),
-        user_id: pre_episode.user_id,
+        user_id: podcast.user_id,
         title,
-        podcast_id: pre_episode.podcast_id,
-        script_id: pre_episode.script_id,
+        podcast_id: podcast.id,
+        script_id: podcast.script_id,
         audio_url: None,
         srt_url: None,
         created_at: Utc::now(),
@@ -79,23 +79,19 @@ impl EpisodeService {
         }
     }
 
-    pub(crate) async fn new_episode(
+    pub(crate) async fn new_episode_from_template(
         &self,
-        pre_episode_id: &EpisodeId,
+        podcast_id: &PodcastId,
     ) -> anyhow::Result<Option<Task>, Error> {
-        let (pre_episode, _) = self.episode_repo.find_by_id(&pre_episode_id).await?;
-        let podcast = self
-            .podcast_repo
-            .find_by_id(&PodcastId(pre_episode.podcast_id))
-            .await?;
+        let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
         let manuscript: Manuscript = serde_json::from_value(
             self.script_service
-                .evaluate_script(&ScriptId(pre_episode.script_id))
+                .evaluate_script(&ScriptId(podcast.script_id))
                 .await?,
         )
         .map_err(|e| Error::Other(anyhow::anyhow!("evaluated script is not ManuScript: {}", e)))?;
 
-        let episode = new_episode(&pre_episode, manuscript.title);
+        let episode = new_episode(&podcast, manuscript.title);
         self.episode_repo.create(&episode).await?;
 
         let task = if let Some(cron) = podcast.cron {
@@ -107,7 +103,7 @@ impl EpisodeService {
 
             let task = new_task(
                 Args::NewEpisode {
-                    pre_episode_id: EpisodeId(episode.id),
+                    podcast_id: podcast_id.clone(),
                 },
                 next,
             );

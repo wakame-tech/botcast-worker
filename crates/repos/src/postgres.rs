@@ -90,6 +90,21 @@ impl EpisodeRepo for PostgresEpisodeRepo {
         Ok((episode, comments))
     }
 
+    async fn find_all_by_podcast_id(
+        &self,
+        podcast_id: &PodcastId,
+    ) -> anyhow::Result<Vec<Episode>, Error> {
+        let episodes = sqlx::query_as!(
+            Episode,
+            "select * from episodes where podcast_id = $1",
+            podcast_id.0
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(Error::Other)?;
+        Ok(episodes)
+    }
+
     async fn create(&self, episode: &Episode) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Episode,
@@ -137,7 +152,10 @@ impl PostgresCommentRepo {
 
 #[async_trait]
 impl CommentRepo for PostgresCommentRepo {
-    async fn find_all(&self, episode_id: &EpisodeId) -> anyhow::Result<Vec<Comment>, Error> {
+    async fn find_all_by_episode_id(
+        &self,
+        episode_id: &EpisodeId,
+    ) -> anyhow::Result<Vec<Comment>, Error> {
         let comments = sqlx::query_as!(
             Comment,
             "select * from comments where episode_id = $1",
@@ -149,11 +167,14 @@ impl CommentRepo for PostgresCommentRepo {
         Ok(comments)
     }
 
-    async fn find_by_id(&self, id: &CommentId) -> anyhow::Result<Option<Comment>, Error> {
-        let comment = sqlx::query_as!(Comment, "select * from comments where id = $1", id.0)
+    async fn find_by_id(&self, id: &CommentId) -> anyhow::Result<Comment, Error> {
+        let Some(comment) = sqlx::query_as!(Comment, "select * from comments where id = $1", id.0)
             .fetch_optional(&self.pool)
             .await
-            .map_err(Error::Other)?;
+            .map_err(Error::Other)?
+        else {
+            return Err(Error::NotFound("comment".to_string(), id.0).into());
+        };
         Ok(comment)
     }
 }
