@@ -21,18 +21,13 @@ fn resolve_audio_generator(resource: &str) -> Result<Box<dyn AudioGenerator>> {
 
 #[derive(Debug)]
 pub struct Sentence {
-    generator: String,
-    speaker_id: String,
+    speaker: (String, String),
     text: String,
 }
 
 impl Sentence {
-    pub fn new(generator: String, speaker_id: String, text: String) -> Self {
-        Self {
-            generator,
-            speaker_id,
-            text,
-        }
+    pub fn new(speaker: (String, String), text: String) -> Self {
+        Self { speaker, text }
     }
 }
 
@@ -49,13 +44,12 @@ pub async fn generate_audio(
     for (
         i,
         Sentence {
-            generator,
-            speaker_id,
+            speaker: (generator, speaker_id),
             text,
         },
     ) in sentences.iter().enumerate()
     {
-        let generator = resolve_audio_generator(&generator)?;
+        let generator = resolve_audio_generator(generator)?;
         let sentence_wav_path = work_dir.dir().join(format!("{}.wav", i));
         let wav = generator.generate(speaker_id, text).await?;
         let mut sentence_wav = File::create(&sentence_wav_path)?;

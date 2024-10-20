@@ -1,21 +1,49 @@
-use crate::entity::{Comment, Episode, Script};
+use crate::{
+    entity::{
+        Comment, CommentId, Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Task, TaskId,
+    },
+    error::Error,
+};
 use async_trait::async_trait;
-use uuid::Uuid;
+use chrono::{DateTime, Utc};
+
+#[async_trait]
+pub trait PodcastRepo: Send + Sync {
+    async fn find_by_id(&self, id: &PodcastId) -> Result<Podcast, Error>;
+    async fn update(&self, podcast: &Podcast) -> anyhow::Result<(), Error>;
+}
 
 #[async_trait]
 pub trait EpisodeRepo: Send + Sync {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<(Episode, Vec<Comment>)>>;
-    async fn update(&self, episode: &Episode) -> anyhow::Result<()>;
+    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<(Episode, Vec<Comment>), Error>;
+    async fn find_all_by_podcast_id(
+        &self,
+        podcast_id: &PodcastId,
+    ) -> anyhow::Result<Vec<Episode>, Error>;
+    async fn create(&self, episode: &Episode) -> anyhow::Result<(), Error>;
+    async fn update(&self, episode: &Episode) -> anyhow::Result<(), Error>;
 }
 
 #[async_trait]
 pub trait CommentRepo: Send + Sync {
-    async fn find_all(&self, episode_id: &Uuid) -> anyhow::Result<Vec<Comment>>;
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Comment>>;
+    async fn find_all_by_episode_id(
+        &self,
+        episode_id: &EpisodeId,
+    ) -> anyhow::Result<Vec<Comment>, Error>;
+    async fn find_by_id(&self, id: &CommentId) -> anyhow::Result<Comment, Error>;
 }
 
 #[async_trait]
 pub trait ScriptRepo: Send + Sync {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Script>>;
-    async fn update(&self, script: &Script) -> anyhow::Result<()>;
+    async fn find_by_id(&self, id: &ScriptId) -> anyhow::Result<Script, Error>;
+    async fn update(&self, script: &Script) -> anyhow::Result<(), Error>;
+}
+
+#[async_trait]
+pub trait TaskRepo: Send + Sync {
+    async fn pop(&self, now: DateTime<Utc>) -> anyhow::Result<Option<Task>, Error>;
+    async fn create(&self, task: &Task) -> anyhow::Result<(), Error>;
+    async fn update(&self, task: &Task) -> anyhow::Result<(), Error>;
+    #[allow(dead_code)]
+    async fn delete(&self, id: &TaskId) -> anyhow::Result<(), Error>;
 }

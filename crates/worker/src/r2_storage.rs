@@ -1,3 +1,4 @@
+use crate::usecase::provider::DefaultProvider;
 use axum::async_trait;
 use s3::{creds::Credentials, Bucket, Region};
 use std::sync::Arc;
@@ -8,8 +9,14 @@ pub(crate) trait Storage: Send + Sync {
     fn get_endpoint(&self) -> String;
 }
 
-pub(crate) fn storage() -> Arc<dyn Storage> {
-    Arc::new(R2Storage::new().expect("Failed to create storage"))
+pub(crate) trait ProviderStorage {
+    fn storage(&self) -> Arc<dyn Storage>;
+}
+
+impl ProviderStorage for DefaultProvider {
+    fn storage(&self) -> Arc<dyn Storage> {
+        Arc::new(R2Storage::new().expect("Failed to create storage"))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -50,15 +57,26 @@ impl Storage for R2Storage {
     }
 }
 
-pub(crate) struct DummyStorage;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[async_trait]
-impl Storage for DummyStorage {
-    async fn upload(&self, _path: &str, _data: &[u8], _content_type: &str) -> anyhow::Result<()> {
-        Ok(())
-    }
+    #[allow(dead_code)]
+    pub(crate) struct DummyStorage;
 
-    fn get_endpoint(&self) -> String {
-        "dummy".to_string()
+    #[async_trait]
+    impl Storage for DummyStorage {
+        async fn upload(
+            &self,
+            _path: &str,
+            _data: &[u8],
+            _content_type: &str,
+        ) -> anyhow::Result<()> {
+            Ok(())
+        }
+
+        fn get_endpoint(&self) -> String {
+            "dummy".to_string()
+        }
     }
 }
