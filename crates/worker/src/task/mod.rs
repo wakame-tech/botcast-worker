@@ -1,6 +1,6 @@
-pub mod task_service;
+pub(crate) mod task_service;
 
-use repos::repo::{EpisodeId, ScriptId};
+use repos::entity::{EpisodeId, ScriptId};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type")]

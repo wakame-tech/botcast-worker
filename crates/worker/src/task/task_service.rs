@@ -1,3 +1,4 @@
+use super::Args;
 use crate::episode::script_service::script_service;
 use crate::{
     episode::{
@@ -7,13 +8,11 @@ use crate::{
     worker::use_work_dir,
 };
 use chrono::Utc;
-use repos::entity::{Task, TaskStatus};
-use repos::repo::{TaskId, TaskRepo};
+use repos::entity::{Task, TaskId, TaskStatus};
+use repos::repo::TaskRepo;
 use repos::task_repo;
 use std::sync::Arc;
 use uuid::Uuid;
-
-use super::Args;
 
 pub(crate) fn task_service() -> TaskService {
     TaskService {

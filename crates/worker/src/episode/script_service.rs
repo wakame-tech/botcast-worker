@@ -1,7 +1,4 @@
-use repos::{
-    repo::{ScriptId, ScriptRepo},
-    script_repo,
-};
+use repos::{entity::ScriptId, repo::ScriptRepo, script_repo};
 use std::sync::Arc;
 
 pub(crate) fn script_service() -> ScriptService {

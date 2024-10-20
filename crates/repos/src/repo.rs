@@ -1,27 +1,7 @@
-use crate::entity::{Comment, Episode, Podcast, Script, Task};
+use crate::entity::{
+    Comment, CommentId, Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Task, TaskId,
+};
 use async_trait::async_trait;
-use uuid::Uuid;
-
-// NOTE: #[derive(sqlx::Type)] + #[sqlx(transparent)] cannot useable in query_as! macro
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(transparent)]
-pub struct PodcastId(pub Uuid);
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(transparent)]
-pub struct EpisodeId(pub Uuid);
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(transparent)]
-pub struct CommentId(pub Uuid);
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(transparent)]
-pub struct ScriptId(pub Uuid);
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(transparent)]
-pub struct TaskId(pub Uuid);
 
 #[async_trait]
 pub trait PodcastRepo: Send + Sync {

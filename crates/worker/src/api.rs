@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use repos::repo::ScriptId;
+use repos::entity::ScriptId;
 use serde_json::{json, Value};
 use uuid::Uuid;
 

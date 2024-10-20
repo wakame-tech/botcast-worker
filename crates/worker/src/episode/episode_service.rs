@@ -11,15 +11,14 @@ use audio_generator::{
     workdir::WorkDir,
 };
 use chrono::Utc;
-use repos::entity::{Episode, Task, TaskStatus};
+use repos::entity::{Episode, EpisodeId, PodcastId, ScriptId, Task, TaskStatus};
 use repos::podcast_repo;
-use repos::repo::{EpisodeId, ScriptId};
+use repos::urn::Urn;
 use repos::{
     episode_repo,
     repo::{EpisodeRepo, PodcastRepo, ScriptRepo},
     script_repo,
 };
-use script_runtime::Urn;
 use std::{fs::File, io::Read, str::FromStr, sync::Arc};
 use uuid::Uuid;
 
@@ -60,7 +59,7 @@ impl EpisodeService {
         let (pre_episode, _) = self.episode_repo.find_by_id(&pre_episode_id).await?;
         let podcast = self
             .podcast_repo
-            .find_by_id(&repos::repo::PodcastId(pre_episode.podcast_id))
+            .find_by_id(&PodcastId(pre_episode.podcast_id))
             .await?;
         let Some(cron) = podcast.cron else {
             return Err(anyhow::anyhow!("Cron not found"));

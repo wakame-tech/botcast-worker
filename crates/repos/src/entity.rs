@@ -1,6 +1,27 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+// NOTE: #[derive(sqlx::Type)] + #[sqlx(transparent)] cannot useable in query_as! macro
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct PodcastId(pub Uuid);
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct EpisodeId(pub Uuid);
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct CommentId(pub Uuid);
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct ScriptId(pub Uuid);
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct TaskId(pub Uuid);
+
 #[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
 pub struct Podcast {
     pub id: Uuid,
