@@ -30,17 +30,18 @@ impl PostgresPodcastRepo {
 
 #[async_trait]
 impl PodcastRepo for PostgresPodcastRepo {
-    async fn find_by_id(&self, id: &PodcastId) -> anyhow::Result<Podcast> {
+    async fn find_by_id(&self, id: &PodcastId) -> anyhow::Result<Podcast, Error> {
         let Some(podcast) = sqlx::query_as!(Podcast, "select * from podcasts where id = $1", id.0)
             .fetch_optional(&self.pool)
-            .await?
+            .await
+            .map_err(Error::Other)?
         else {
             return Err(Error::NotFound("podcast".to_string(), id.0).into());
         };
         Ok(podcast)
     }
 
-    async fn update(&self, podcast: &Podcast) -> anyhow::Result<()> {
+    async fn update(&self, podcast: &Podcast) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Podcast,
             "update podcasts set title = $2, icon = $3, script_id = $4, cron = $5 where id = $1",
@@ -51,7 +52,8 @@ impl PodcastRepo for PostgresPodcastRepo {
             podcast.cron,
         )
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(Error::Other)?;
         Ok(())
     }
 }
@@ -69,10 +71,11 @@ impl PostgresEpisodeRepo {
 
 #[async_trait]
 impl EpisodeRepo for PostgresEpisodeRepo {
-    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<(Episode, Vec<Comment>)> {
+    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<(Episode, Vec<Comment>), Error> {
         let Some(episode) = sqlx::query_as!(Episode, "select * from episodes where id = $1", id.0)
             .fetch_optional(&self.pool)
-            .await?
+            .await
+            .map_err(Error::Other)?
         else {
             return Err(Error::NotFound("episode".to_string(), id.0).into());
         };
@@ -82,11 +85,12 @@ impl EpisodeRepo for PostgresEpisodeRepo {
             id.0
         )
         .fetch_all(&self.pool)
-        .await?;
+        .await
+        .map_err(Error::Other)?;
         Ok((episode, comments))
     }
 
-    async fn create(&self, episode: &Episode) -> anyhow::Result<()> {
+    async fn create(&self, episode: &Episode) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Episode,
             "insert into episodes (id, title, audio_url, srt_url, podcast_id, user_id) values ($1, $2, $3, $4, $5, $6)",
@@ -98,11 +102,12 @@ impl EpisodeRepo for PostgresEpisodeRepo {
             episode.user_id,
         )
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(Error::Other)?;
         Ok(())
     }
 
-    async fn update(&self, episode: &Episode) -> anyhow::Result<()> {
+    async fn update(&self, episode: &Episode) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Episode,
             "update episodes set title = $2, audio_url = $3, srt_url = $4 where id = $1",
@@ -112,7 +117,8 @@ impl EpisodeRepo for PostgresEpisodeRepo {
             episode.srt_url,
         )
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(Error::Other)?;
         Ok(())
     }
 }
@@ -121,7 +127,7 @@ pub struct DummyEpisodeRepo;
 
 #[async_trait]
 impl EpisodeRepo for DummyEpisodeRepo {
-    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<(Episode, Vec<Comment>)> {
+    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<(Episode, Vec<Comment>), Error> {
         let episode = Episode {
             id: id.0,
             title: "dummy".to_string(),
@@ -135,11 +141,11 @@ impl EpisodeRepo for DummyEpisodeRepo {
         Ok((episode, vec![]))
     }
 
-    async fn create(&self, _episode: &Episode) -> anyhow::Result<()> {
+    async fn create(&self, _episode: &Episode) -> anyhow::Result<(), Error> {
         Ok(())
     }
 
-    async fn update(&self, _episode: &Episode) -> anyhow::Result<()> {
+    async fn update(&self, _episode: &Episode) -> anyhow::Result<(), Error> {
         Ok(())
     }
 }
@@ -157,21 +163,23 @@ impl PostgresCommentRepo {
 
 #[async_trait]
 impl CommentRepo for PostgresCommentRepo {
-    async fn find_all(&self, episode_id: &EpisodeId) -> anyhow::Result<Vec<Comment>> {
+    async fn find_all(&self, episode_id: &EpisodeId) -> anyhow::Result<Vec<Comment>, Error> {
         let comments = sqlx::query_as!(
             Comment,
             "select * from comments where episode_id = $1",
             episode_id.0
         )
         .fetch_all(&self.pool)
-        .await?;
+        .await
+        .map_err(Error::Other)?;
         Ok(comments)
     }
 
-    async fn find_by_id(&self, id: &CommentId) -> anyhow::Result<Option<Comment>> {
+    async fn find_by_id(&self, id: &CommentId) -> anyhow::Result<Option<Comment>, Error> {
         let comment = sqlx::query_as!(Comment, "select * from comments where id = $1", id.0)
             .fetch_optional(&self.pool)
-            .await?;
+            .await
+            .map_err(Error::Other)?;
         Ok(comment)
     }
 }
@@ -189,17 +197,18 @@ impl PostgresScriptRepo {
 
 #[async_trait]
 impl ScriptRepo for PostgresScriptRepo {
-    async fn find_by_id(&self, id: &ScriptId) -> anyhow::Result<Script> {
+    async fn find_by_id(&self, id: &ScriptId) -> anyhow::Result<Script, Error> {
         let Some(script) = sqlx::query_as!(Script, "select * from scripts where id = $1", id.0)
             .fetch_optional(&self.pool)
-            .await?
+            .await
+            .map_err(Error::Other)?
         else {
             return Err(Error::NotFound("script".to_string(), id.0).into());
         };
         Ok(script)
     }
 
-    async fn update(&self, script: &Script) -> anyhow::Result<()> {
+    async fn update(&self, script: &Script) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Episode,
             "update scripts set title = $2, template = $3, result = $4 where id = $1",
@@ -209,7 +218,8 @@ impl ScriptRepo for PostgresScriptRepo {
             script.result,
         )
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(Error::Other)?;
         Ok(())
     }
 }
@@ -220,7 +230,7 @@ pub struct DummyScriptRepo {
 
 #[async_trait]
 impl ScriptRepo for DummyScriptRepo {
-    async fn find_by_id(&self, id: &ScriptId) -> anyhow::Result<Script> {
+    async fn find_by_id(&self, id: &ScriptId) -> anyhow::Result<Script, Error> {
         let script = Script {
             id: id.0,
             user_id: Uuid::new_v4(),
@@ -231,7 +241,7 @@ impl ScriptRepo for DummyScriptRepo {
         Ok(script)
     }
 
-    async fn update(&self, _script: &Script) -> anyhow::Result<()> {
+    async fn update(&self, _script: &Script) -> anyhow::Result<(), Error> {
         Ok(())
     }
 }
@@ -250,7 +260,7 @@ impl PostgresTaskRepo {
 
 #[async_trait]
 impl TaskRepo for PostgresTaskRepo {
-    async fn pop(&self) -> anyhow::Result<Option<Task>> {
+    async fn pop(&self) -> anyhow::Result<Option<Task>, Error> {
         let task = sqlx::query_as!(
             Task,
             r#"select id, status as "status!: TaskStatus", args, execute_after, executed_at from tasks where status = $1 and $2 < execute_after order by id limit 1"#,
@@ -258,11 +268,12 @@ impl TaskRepo for PostgresTaskRepo {
             Utc::now(),
         )
         .fetch_optional(&self.pool)
-        .await?;
+        .await
+        .map_err(Error::Other)?;
         Ok(task)
     }
 
-    async fn create(&self, task: &Task) -> anyhow::Result<()> {
+    async fn create(&self, task: &Task) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Task,
             "insert into tasks (id, status, args, execute_after, executed_at) values ($1, $2, $3, $4, $5)",
@@ -273,11 +284,12 @@ impl TaskRepo for PostgresTaskRepo {
             task.executed_at,
         )
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(Error::Other)?;
         Ok(())
     }
 
-    async fn update(&self, task: &Task) -> anyhow::Result<()> {
+    async fn update(&self, task: &Task) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Task,
             "update tasks set status = $2, args = $3, execute_after = $4, executed_at = $5 where id = $1",
@@ -288,15 +300,17 @@ impl TaskRepo for PostgresTaskRepo {
             task.executed_at,
         )
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(Error::Other)?;
         Ok(())
     }
 
-    async fn delete(&self, id: &TaskId) -> anyhow::Result<()> {
+    async fn delete(&self, id: &TaskId) -> anyhow::Result<(), Error> {
         sqlx::query("delete from tasks where id = $1")
             .bind(id.0)
             .fetch_one(&self.pool)
-            .await?;
+            .await
+            .map_err(Error::Other)?;
         Ok(())
     }
 }

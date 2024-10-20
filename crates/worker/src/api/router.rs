@@ -1,4 +1,5 @@
 use crate::{
+    error::Error,
     model::Args,
     usecase::{script_service::ScriptService, task_service::TaskService},
 };
@@ -9,37 +10,18 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use repos::{entity::ScriptId, provider::Provider};
+use repos::entity::ScriptId;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
-#[derive(Debug, Clone)]
-struct AppState(Provider);
-
-#[derive(Debug)]
-struct AppError(anyhow::Error);
-
-impl IntoResponse for AppError {
-    fn into_response(self) -> axum::response::Response {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("{:?}", self.0)).into_response()
-    }
-}
-
-impl<E> From<E> for AppError
-where
-    E: Into<anyhow::Error>,
-{
-    fn from(err: E) -> Self {
-        Self(err.into())
-    }
-}
+use super::AppState;
 
 async fn update_script(
     State(state): State<Arc<AppState>>,
     Path(script_id): Path<Uuid>,
     Json(template): Json<Value>,
-) -> Result<impl IntoResponse, AppError> {
+) -> Result<impl IntoResponse, Error> {
     ScriptService::new(state.0)
         .update_template(&ScriptId(script_id), template)
         .await?;
@@ -49,7 +31,7 @@ async fn update_script(
 async fn eval_script(
     State(state): State<Arc<AppState>>,
     Json(template): Json<Value>,
-) -> Result<impl IntoResponse, AppError> {
+) -> Result<impl IntoResponse, Error> {
     let evaluated = ScriptService::new(state.0).evaluate_once(&template).await?;
     Ok(Json(evaluated))
 }
@@ -57,30 +39,23 @@ async fn eval_script(
 async fn insert_task(
     State(state): State<Arc<AppState>>,
     Json(args): Json<Value>,
-) -> Result<impl IntoResponse, AppError> {
-    let args: Args = serde_json::from_value(args)?;
+) -> Result<impl IntoResponse, Error> {
+    let args: Args = serde_json::from_value(args).map_err(|e| Error::InvalidInput(e.into()))?;
     TaskService::new(state.0).create_task(args).await?;
     Ok(StatusCode::CREATED)
 }
 
-async fn version() -> Result<impl IntoResponse, AppError> {
+async fn version() -> Result<impl IntoResponse, Error> {
     let worker_version = env!("CARGO_PKG_VERSION");
     Ok(Json(json!({
         "worker": worker_version,
     })))
 }
 
-pub async fn start_api(provider: Provider) -> anyhow::Result<()> {
-    let state = Arc::new(AppState(provider));
-    let router = Router::new()
+pub(crate) fn routers() -> Router<Arc<AppState>> {
+    Router::new()
         .route("/version", get(version))
         .route("/evalScript", post(eval_script))
         .route("/updateEpisodeScript/:episode_id", post(update_script))
         .route("/insertTask", post(insert_task))
-        .with_state(state);
-    let port = std::env::var("PORT").unwrap_or("9001".to_string());
-    log::info!("Listen port: {}", port);
-    let listener = tokio::net::TcpListener::bind(&format!("0.0.0.0:{}", port)).await?;
-    axum::serve(listener, router).await?;
-    Ok(())
 }

@@ -1,7 +1,7 @@
 use super::episode_service::EpisodeService;
 use super::script_service::ScriptService;
+use crate::error::Error;
 use crate::{model::Args, worker::use_work_dir};
-use anyhow::Result;
 use chrono::{DateTime, Utc};
 use repos::entity::{Task, TaskStatus};
 use repos::provider::{ProvideTaskRepo, Provider};
@@ -9,14 +9,14 @@ use repos::repo::TaskRepo;
 use std::sync::Arc;
 use uuid::Uuid;
 
-pub(crate) fn new_task(args: Args, execute_after: DateTime<Utc>) -> Result<Task> {
-    Ok(Task {
+pub(crate) fn new_task(args: Args, execute_after: DateTime<Utc>) -> Task {
+    Task {
         id: Uuid::new_v4(),
         status: TaskStatus::Pending,
-        args: serde_json::to_value(args)?,
+        args: serde_json::to_value(args).unwrap(),
         execute_after,
         executed_at: None,
-    })
+    }
 }
 
 #[derive(Clone)]
@@ -35,11 +35,14 @@ impl TaskService {
         }
     }
 
-    async fn execute(&self, task: &Task) -> anyhow::Result<()> {
-        let args: Args = serde_json::from_value(task.args.clone())?;
+    async fn execute(&self, task: &Task) -> anyhow::Result<(), Error> {
+        let args: Args = serde_json::from_value(task.args.clone())
+            .map_err(|e| Error::InvalidInput(anyhow::anyhow!("Args {}", e)))?;
         match args {
             Args::GenerateAudio { episode_id } => {
-                let work_dir = use_work_dir(&task.id)?;
+                let work_dir = use_work_dir(&task.id).map_err(|e| {
+                    Error::Other(anyhow::anyhow!("Failed to create work dir: {}", e))
+                })?;
                 self.episode_service
                     .generate_audio(&work_dir, &episode_id)
                     .await?;
@@ -55,7 +58,7 @@ impl TaskService {
         Ok(())
     }
 
-    async fn run_task(&self, mut task: Task) -> anyhow::Result<()> {
+    async fn run_task(&self, mut task: Task) -> anyhow::Result<(), Error> {
         task.status = TaskStatus::Running;
         self.task_repo.update(&task).await?;
         task.status = match self.execute(&task).await {
@@ -71,13 +74,13 @@ impl TaskService {
         Ok(())
     }
 
-    pub(crate) async fn create_task(&self, args: Args) -> anyhow::Result<()> {
-        let task = new_task(args, Utc::now())?;
+    pub(crate) async fn create_task(&self, args: Args) -> anyhow::Result<(), Error> {
+        let task = new_task(args, Utc::now());
         self.task_repo.create(&task).await?;
         Ok(())
     }
 
-    pub(crate) async fn execute_queued_tasks(&self) -> anyhow::Result<()> {
+    pub(crate) async fn execute_queued_tasks(&self) -> anyhow::Result<(), Error> {
         let Some(task) = self.task_repo.pop().await? else {
             return Ok(());
         };

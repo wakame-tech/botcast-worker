@@ -1,3 +1,4 @@
+use crate::error::Error;
 use repos::{
     entity::ScriptId,
     provider::{ProvideScriptRepo, Provider},
@@ -21,17 +22,19 @@ impl ScriptService {
     pub(crate) async fn evaluate_once(
         &self,
         template: &serde_json::Value,
-    ) -> anyhow::Result<serde_json::Value> {
-        runtime::run(template).await
+    ) -> anyhow::Result<serde_json::Value, Error> {
+        runtime::run(template).await.map_err(Error::Other)
     }
 
     pub(crate) async fn evaluate_script(
         &self,
         script_id: &ScriptId,
-    ) -> anyhow::Result<serde_json::Value> {
+    ) -> anyhow::Result<serde_json::Value, Error> {
         let mut script = self.script_repo.find_by_id(&script_id).await?;
 
-        let result = runtime::run(&script.template).await?;
+        let result = runtime::run(&script.template)
+            .await
+            .map_err(Error::Script)?;
 
         script.result = Some(result.clone());
         self.script_repo.update(&script).await?;
@@ -42,7 +45,7 @@ impl ScriptService {
         &self,
         script_id: &ScriptId,
         template: serde_json::Value,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<(), Error> {
         let mut script = self.script_repo.find_by_id(&script_id).await?;
 
         script.template = template;

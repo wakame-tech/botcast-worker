@@ -5,4 +5,6 @@ use uuid::Uuid;
 pub enum Error {
     #[error("{0} {1} not found")]
     NotFound(String, Uuid),
+    #[error("Other: {0}")]
+    Other(sqlx::Error),
 }
