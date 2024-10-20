@@ -1,11 +1,9 @@
-use repos::{entity::ScriptId, repo::ScriptRepo, script_repo};
+use repos::{
+    entity::ScriptId,
+    provider::{ProvideScriptRepo, Provider},
+    repo::ScriptRepo,
+};
 use std::sync::Arc;
-
-pub(crate) fn script_service() -> ScriptService {
-    ScriptService {
-        script_repo: script_repo(),
-    }
-}
 
 #[derive(Clone)]
 pub(crate) struct ScriptService {
@@ -13,6 +11,12 @@ pub(crate) struct ScriptService {
 }
 
 impl ScriptService {
+    pub(crate) fn new(provider: Provider) -> Self {
+        Self {
+            script_repo: provider.script_repo(),
+        }
+    }
+
     pub(crate) async fn evaluate_once(
         &self,
         template: &serde_json::Value,

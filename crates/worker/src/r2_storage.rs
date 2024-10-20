@@ -1,4 +1,5 @@
 use axum::async_trait;
+use repos::provider::Provider;
 use s3::{creds::Credentials, Bucket, Region};
 use std::sync::Arc;
 
@@ -8,8 +9,14 @@ pub(crate) trait Storage: Send + Sync {
     fn get_endpoint(&self) -> String;
 }
 
-pub(crate) fn storage() -> Arc<dyn Storage> {
-    Arc::new(R2Storage::new().expect("Failed to create storage"))
+pub(crate) trait ProviderStorage {
+    fn storage(&self) -> Arc<dyn Storage>;
+}
+
+impl ProviderStorage for Provider {
+    fn storage(&self) -> Arc<dyn Storage> {
+        Arc::new(R2Storage::new().expect("Failed to create storage"))
+    }
 }
 
 #[derive(Debug, Clone)]

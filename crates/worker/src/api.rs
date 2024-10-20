@@ -1,14 +1,19 @@
-use crate::{episode::script_service::script_service, task::task_service::task_service};
+use std::sync::Arc;
+
+use crate::{episode::script_service::ScriptService, task::task_service::TaskService};
 use axum::{
-    extract::Path,
+    extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
-use repos::entity::ScriptId;
+use repos::{entity::ScriptId, provider::Provider};
 use serde_json::{json, Value};
 use uuid::Uuid;
+
+#[derive(Debug, Clone)]
+struct AppState(Provider);
 
 #[derive(Debug)]
 struct AppError(anyhow::Error);
@@ -29,22 +34,29 @@ where
 }
 
 async fn update_script(
+    State(state): State<Arc<AppState>>,
     Path(script_id): Path<Uuid>,
     Json(template): Json<Value>,
 ) -> Result<impl IntoResponse, AppError> {
-    script_service()
+    ScriptService::new(state.0)
         .update_script(&ScriptId(script_id), template)
         .await?;
     Ok(StatusCode::CREATED)
 }
 
-async fn eval_script(Json(template): Json<Value>) -> Result<impl IntoResponse, AppError> {
-    let evaluated = script_service().evaluate_once(&template).await?;
+async fn eval_script(
+    State(state): State<Arc<AppState>>,
+    Json(template): Json<Value>,
+) -> Result<impl IntoResponse, AppError> {
+    let evaluated = ScriptService::new(state.0).evaluate_once(&template).await?;
     Ok(Json(evaluated))
 }
 
-async fn insert_task(Json(args): Json<Value>) -> Result<impl IntoResponse, AppError> {
-    task_service().insert_task(args).await?;
+async fn insert_task(
+    State(state): State<Arc<AppState>>,
+    Json(args): Json<Value>,
+) -> Result<impl IntoResponse, AppError> {
+    TaskService::new(state.0).insert_task(args).await?;
     Ok(StatusCode::CREATED)
 }
 
@@ -55,20 +67,17 @@ async fn version() -> Result<impl IntoResponse, AppError> {
     })))
 }
 
-fn create_router(router: Router) -> Router {
-    router
+pub async fn start_api(provider: Provider) -> anyhow::Result<()> {
+    let state = Arc::new(AppState(provider));
+    let router = Router::new()
         .route("/version", get(version))
         .route("/evalScript", post(eval_script))
         .route("/updateEpisodeScript/:episode_id", post(update_script))
         .route("/insertTask", post(insert_task))
-}
-
-pub async fn start_api() -> anyhow::Result<()> {
-    let router = Router::new();
-    let app = create_router(router);
+        .with_state(state);
     let port = std::env::var("PORT").unwrap_or("9001".to_string());
     log::info!("Listen port: {}", port);
     let listener = tokio::net::TcpListener::bind(&format!("0.0.0.0:{}", port)).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(listener, router).await?;
     Ok(())
 }

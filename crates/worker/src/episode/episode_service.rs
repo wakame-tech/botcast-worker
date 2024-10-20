@@ -1,9 +1,6 @@
-use crate::r2_storage::{storage, Storage};
+use crate::r2_storage::{ProviderStorage, Storage};
 use crate::{
-    episode::{
-        script_service::{script_service, ScriptService},
-        Manuscript, Section,
-    },
+    episode::{script_service::ScriptService, Manuscript, Section},
     task::Args,
 };
 use audio_generator::{
@@ -12,33 +9,19 @@ use audio_generator::{
 };
 use chrono::Utc;
 use repos::entity::{Episode, EpisodeId, PodcastId, ScriptId, Task, TaskStatus};
-use repos::podcast_repo;
+use repos::provider::{ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo, Provider};
+use repos::repo::{EpisodeRepo, PodcastRepo, ScriptRepo};
 use repos::urn::Urn;
-use repos::{
-    episode_repo,
-    repo::{EpisodeRepo, PodcastRepo, ScriptRepo},
-    script_repo,
-};
 use std::{fs::File, io::Read, str::FromStr, sync::Arc};
 use uuid::Uuid;
 
-pub(crate) fn episode_service() -> EpisodeService {
-    EpisodeService {
-        podcast_repo: podcast_repo(),
-        episode_repo: episode_repo(),
-        script_repo: script_repo(),
-        storage: storage(),
-        script_service: script_service(),
-    }
-}
-
 #[derive(Clone)]
 pub(crate) struct EpisodeService {
-    pub(crate) podcast_repo: Arc<dyn PodcastRepo>,
-    pub(crate) episode_repo: Arc<dyn EpisodeRepo>,
-    pub(crate) script_repo: Arc<dyn ScriptRepo>,
-    pub(crate) storage: Arc<dyn Storage>,
-    pub(crate) script_service: ScriptService,
+    podcast_repo: Arc<dyn PodcastRepo>,
+    episode_repo: Arc<dyn EpisodeRepo>,
+    script_repo: Arc<dyn ScriptRepo>,
+    storage: Arc<dyn Storage>,
+    script_service: ScriptService,
 }
 
 fn new_episode(pre_episode: &Episode, title: String) -> Episode {
@@ -55,6 +38,16 @@ fn new_episode(pre_episode: &Episode, title: String) -> Episode {
 }
 
 impl EpisodeService {
+    pub(crate) fn new(provider: Provider) -> Self {
+        Self {
+            podcast_repo: provider.podcast_repo(),
+            episode_repo: provider.episode_repo(),
+            script_repo: provider.script_repo(),
+            storage: provider.storage(),
+            script_service: ScriptService::new(provider),
+        }
+    }
+
     pub(crate) async fn new_episode(&self, pre_episode_id: &EpisodeId) -> anyhow::Result<Task> {
         let (pre_episode, _) = self.episode_repo.find_by_id(&pre_episode_id).await?;
         let podcast = self

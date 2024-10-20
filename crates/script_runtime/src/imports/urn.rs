@@ -4,7 +4,7 @@ use json_e::{
     value::{AsyncCallable, Value},
     Context,
 };
-use repos::urn::Urn;
+use repos::{provider::Provider, urn::Urn};
 
 #[derive(Clone)]
 pub(crate) struct Eval;
@@ -37,7 +37,7 @@ impl AsyncCallable for UrnGet {
             [Value::String(urn)] => urn.parse::<Urn>(),
             _ => return Err(anyhow::anyhow!("invalid args".to_string())),
         }?;
-        let value = resolve_urn(urn).await?;
+        let value = resolve_urn(Provider, urn).await?;
         Ok(value.into())
     }
 }

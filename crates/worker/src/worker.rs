@@ -1,5 +1,6 @@
-use crate::task::task_service::task_service;
+use crate::task::task_service::TaskService;
 use audio_generator::workdir::WorkDir;
+use repos::provider::Provider;
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -10,13 +11,14 @@ pub(crate) fn use_work_dir(task_id: &Uuid) -> anyhow::Result<WorkDir> {
     WorkDir::new(task_id, keep)
 }
 
-pub fn start_worker() {
+pub fn start_worker(provider: Provider) {
     tokio::spawn(async move {
+        let task_service = TaskService::new(provider);
         let interval = Duration::from_secs(5);
 
         loop {
             log::info!("Watching tasks...");
-            if let Err(e) = task_service().batch().await {
+            if let Err(e) = task_service.batch().await {
                 log::error!("Error: {:?}", e);
             }
             tokio::time::sleep(interval).await;

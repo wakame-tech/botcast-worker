@@ -1,15 +1,21 @@
 use anyhow::Result;
-use repos::{comment_repo, episode_repo, error::Error, podcast_repo, script_repo, urn::Urn};
+use repos::{
+    error::Error,
+    provider::{
+        ProvideCommentRepo, ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo, Provider,
+    },
+    urn::Urn,
+};
 
-pub(crate) async fn resolve_urn(urn: Urn) -> Result<serde_json::Value> {
+pub(crate) async fn resolve_urn(provider: Provider, urn: Urn) -> Result<serde_json::Value> {
     let value = match urn {
         Urn::Podcast(id) => {
-            let podcast_repo = podcast_repo();
+            let podcast_repo = provider.podcast_repo();
             let podcast = podcast_repo.find_by_id(&id).await?;
             serde_json::to_value(podcast)?
         }
         Urn::Episode(id) => {
-            let episode_repo = episode_repo();
+            let episode_repo = provider.episode_repo();
             let (episode, comments) = episode_repo.find_by_id(&id).await?;
             let mut episode = serde_json::to_value(episode)?;
             episode
@@ -19,12 +25,12 @@ pub(crate) async fn resolve_urn(urn: Urn) -> Result<serde_json::Value> {
             episode
         }
         Urn::Comment(id) => {
-            let comment_repo = comment_repo();
+            let comment_repo = provider.comment_repo();
             let res = comment_repo.find_by_id(&id).await?;
             serde_json::to_value(res)?
         }
         Urn::Script(id) => {
-            let script_repo = script_repo();
+            let script_repo = provider.script_repo();
             let res = script_repo.find_by_id(&id).await?;
             serde_json::to_value(res)?
         }

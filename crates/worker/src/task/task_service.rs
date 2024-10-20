@@ -1,26 +1,14 @@
 use super::Args;
-use crate::episode::script_service::script_service;
 use crate::{
-    episode::{
-        episode_service::{episode_service, EpisodeService},
-        script_service::ScriptService,
-    },
+    episode::{episode_service::EpisodeService, script_service::ScriptService},
     worker::use_work_dir,
 };
 use chrono::Utc;
 use repos::entity::{Task, TaskId, TaskStatus};
+use repos::provider::{ProvideTaskRepo, Provider};
 use repos::repo::TaskRepo;
-use repos::task_repo;
 use std::sync::Arc;
 use uuid::Uuid;
-
-pub(crate) fn task_service() -> TaskService {
-    TaskService {
-        task_repo: task_repo(),
-        episode_service: episode_service(),
-        script_service: script_service(),
-    }
-}
 
 #[derive(Clone)]
 pub(crate) struct TaskService {
@@ -30,6 +18,14 @@ pub(crate) struct TaskService {
 }
 
 impl TaskService {
+    pub(crate) fn new(provider: Provider) -> Self {
+        Self {
+            task_repo: provider.task_repo(),
+            episode_service: EpisodeService::new(provider),
+            script_service: ScriptService::new(provider),
+        }
+    }
+
     async fn execute(&self, task_id: &TaskId, args: Args) -> anyhow::Result<()> {
         match args {
             Args::GenerateAudio { episode_id } => {
