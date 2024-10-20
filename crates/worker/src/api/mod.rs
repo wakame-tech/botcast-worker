@@ -1,4 +1,4 @@
-use repos::provider::Provider;
+use crate::usecase::provider::Provider;
 use router::routers;
 use std::sync::Arc;
 
@@ -6,7 +6,7 @@ mod error;
 mod router;
 
 #[derive(Debug, Clone)]
-struct AppState(Provider);
+struct AppState(pub(crate) Provider);
 
 pub async fn start_api(provider: Provider) -> anyhow::Result<()> {
     let state = Arc::new(AppState(provider));

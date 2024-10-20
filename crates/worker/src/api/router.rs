@@ -1,3 +1,4 @@
+use super::AppState;
 use crate::{
     error::Error,
     model::Args,
@@ -15,14 +16,12 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use super::AppState;
-
 async fn update_script(
     State(state): State<Arc<AppState>>,
     Path(script_id): Path<Uuid>,
     Json(template): Json<Value>,
 ) -> Result<impl IntoResponse, Error> {
-    ScriptService::new(state.0)
+    ScriptService::new(*state.0)
         .update_template(&ScriptId(script_id), template)
         .await?;
     Ok(StatusCode::CREATED)
@@ -32,7 +31,9 @@ async fn eval_script(
     State(state): State<Arc<AppState>>,
     Json(template): Json<Value>,
 ) -> Result<impl IntoResponse, Error> {
-    let evaluated = ScriptService::new(state.0).evaluate_once(&template).await?;
+    let evaluated = ScriptService::new(*state.0)
+        .evaluate_once(&template)
+        .await?;
     Ok(Json(evaluated))
 }
 
@@ -41,7 +42,7 @@ async fn insert_task(
     Json(args): Json<Value>,
 ) -> Result<impl IntoResponse, Error> {
     let args: Args = serde_json::from_value(args).map_err(|e| Error::InvalidInput(e.into()))?;
-    TaskService::new(state.0).create_task(args).await?;
+    TaskService::new(*state.0).create_task(args).await?;
     Ok(StatusCode::CREATED)
 }
 

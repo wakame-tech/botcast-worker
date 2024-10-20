@@ -1,9 +1,5 @@
 use crate::error::Error;
-use repos::{
-    entity::ScriptId,
-    provider::{ProvideScriptRepo, Provider},
-    repo::ScriptRepo,
-};
+use repos::{entity::ScriptId, provider::ProvideScriptRepo, repo::ScriptRepo};
 use script_runtime::runtime;
 use std::sync::Arc;
 
@@ -13,7 +9,10 @@ pub(crate) struct ScriptService {
 }
 
 impl ScriptService {
-    pub(crate) fn new(provider: Provider) -> Self {
+    pub(crate) fn new<P>(provider: P) -> Self
+    where
+        P: ProvideScriptRepo,
+    {
         Self {
             script_repo: provider.script_repo(),
         }

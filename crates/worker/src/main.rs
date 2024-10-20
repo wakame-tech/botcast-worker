@@ -1,12 +1,11 @@
-use repos::provider::Provider;
-use worker::{api::start_api, worker::start_worker};
+use worker::{api::start_api, usecase::Provider, worker::start_worker};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
-    let provider = Provider;
+    let provider = Provider::default();
     start_worker(provider);
     start_api(provider).await
 }

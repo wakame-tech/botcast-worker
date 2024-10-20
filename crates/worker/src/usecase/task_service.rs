@@ -1,10 +1,11 @@
 use super::episode_service::EpisodeService;
 use super::script_service::ScriptService;
 use crate::error::Error;
+use crate::r2_storage::ProviderStorage;
 use crate::{model::Args, worker::use_work_dir};
 use chrono::{DateTime, Utc};
 use repos::entity::{Task, TaskStatus};
-use repos::provider::{ProvideTaskRepo, Provider};
+use repos::provider::{ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo, ProvideTaskRepo};
 use repos::repo::TaskRepo;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -27,7 +28,16 @@ pub(crate) struct TaskService {
 }
 
 impl TaskService {
-    pub(crate) fn new(provider: Provider) -> Self {
+    pub(crate) fn new<P>(provider: P) -> Self
+    where
+        P: ProvideTaskRepo
+            + ProvidePodcastRepo
+            + ProvidePodcastRepo
+            + ProvideEpisodeRepo
+            + ProvideScriptRepo
+            + ProviderStorage
+            + Copy,
+    {
         Self {
             task_repo: provider.task_repo(),
             episode_service: EpisodeService::new(provider),

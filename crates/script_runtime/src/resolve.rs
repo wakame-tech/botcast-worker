@@ -1,13 +1,12 @@
+use crate::provider::DefaultProvider;
 use anyhow::Result;
 use repos::{
     error::Error,
-    provider::{
-        ProvideCommentRepo, ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo, Provider,
-    },
+    provider::{ProvideCommentRepo, ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo},
     urn::Urn,
 };
 
-pub(crate) async fn resolve_urn(provider: Provider, urn: Urn) -> Result<serde_json::Value> {
+pub(crate) async fn resolve_urn(provider: DefaultProvider, urn: Urn) -> Result<serde_json::Value> {
     let value = match urn {
         Urn::Podcast(id) => {
             let podcast_repo = provider.podcast_repo();

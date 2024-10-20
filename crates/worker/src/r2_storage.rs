@@ -1,5 +1,5 @@
+use crate::usecase::provider::DefaultProvider;
 use axum::async_trait;
-use repos::provider::Provider;
 use s3::{creds::Credentials, Bucket, Region};
 use std::sync::Arc;
 
@@ -13,7 +13,7 @@ pub(crate) trait ProviderStorage {
     fn storage(&self) -> Arc<dyn Storage>;
 }
 
-impl ProviderStorage for Provider {
+impl ProviderStorage for DefaultProvider {
     fn storage(&self) -> Arc<dyn Storage> {
         Arc::new(R2Storage::new().expect("Failed to create storage"))
     }

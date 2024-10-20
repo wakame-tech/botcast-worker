@@ -11,7 +11,7 @@ use audio_generator::{
 };
 use chrono::Utc;
 use repos::entity::{Episode, EpisodeId, PodcastId, ScriptId, Task};
-use repos::provider::{ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo, Provider};
+use repos::provider::{ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo};
 use repos::repo::{EpisodeRepo, PodcastRepo, ScriptRepo};
 use repos::urn::Urn;
 use std::{fs::File, io::Read, str::FromStr, sync::Arc};
@@ -67,7 +67,9 @@ fn new_sentences(manuscript: Manuscript) -> Result<Vec<Sentence>, Error> {
 }
 
 impl EpisodeService {
-    pub(crate) fn new(provider: Provider) -> Self {
+    pub(crate) fn new(
+        provider: impl ProvidePodcastRepo + ProvideEpisodeRepo + ProvideScriptRepo + ProviderStorage,
+    ) -> Self {
         Self {
             podcast_repo: provider.podcast_repo(),
             episode_repo: provider.episode_repo(),
@@ -156,6 +158,59 @@ impl EpisodeService {
         episode.srt_url = Some(format!("{}/{}", self.storage.get_endpoint(), srt_path));
 
         self.episode_repo.update(&episode).await?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::async_trait;
+    use repos::entity::Comment;
+    use repos::error::Error as ReposError;
+
+    pub struct DummyEpisodeRepo {
+        episode: Episode,
+    }
+
+    impl DummyEpisodeRepo {
+        pub fn new() -> Self {
+            Self {
+                episode: Episode {
+                    id: Uuid::new_v4(),
+                    title: "dummy".to_string(),
+                    audio_url: None,
+                    script_id: Uuid::new_v4(),
+                    srt_url: None,
+                    podcast_id: Uuid::new_v4(),
+                    user_id: None,
+                    created_at: Utc::now(),
+                },
+            }
+        }
+    }
+
+    #[async_trait]
+    impl EpisodeRepo for DummyEpisodeRepo {
+        async fn find_by_id(
+            &self,
+            _id: &EpisodeId,
+        ) -> anyhow::Result<(Episode, Vec<Comment>), ReposError> {
+            Ok((self.episode.clone(), vec![]))
+        }
+
+        async fn create(&self, _episode: &Episode) -> anyhow::Result<(), ReposError> {
+            Ok(())
+        }
+
+        async fn update(&self, _episode: &Episode) -> anyhow::Result<(), ReposError> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_new_episode() -> Result<()> {
+        // let episode_repo = TestProvider.episode_repo();
         Ok(())
     }
 }

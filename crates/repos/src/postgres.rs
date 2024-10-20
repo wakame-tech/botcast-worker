@@ -7,7 +7,7 @@ use crate::{
     repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo, TaskRepo},
 };
 use async_trait::async_trait;
-use chrono::{Local, Utc};
+use chrono::Utc;
 use sqlx::{PgPool, Pool, Postgres};
 use std::sync::LazyLock;
 use uuid::Uuid;
@@ -119,33 +119,6 @@ impl EpisodeRepo for PostgresEpisodeRepo {
         .execute(&self.pool)
         .await
         .map_err(Error::Other)?;
-        Ok(())
-    }
-}
-
-pub struct DummyEpisodeRepo;
-
-#[async_trait]
-impl EpisodeRepo for DummyEpisodeRepo {
-    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<(Episode, Vec<Comment>), Error> {
-        let episode = Episode {
-            id: id.0,
-            title: "dummy".to_string(),
-            audio_url: None,
-            script_id: Uuid::new_v4(),
-            srt_url: None,
-            podcast_id: Uuid::new_v4(),
-            user_id: None,
-            created_at: Local::now().to_utc(),
-        };
-        Ok((episode, vec![]))
-    }
-
-    async fn create(&self, _episode: &Episode) -> anyhow::Result<(), Error> {
-        Ok(())
-    }
-
-    async fn update(&self, _episode: &Episode) -> anyhow::Result<(), Error> {
         Ok(())
     }
 }

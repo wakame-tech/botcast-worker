@@ -1,10 +1,10 @@
-use crate::imports::create_context;
+use crate::{imports::create_context, provider::DefaultProvider};
 use anyhow::Result;
 use json_e::Context;
 
 pub async fn run(template: &serde_json::Value) -> Result<serde_json::Value> {
     let mut context = Context::new();
-    create_context(&mut context);
+    create_context(DefaultProvider, &mut context);
     json_e::render_with_context(template, &context).await
 }
 

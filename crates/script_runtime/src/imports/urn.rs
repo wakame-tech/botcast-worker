@@ -1,10 +1,10 @@
-use crate::resolve::resolve_urn;
+use crate::{provider::DefaultProvider, resolve::resolve_urn};
 use anyhow::Result;
 use json_e::{
     value::{AsyncCallable, Value},
     Context,
 };
-use repos::{provider::Provider, urn::Urn};
+use repos::urn::Urn;
 
 #[derive(Clone)]
 pub(crate) struct Eval;
@@ -28,7 +28,9 @@ impl AsyncCallable for Eval {
 }
 
 #[derive(Clone)]
-pub(crate) struct UrnGet;
+pub(crate) struct UrnGet {
+    pub(crate) provider: DefaultProvider,
+}
 
 #[async_trait::async_trait]
 impl AsyncCallable for UrnGet {
@@ -37,7 +39,7 @@ impl AsyncCallable for UrnGet {
             [Value::String(urn)] => urn.parse::<Urn>(),
             _ => return Err(anyhow::anyhow!("invalid args".to_string())),
         }?;
-        let value = resolve_urn(Provider, urn).await?;
+        let value = resolve_urn(self.provider, urn).await?;
         Ok(value.into())
     }
 }
