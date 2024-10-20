@@ -12,7 +12,7 @@ pub(crate) fn run_xq(query: &str, value: serde_json::Value) -> Result<serde_json
         .map_err(|e| anyhow::anyhow!("{}", e))?;
     let mut values = vec![];
     for result in results {
-        dbg!(&result);
+        // dbg!(&result);
         let value: xq::Value =
             result.map_err(|e| anyhow::anyhow!("Failed to convert xq::Value: {:?}", e))?;
         let value: serde_json::Value = serde_json::to_value(value)?;

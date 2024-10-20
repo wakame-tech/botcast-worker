@@ -2,7 +2,9 @@ use super::AppState;
 use crate::{
     error::Error,
     model::Args,
-    usecase::{script_service::ScriptService, task_service::TaskService},
+    usecase::{
+        episode_service::EpisodeService, script_service::ScriptService, task_service::TaskService,
+    },
 };
 use axum::{
     extract::{Path, State},
@@ -11,7 +13,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use repos::entity::ScriptId;
+use repos::entity::{PodcastId, ScriptId};
 use serde_json::{json, Value};
 use std::{collections::BTreeMap, sync::Arc};
 use uuid::Uuid;
@@ -35,6 +37,16 @@ async fn run_script(
         .evaluate_script(&ScriptId(script_id), BTreeMap::new())
         .await?;
     Ok(Json(evaluated))
+}
+
+async fn run_podcast_template(
+    State(state): State<Arc<AppState>>,
+    Path(podcast_id): Path<Uuid>,
+) -> Result<impl IntoResponse, Error> {
+    let manuscript = EpisodeService::new(*state.0)
+        .generate_manuscript(&PodcastId(podcast_id))
+        .await?;
+    Ok(Json(manuscript))
 }
 
 async fn eval_template(
@@ -65,6 +77,10 @@ async fn version() -> Result<impl IntoResponse, Error> {
 pub(crate) fn routers() -> Router<Arc<AppState>> {
     Router::new()
         .route("/version", get(version))
+        .route(
+            "/podcasts/:podcast_id/runTemplate",
+            post(run_podcast_template),
+        )
         .route("/scripts/:script_id", post(update_script))
         .route("/scripts/:script_id/run", post(run_script))
         .route("/createTask", post(create_task))

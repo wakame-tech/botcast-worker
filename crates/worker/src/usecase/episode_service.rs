@@ -79,10 +79,10 @@ impl EpisodeService {
         }
     }
 
-    pub(crate) async fn new_episode_from_template(
+    pub(crate) async fn generate_manuscript(
         &self,
         podcast_id: &PodcastId,
-    ) -> anyhow::Result<Option<Task>, Error> {
+    ) -> anyhow::Result<Manuscript, Error> {
         let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
         let context_values = BTreeMap::from_iter([(
             "self".to_string(),
@@ -94,8 +94,17 @@ impl EpisodeService {
                 .await?,
         )
         .map_err(|e| Error::Other(anyhow::anyhow!("evaluated script is not ManuScript: {}", e)))?;
+        Ok(manuscript)
+    }
 
+    pub(crate) async fn new_episode_from_template(
+        &self,
+        podcast_id: &PodcastId,
+    ) -> anyhow::Result<Option<Task>, Error> {
+        let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
+        let manuscript: Manuscript = self.generate_manuscript(podcast_id).await?;
         let episode = new_episode(&podcast, manuscript.title);
+
         self.episode_repo.create(&episode).await?;
 
         let task = if let Some(cron) = podcast.cron {
@@ -160,6 +169,22 @@ impl EpisodeService {
         episode.srt_url = Some(format!("{}/{}", self.storage.get_endpoint(), srt_path));
 
         self.episode_repo.update(&episode).await?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{DateTime, Local};
+    use cron::Schedule;
+
+    #[test]
+    fn test_cron() -> anyhow::Result<()> {
+        // every monday at 9:00 UTC = 18:00 JST
+        let schedule = Schedule::from_str("0 0 9 * * Mon")?;
+        let next = schedule.upcoming(Utc).next().unwrap();
+        println!("{:?}", DateTime::<Local>::from(next));
         Ok(())
     }
 }
