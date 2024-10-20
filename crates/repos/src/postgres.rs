@@ -21,6 +21,12 @@ pub struct PostgresPodcastRepo {
     pool: Pool<Postgres>,
 }
 
+impl Default for PostgresPodcastRepo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PostgresPodcastRepo {
     pub fn new() -> Self {
         let pool = PG_POOL.clone();
@@ -36,7 +42,7 @@ impl PodcastRepo for PostgresPodcastRepo {
             .await
             .map_err(Error::Other)?
         else {
-            return Err(Error::NotFound("podcast".to_string(), id.0).into());
+            return Err(Error::NotFound("podcast".to_string(), id.0));
         };
         Ok(podcast)
     }
@@ -62,6 +68,12 @@ pub struct PostgresEpisodeRepo {
     pool: Pool<Postgres>,
 }
 
+impl Default for PostgresEpisodeRepo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PostgresEpisodeRepo {
     pub fn new() -> Self {
         let pool = PG_POOL.clone();
@@ -77,7 +89,7 @@ impl EpisodeRepo for PostgresEpisodeRepo {
             .await
             .map_err(Error::Other)?
         else {
-            return Err(Error::NotFound("episode".to_string(), id.0).into());
+            return Err(Error::NotFound("episode".to_string(), id.0));
         };
         let comments = sqlx::query_as!(
             Comment,
@@ -143,6 +155,12 @@ pub struct PostgresCommentRepo {
     pool: Pool<Postgres>,
 }
 
+impl Default for PostgresCommentRepo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PostgresCommentRepo {
     pub fn new() -> Self {
         let pool = PG_POOL.clone();
@@ -173,7 +191,7 @@ impl CommentRepo for PostgresCommentRepo {
             .await
             .map_err(Error::Other)?
         else {
-            return Err(Error::NotFound("comment".to_string(), id.0).into());
+            return Err(Error::NotFound("comment".to_string(), id.0));
         };
         Ok(comment)
     }
@@ -181,6 +199,12 @@ impl CommentRepo for PostgresCommentRepo {
 
 pub struct PostgresScriptRepo {
     pool: Pool<Postgres>,
+}
+
+impl Default for PostgresScriptRepo {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PostgresScriptRepo {
@@ -198,7 +222,7 @@ impl ScriptRepo for PostgresScriptRepo {
             .await
             .map_err(Error::Other)?
         else {
-            return Err(Error::NotFound("script".to_string(), id.0).into());
+            return Err(Error::NotFound("script".to_string(), id.0));
         };
         Ok(script)
     }
@@ -244,6 +268,12 @@ impl ScriptRepo for DummyScriptRepo {
 #[derive(Debug, Clone)]
 pub struct PostgresTaskRepo {
     pool: Pool<Postgres>,
+}
+
+impl Default for PostgresTaskRepo {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PostgresTaskRepo {

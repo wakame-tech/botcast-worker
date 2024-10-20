@@ -132,7 +132,7 @@ impl EpisodeService {
         work_dir: &WorkDir,
         episode_id: &EpisodeId,
     ) -> anyhow::Result<(), Error> {
-        let (mut episode, _) = self.episode_repo.find_by_id(&episode_id).await?;
+        let (mut episode, _) = self.episode_repo.find_by_id(episode_id).await?;
         let script = self
             .script_repo
             .find_by_id(&ScriptId(episode.script_id))

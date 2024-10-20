@@ -17,7 +17,7 @@ fn display_fn_io(name: &str, args: &[Value], ret: &Result<serde_json::Value>) ->
         "{}(\n{}\n) = {}",
         name,
         args.iter()
-            .map(|v| serde_json::Value::try_from(v))
+            .map(serde_json::Value::try_from)
             .collect::<Result<Vec<_>>>()?
             .iter()
             .map(|v| serde_json::to_string_pretty(v).unwrap())

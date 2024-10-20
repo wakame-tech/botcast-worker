@@ -14,7 +14,7 @@ impl AsyncCallable for Today {
             [Value::String(format)] => Ok(format),
             _ => Err(anyhow::anyhow!("today only supports a string".to_string())),
         }?;
-        let today = chrono::Local::now().format(&format).to_string();
+        let today = chrono::Local::now().format(format).to_string();
         Ok(Value::String(today))
     }
 }
