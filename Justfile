@@ -7,3 +7,5 @@ default:
 check:
     cargo check
 
+run script:
+    cargo run -p cli -- run {{script}}

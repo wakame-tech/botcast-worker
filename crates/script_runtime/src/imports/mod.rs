@@ -6,11 +6,24 @@ mod urn;
 
 use crate::provider::DefaultProvider;
 use anyhow::Result;
+use futures::future::try_join_all;
 use json_e::{
+    render_with_context,
     value::{AsyncCallable, Function, Value},
     Context,
 };
 use std::collections::BTreeMap;
+
+async fn evaluate_args<'a>(
+    ctx: &'_ Context<'_>,
+    args: &'a [Value],
+) -> Result<Vec<serde_json::Value>> {
+    let args: Vec<serde_json::Value> = args
+        .iter()
+        .map(|v| v.try_into())
+        .collect::<Result<Vec<_>>>()?;
+    try_join_all(args.iter().map(|v| render_with_context(v, ctx))).await
+}
 
 fn display_fn_io(name: &str, args: &[Value], ret: &Result<serde_json::Value>) -> Result<String> {
     Ok(format!(
