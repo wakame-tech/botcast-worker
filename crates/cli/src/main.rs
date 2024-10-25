@@ -8,7 +8,8 @@ use clap::Parser;
 use cmd::Args;
 use project::Project;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args = Args::try_parse()?;
     let pwd = std::env::current_dir()?;
     let project = Project::new(pwd);
@@ -23,7 +24,7 @@ fn main() -> Result<()> {
         Args::Pull(args) => cmd::pull::cmd_pull(project, args)?,
         Args::Push(args) => cmd::push::cmd_push(project, args)?,
         Args::Add(args) => cmd::add::cmd_add(project, args)?,
-        Args::Eval(args) => cmd::eval::cmd_eval(project, args)?,
+        Args::Run(args) => cmd::run::cmd_run(args).await?,
         Args::Login(_) => (),
     };
     Ok(())
