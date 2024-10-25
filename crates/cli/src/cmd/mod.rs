@@ -1,18 +1,18 @@
 use add::AddArgs;
-use eval::EvalArgs;
 use list::ListArgs;
 use login::LoginArgs;
 use new::NewArgs;
 use pull::PullArgs;
 use push::PushArgs;
+use run::RunArgs;
 
 pub(crate) mod add;
-pub(crate) mod eval;
 pub(crate) mod list;
 pub(crate) mod login;
 pub(crate) mod new;
 pub(crate) mod pull;
 pub(crate) mod push;
+pub(crate) mod run;
 
 #[derive(Debug, clap::Parser)]
 pub(crate) enum Args {
@@ -22,5 +22,5 @@ pub(crate) enum Args {
     Pull(PullArgs),
     Push(PushArgs),
     Add(AddArgs),
-    Eval(EvalArgs),
+    Run(RunArgs),
 }
