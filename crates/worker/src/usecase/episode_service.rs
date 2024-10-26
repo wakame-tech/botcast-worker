@@ -57,7 +57,7 @@ fn new_sentences(manuscript: Manuscript) -> Result<Vec<Sentence>, Error> {
                     }
                     sentences.push(Sentence::new(
                         (resource.clone(), speaker_id.to_string()),
-                        text.to_string(),
+                        sentence.to_string(),
                     ));
                 }
             }
