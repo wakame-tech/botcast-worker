@@ -154,19 +154,19 @@ impl EpisodeService {
         file.read_to_end(&mut audio)
             .map_err(|e| Error::Other(anyhow::anyhow!("Failed to read audio file: {}", e)))?;
 
-        let mp3_path = format!("episodes/{}.mp3", episode.id.hyphenated());
+        let audio_path = format!("episodes/{}.mp3", episode.id.hyphenated());
         self.storage
-            .upload(&mp3_path, &audio, "audio/mp3")
+            .upload(&audio_path, &audio, "audio/mp3")
             .await
             .map_err(|e| Error::Other(anyhow::anyhow!("Failed to upload audio: {}", e)))?;
-        episode.audio_url = Some(format!("{}/{}", self.storage.get_endpoint(), mp3_path));
+        episode.audio_url = Some(audio_path);
 
         let srt_path = format!("episodes/{}.srt", episode.id.hyphenated());
         self.storage
             .upload(&srt_path, srt.as_bytes(), "text/plain")
             .await
             .map_err(|e| Error::Other(anyhow::anyhow!("Failed to upload srt: {}", e)))?;
-        episode.srt_url = Some(format!("{}/{}", self.storage.get_endpoint(), srt_path));
+        episode.srt_url = Some(srt_path);
 
         self.episode_repo.update(&episode).await?;
         Ok(())
