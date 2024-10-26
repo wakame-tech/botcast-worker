@@ -42,7 +42,7 @@ impl PodcastRepo for PostgresPodcastRepo {
             .await
             .map_err(Error::Other)?
         else {
-            return Err(Error::NotFound("podcast".to_string(), id.0));
+            return Err(Error::NotFound("podcast".to_string(), id.0.to_string()));
         };
         Ok(podcast)
     }
@@ -89,7 +89,7 @@ impl EpisodeRepo for PostgresEpisodeRepo {
             .await
             .map_err(Error::Other)?
         else {
-            return Err(Error::NotFound("episode".to_string(), id.0));
+            return Err(Error::NotFound("episode".to_string(), id.0.to_string()));
         };
         let comments = sqlx::query_as!(
             Comment,
@@ -191,7 +191,7 @@ impl CommentRepo for PostgresCommentRepo {
             .await
             .map_err(Error::Other)?
         else {
-            return Err(Error::NotFound("comment".to_string(), id.0));
+            return Err(Error::NotFound("comment".to_string(), id.0.to_string()));
         };
         Ok(comment)
     }
@@ -222,7 +222,7 @@ impl ScriptRepo for PostgresScriptRepo {
             .await
             .map_err(Error::Other)?
         else {
-            return Err(Error::NotFound("script".to_string(), id.0));
+            return Err(Error::NotFound("script".to_string(), id.0.to_string()));
         };
         Ok(script)
     }

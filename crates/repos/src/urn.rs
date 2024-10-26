@@ -1,7 +1,6 @@
 use crate::entity::{CommentId, EpisodeId, PodcastId, ScriptId};
 use anyhow::Result;
 use std::str::FromStr;
-use uuid::Uuid;
 
 /// triplet of ("urn", resource, resource_id)
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -10,7 +9,7 @@ pub enum Urn {
     Episode(EpisodeId),
     Comment(CommentId),
     Script(ScriptId),
-    Other(String, Uuid),
+    Other(String, String),
 }
 
 impl FromStr for Urn {
@@ -28,7 +27,20 @@ impl FromStr for Urn {
             "episode" => Ok(Urn::Episode(EpisodeId(resource_id.parse()?))),
             "comment" => Ok(Urn::Comment(CommentId(resource_id.parse()?))),
             "script" => Ok(Urn::Script(ScriptId(resource_id.parse()?))),
-            _ => Ok(Urn::Other(resource.to_string(), resource_id.parse()?)),
+            _ => Ok(Urn::Other(resource.to_string(), resource_id.to_string())),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_urn_from_str() {
+        assert_eq!(
+            "urn:fuga:hoge".parse::<Urn>().unwrap(),
+            Urn::Other("fuga".to_string(), "hoge".to_string())
+        );
     }
 }
