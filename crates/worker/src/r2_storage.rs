@@ -6,7 +6,6 @@ use std::sync::Arc;
 #[async_trait]
 pub(crate) trait Storage: Send + Sync {
     async fn upload(&self, path: &str, data: &[u8], content_type: &str) -> anyhow::Result<()>;
-    fn get_endpoint(&self) -> String;
 }
 
 pub(crate) trait ProviderStorage {
@@ -21,7 +20,6 @@ impl ProviderStorage for DefaultProvider {
 
 #[derive(Debug, Clone)]
 pub struct R2Storage {
-    bucket_endpoint: String,
     bucket: Box<Bucket>,
 }
 
@@ -36,10 +34,7 @@ impl R2Storage {
             },
             Credentials::from_env()?,
         )?;
-        Ok(Self {
-            bucket_endpoint: std::env::var("BUCKET_ENDPOINT")?,
-            bucket,
-        })
+        Ok(Self { bucket })
     }
 }
 
@@ -50,10 +45,6 @@ impl Storage for R2Storage {
             .put_object_with_content_type(path, data, content_type)
             .await?;
         Ok(())
-    }
-
-    fn get_endpoint(&self) -> String {
-        self.bucket_endpoint.clone()
     }
 }
 
@@ -73,10 +64,6 @@ mod tests {
             _content_type: &str,
         ) -> anyhow::Result<()> {
             Ok(())
-        }
-
-        fn get_endpoint(&self) -> String {
-            "dummy".to_string()
         }
     }
 }
