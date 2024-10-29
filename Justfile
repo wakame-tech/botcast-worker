@@ -7,5 +7,5 @@ default:
 check:
     cargo check
 
-run script podcastId episodeId:
-    cargo run -p cli -- run {{script}} --context '{"podcastId":"{{podcastId}}","episodeId":"{{episodeId}}"}'
+run script:
+    cargo run -p cli -- -p ./crates/cli/project run {{script}} 

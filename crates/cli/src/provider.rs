@@ -22,6 +22,7 @@ impl ScriptRepo for LocalFileScriptRepo {
         let path = self
             .scripts_dir
             .join(format!("{}.json", id.0.as_hyphenated()));
+        dbg!(&path);
         let mut file = File::open(&path)
             .map_err(|_| repos::error::Error::NotFound("script".to_string(), id.0.to_string()))?;
         let template: serde_json::Value = serde_json::from_reader(&mut file)
