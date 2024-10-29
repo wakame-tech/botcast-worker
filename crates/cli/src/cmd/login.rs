@@ -9,10 +9,10 @@ pub(crate) struct LoginArgs {
     password: String,
 }
 
-pub(crate) fn cmd_login(project: Project, args: LoginArgs) -> Result<()> {
+pub(crate) async fn cmd_login(project: Project, args: LoginArgs) -> Result<()> {
     let mut credential = Credential::load(&project.credential_path())?;
     let client = ApiClient::new(&credential.api_endpoint, "");
-    let token = client.sign_in(&args.email, &args.password)?;
+    let token = client.sign_in(&args.email, &args.password).await?;
     credential.token = token;
 
     let path = project.credential_path();

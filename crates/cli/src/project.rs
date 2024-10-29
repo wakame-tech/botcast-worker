@@ -31,7 +31,7 @@ impl Project {
             .truncate(true)
             .write(true)
             .open(&path)?;
-        serde_json::to_writer_pretty(&mut f, &script.template)?;
+        serde_json::to_writer_pretty(&mut f, &script)?;
         Ok(path)
     }
 
