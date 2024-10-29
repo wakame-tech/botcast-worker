@@ -14,3 +14,4 @@ repos = { path = "../repos" }
 script_runtime = { path = "../script_runtime" }
 tokio = { version = "1.39.3", features = ["macros", "rt-multi-thread"] }
 async-trait = "0.1.83"
+uuid = { version = "1.10.0", features = ["v4", "serde"] }

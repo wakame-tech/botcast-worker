@@ -25,7 +25,10 @@ impl Project {
     }
 
     pub(crate) fn instantiate_script(&self, script: &Script) -> Result<PathBuf> {
-        let path = self.root.join(self.script_path(&script.id));
+        let path = self.script_path(&script.id);
+        if path.exists() {
+            anyhow::bail!("{} exists", path.display());
+        }
         let mut f = std::fs::OpenOptions::new()
             .create(true)
             .truncate(true)

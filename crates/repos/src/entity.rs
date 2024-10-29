@@ -54,7 +54,7 @@ pub struct Comment {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct Script {
     pub id: Uuid,
     pub user_id: Uuid,
