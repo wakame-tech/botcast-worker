@@ -2,6 +2,7 @@ mod api;
 mod cmd;
 mod credential;
 mod project;
+mod provider;
 
 use anyhow::Result;
 use clap::Parser;
@@ -24,7 +25,7 @@ async fn main() -> Result<()> {
         Args::Pull(args) => cmd::pull::cmd_pull(project, args)?,
         Args::Push(args) => cmd::push::cmd_push(project, args)?,
         Args::Add(args) => cmd::add::cmd_add(project, args)?,
-        Args::Run(args) => cmd::run::cmd_run(args).await?,
+        Args::Run(args) => cmd::run::cmd_run(project, args).await?,
         Args::Login(_) => (),
     };
     Ok(())

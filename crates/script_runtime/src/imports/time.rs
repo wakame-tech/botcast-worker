@@ -21,13 +21,13 @@ impl AsyncCallable for Today {
 
 #[cfg(test)]
 mod tests {
-    use crate::{imports::insert_custom_functions, provider::DefaultProvider};
+    use crate::imports::insert_custom_functions;
     use json_e::Context;
 
     #[tokio::test]
     async fn test_call_today() {
         let mut context = Context::new();
-        insert_custom_functions(DefaultProvider, &mut context);
+        insert_custom_functions(&mut context);
         let result = json_e::render_with_context(
             &serde_json::json!({ "$eval": "today('%Y/%m/%d')" }),
             &context,

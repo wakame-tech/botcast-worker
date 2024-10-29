@@ -1,5 +1,3 @@
-mod imports;
-mod provider;
-mod resolve;
+pub mod imports;
 pub mod runtime;
 mod xq;

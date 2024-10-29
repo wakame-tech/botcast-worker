@@ -1,27 +1,85 @@
-use crate::{
-    imports::{insert_custom_functions, insert_values},
-    provider::DefaultProvider,
-};
+use crate::imports::insert_custom_functions;
 use anyhow::Result;
-use json_e::{builtins::builtins, Context};
+use futures::future::try_join_all;
+use json_e::{
+    builtins::builtins,
+    render_with_context,
+    value::{AsyncCallable, Function, Value},
+    Context,
+};
 use std::collections::BTreeMap;
 
-fn create_context(context: &mut Context, values: BTreeMap<String, serde_json::Value>) {
-    builtins(context);
-    insert_custom_functions(DefaultProvider, context);
-    insert_values(
-        context,
-        values.into_iter().map(|(k, v)| (k, v.into())).collect(),
-    );
+pub(crate) fn insert_values(context: &mut Context<'_>, values: BTreeMap<String, Value>) {
+    for (k, v) in values {
+        context.insert(k, v);
+    }
 }
 
-pub async fn run(
-    template: &serde_json::Value,
-    values: BTreeMap<String, serde_json::Value>,
-) -> Result<serde_json::Value> {
-    let mut context = Context::new();
-    create_context(&mut context, values);
-    json_e::render_with_context(template, &context).await
+pub(crate) async fn evaluate_args<'a>(
+    ctx: &'_ Context<'_>,
+    args: &'a [Value],
+) -> Result<Vec<serde_json::Value>> {
+    let args: Vec<serde_json::Value> = args
+        .iter()
+        .map(|v| v.try_into())
+        .collect::<Result<Vec<_>>>()?;
+    try_join_all(args.iter().map(|v| render_with_context(v, ctx))).await
+}
+
+pub(crate) fn display_fn_io(
+    name: &str,
+    args: &[Value],
+    ret: &Result<serde_json::Value>,
+) -> Result<String> {
+    Ok(format!(
+        "{}(\n{}\n) = {}",
+        name,
+        args.iter()
+            .map(serde_json::Value::try_from)
+            .collect::<Result<Vec<_>>>()?
+            .iter()
+            .map(|v| serde_json::to_string_pretty(v).unwrap())
+            .collect::<Vec<_>>()
+            .join(",\n"),
+        match ret {
+            Ok(v) => format!("Ok({})", serde_json::to_string_pretty(&v).unwrap()),
+            Err(e) => format!("Err({})", e),
+        },
+    ))
+}
+
+pub struct ScriptRuntime<'a> {
+    context: Context<'a>,
+}
+
+impl ScriptRuntime<'_> {
+    pub fn new() -> Self {
+        let mut context = Context::new();
+        builtins(&mut context);
+        insert_custom_functions(&mut context);
+        ScriptRuntime { context }
+    }
+
+    pub fn register_function(&mut self, name: &'static str, f: Box<dyn AsyncCallable>) {
+        self.context
+            .insert(name.to_string(), Value::Function(Function::new(name, f)));
+    }
+
+    pub fn insert(&mut self, name: &'static str, value: Value) {
+        self.context.insert(name.to_string(), value);
+    }
+
+    pub async fn run(
+        &mut self,
+        template: &serde_json::Value,
+        values: BTreeMap<String, serde_json::Value>,
+    ) -> Result<serde_json::Value> {
+        insert_values(
+            &mut self.context,
+            values.into_iter().map(|(k, v)| (k, v.into())).collect(),
+        );
+        json_e::render_with_context(template, &self.context).await
+    }
 }
 
 #[cfg(test)]
