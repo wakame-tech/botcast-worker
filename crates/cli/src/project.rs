@@ -16,18 +16,25 @@ impl Project {
         self.root.join(".credential.json")
     }
 
+    pub(crate) fn scripts_dir(&self) -> PathBuf {
+        self.root.join("scripts")
+    }
+
     pub(crate) fn script_path(&self, id: &str) -> PathBuf {
-        self.root.join("scripts").join(format!("{}.json", id))
+        self.scripts_dir().join(format!("{}.json", id))
     }
 
     pub(crate) fn instantiate_script(&self, script: &Script) -> Result<PathBuf> {
-        let path = self.root.join(self.script_path(&script.id));
+        let path = self.script_path(&script.id);
+        if path.exists() {
+            anyhow::bail!("{} exists", path.display());
+        }
         let mut f = std::fs::OpenOptions::new()
             .create(true)
             .truncate(true)
             .write(true)
             .open(&path)?;
-        serde_json::to_writer_pretty(&mut f, &script.template)?;
+        serde_json::to_writer_pretty(&mut f, &script)?;
         Ok(path)
     }
 

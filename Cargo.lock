@@ -591,13 +591,16 @@ name = "cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "clap",
+ "repos",
  "reqwest 0.12.8",
  "script_runtime",
  "serde",
  "serde_json",
  "tokio",
  "urlencoding",
+ "uuid",
 ]
 
 [[package]]
@@ -5054,6 +5057,7 @@ dependencies = [
  "chrono",
  "clap",
  "cron",
+ "json-e",
  "log",
  "readable_text",
  "repos",

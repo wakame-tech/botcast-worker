@@ -35,3 +35,4 @@ chrono = "0.4.38"
 async-trait = "0.1.83"
 cron = "0.12.1"
 thiserror = "1.0.64"
+json-e = { git = "https://github.com/wakame-tech/json-e", branch = "fix-pub-context" }

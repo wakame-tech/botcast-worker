@@ -2,7 +2,7 @@ use super::{script_service::ScriptService, task_service::new_task};
 use crate::{
     error::Error,
     model::{Args, Manuscript, Section},
-    r2_storage::{ProviderStorage, Storage},
+    r2_storage::Storage,
 };
 use anyhow::Result;
 use audio_generator::{
@@ -11,7 +11,6 @@ use audio_generator::{
 };
 use chrono::Utc;
 use repos::entity::{Episode, EpisodeId, Podcast, PodcastId, ScriptId, Task};
-use repos::provider::{ProvideEpisodeRepo, ProvidePodcastRepo, ProvideScriptRepo};
 use repos::repo::{EpisodeRepo, PodcastRepo, ScriptRepo};
 use repos::urn::Urn;
 use std::{collections::BTreeMap, fs::File, io::Read, str::FromStr, sync::Arc};
@@ -68,14 +67,18 @@ fn new_sentences(manuscript: Manuscript) -> Result<Vec<Sentence>, Error> {
 
 impl EpisodeService {
     pub(crate) fn new(
-        provider: impl ProvidePodcastRepo + ProvideEpisodeRepo + ProvideScriptRepo + ProviderStorage,
+        podcast_repo: Arc<dyn PodcastRepo>,
+        episode_repo: Arc<dyn EpisodeRepo>,
+        script_repo: Arc<dyn ScriptRepo>,
+        storage: Arc<dyn Storage>,
+        script_service: ScriptService,
     ) -> Self {
         Self {
-            podcast_repo: provider.podcast_repo(),
-            episode_repo: provider.episode_repo(),
-            script_repo: provider.script_repo(),
-            storage: provider.storage(),
-            script_service: ScriptService::new(provider),
+            podcast_repo: podcast_repo.clone(),
+            episode_repo: episode_repo.clone(),
+            script_repo: script_repo.clone(),
+            storage,
+            script_service,
         }
     }
 

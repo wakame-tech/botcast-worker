@@ -9,8 +9,8 @@ pub(crate) struct TrpcError {
     data: Value,
 }
 
-pub(crate) fn trpc_query(
-    client: &reqwest::blocking::Client,
+pub(crate) async fn trpc_query(
+    client: &reqwest::Client,
     endpoint: &str,
     name: &str,
     input: Value,
@@ -25,9 +25,10 @@ pub(crate) fn trpc_query(
     let response = client
         .get(url)
         .header(AUTHORIZATION, authorization)
-        .send()?;
+        .send()
+        .await?;
     let status = response.status();
-    let body: Value = response.json()?;
+    let body: Value = response.json().await?;
     if status != 200 {
         let error: TrpcError = serde_json::from_value(body["error"].clone())?;
         return Err(anyhow::anyhow!("{}", serde_json::to_string_pretty(&error)?));
@@ -36,8 +37,8 @@ pub(crate) fn trpc_query(
     Ok(body["result"]["data"].clone())
 }
 
-pub(crate) fn trpc_mutation(
-    client: &reqwest::blocking::Client,
+pub(crate) async fn trpc_mutation(
+    client: &reqwest::Client,
     endpoint: &str,
     name: &str,
     input: Value,
@@ -48,9 +49,10 @@ pub(crate) fn trpc_mutation(
         .post(url)
         .json(&input)
         .header(AUTHORIZATION, authorization)
-        .send()?;
+        .send()
+        .await?;
     let status = response.status();
-    let body: Value = response.json()?;
+    let body: Value = response.json().await?;
     if status != 200 {
         let error: TrpcError = serde_json::from_value(body["error"].clone())?;
         return Err(anyhow::anyhow!("{}", serde_json::to_string_pretty(&error)?));

@@ -4,7 +4,6 @@ use xq::module_loader::PreludeLoader;
 
 pub(crate) fn run_xq(query: &str, value: serde_json::Value) -> Result<serde_json::Value> {
     let module_loader = PreludeLoader();
-    let value: serde_json::Value = value.try_into()?;
     let value: xq::Value = serde_json::from_value(value)
         .map_err(|_| anyhow::anyhow!("Failed to convert xq::Value"))?;
     let context = iter::once(Ok(value));

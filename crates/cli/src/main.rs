@@ -2,30 +2,31 @@ mod api;
 mod cmd;
 mod credential;
 mod project;
+mod provider;
 
 use anyhow::Result;
 use clap::Parser;
-use cmd::Args;
+use cmd::{Args, Cmd};
 use project::Project;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::try_parse()?;
-    let pwd = std::env::current_dir()?;
+    let pwd = args.project.unwrap_or(std::env::current_dir()?);
     let project = Project::new(pwd);
 
-    if let Args::Login(args) = args {
-        return cmd::login::cmd_login(project, args);
+    if let Cmd::Login(args) = args.cmd {
+        return cmd::login::cmd_login(project, args).await;
     }
 
-    match args {
-        Args::New(args) => cmd::new::cmd_new(args)?,
-        Args::List(args) => cmd::list::cmd_list(project, args)?,
-        Args::Pull(args) => cmd::pull::cmd_pull(project, args)?,
-        Args::Push(args) => cmd::push::cmd_push(project, args)?,
-        Args::Add(args) => cmd::add::cmd_add(project, args)?,
-        Args::Run(args) => cmd::run::cmd_run(args).await?,
-        Args::Login(_) => (),
+    match args.cmd {
+        Cmd::New(args) => cmd::new::cmd_new(args)?,
+        Cmd::List(args) => cmd::list::cmd_list(project, args).await?,
+        Cmd::Pull(args) => cmd::pull::cmd_pull(project, args).await?,
+        Cmd::Push(args) => cmd::push::cmd_push(project, args).await?,
+        Cmd::Add(args) => cmd::add::cmd_add(project, args).await?,
+        Cmd::Run(args) => cmd::run::cmd_run(project, args).await?,
+        Cmd::Login(_) => (),
     };
     Ok(())
 }

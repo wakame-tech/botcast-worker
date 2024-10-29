@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+use uuid::Uuid;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Script {
@@ -11,14 +12,14 @@ pub(crate) struct Script {
 
 #[derive(Debug, serde::Serialize)]
 pub(crate) struct UpdateScript {
-    id: String,
+    id: Uuid,
     title: String,
     // json
     template: String,
 }
 
 impl UpdateScript {
-    pub(crate) fn new(id: String, title: String, template: Value) -> Self {
+    pub(crate) fn new(id: Uuid, title: String, template: Value) -> Self {
         Self {
             id,
             title,

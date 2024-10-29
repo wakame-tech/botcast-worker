@@ -1,4 +1,7 @@
-use crate::repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo, TaskRepo};
+use crate::{
+    postgres::*,
+    repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo, TaskRepo},
+};
 use std::sync::Arc;
 
 pub trait ProvidePodcastRepo {
@@ -19,4 +22,37 @@ pub trait ProvideScriptRepo {
 
 pub trait ProvideTaskRepo {
     fn task_repo(&self) -> Arc<dyn TaskRepo>;
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct DefaultProvider;
+
+impl ProvidePodcastRepo for DefaultProvider {
+    fn podcast_repo(&self) -> Arc<dyn PodcastRepo> {
+        Arc::new(PostgresPodcastRepo::new())
+    }
+}
+
+impl ProvideEpisodeRepo for DefaultProvider {
+    fn episode_repo(&self) -> Arc<dyn EpisodeRepo> {
+        Arc::new(PostgresEpisodeRepo::new())
+    }
+}
+
+impl ProvideCommentRepo for DefaultProvider {
+    fn comment_repo(&self) -> Arc<dyn CommentRepo> {
+        Arc::new(PostgresCommentRepo::new())
+    }
+}
+
+impl ProvideScriptRepo for DefaultProvider {
+    fn script_repo(&self) -> Arc<dyn ScriptRepo> {
+        Arc::new(PostgresScriptRepo::new())
+    }
+}
+
+impl ProvideTaskRepo for DefaultProvider {
+    fn task_repo(&self) -> Arc<dyn TaskRepo> {
+        Arc::new(PostgresTaskRepo::new())
+    }
 }
