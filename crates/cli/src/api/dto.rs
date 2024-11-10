@@ -6,7 +6,6 @@ pub(crate) struct Script {
     pub(crate) id: String,
     pub(crate) title: String,
     pub(crate) template: Value,
-    result: Value,
     user_id: String,
 }
 

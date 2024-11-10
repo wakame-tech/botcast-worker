@@ -6,6 +6,3 @@ default:
 
 check:
     cargo check
-
-run script:
-    cargo run -p cli -- -p ./crates/cli/project run {{script}} 

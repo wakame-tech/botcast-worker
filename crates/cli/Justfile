@@ -1,0 +1,7 @@
+set dotenv-filename := "../.env"
+
+run script self:
+    cargo run -- -p ./project run {{script}} --context '{"self":""}'
+
+pull:
+    cargo run -- -p ./project pull
