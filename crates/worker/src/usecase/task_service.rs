@@ -14,6 +14,7 @@ pub(crate) fn new_task(args: Args, execute_after: DateTime<Utc>) -> Task {
         id: Uuid::new_v4(),
         status: TaskStatus::Pending,
         args: serde_json::to_value(args).unwrap(),
+        result: None,
         execute_after,
         executed_at: None,
     }

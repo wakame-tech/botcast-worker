@@ -4,14 +4,14 @@ use crate::{
     model::{Args, Manuscript, Section},
     r2_storage::Storage,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use audio_generator::{
     generate_audio::{generate_audio, Sentence, SynthesisResult},
     workdir::WorkDir,
 };
 use chrono::Utc;
 use repos::entity::{Episode, EpisodeId, Podcast, PodcastId, ScriptId, Task};
-use repos::repo::{EpisodeRepo, PodcastRepo, ScriptRepo};
+use repos::repo::{EpisodeRepo, PodcastRepo};
 use repos::urn::Urn;
 use std::{collections::BTreeMap, fs::File, io::Read, str::FromStr, sync::Arc};
 use uuid::Uuid;
@@ -20,27 +20,26 @@ use uuid::Uuid;
 pub(crate) struct EpisodeService {
     podcast_repo: Arc<dyn PodcastRepo>,
     episode_repo: Arc<dyn EpisodeRepo>,
-    script_repo: Arc<dyn ScriptRepo>,
     storage: Arc<dyn Storage>,
     script_service: ScriptService,
 }
 
-fn new_episode(podcast: &Podcast, title: String) -> Episode {
+fn new_episode(podcast: &Podcast, title: String, sections: Vec<Section>) -> Episode {
     Episode {
         id: Uuid::new_v4(),
         user_id: podcast.user_id,
         title,
+        sections: serde_json::to_value(sections).unwrap(),
         podcast_id: podcast.id,
-        script_id: podcast.script_id,
         audio_url: None,
         srt_url: None,
         created_at: Utc::now(),
     }
 }
 
-fn new_sentences(manuscript: Manuscript) -> Result<Vec<Sentence>, Error> {
+fn new_sentences(sections: Vec<Section>) -> Result<Vec<Sentence>, Error> {
     let mut sentences = vec![];
-    for section in manuscript.sections.iter() {
+    for section in sections.iter() {
         match section {
             Section::Serif { text, speaker } => {
                 let Urn::Other(resource, speaker_id) = speaker
@@ -69,14 +68,12 @@ impl EpisodeService {
     pub(crate) fn new(
         podcast_repo: Arc<dyn PodcastRepo>,
         episode_repo: Arc<dyn EpisodeRepo>,
-        script_repo: Arc<dyn ScriptRepo>,
         storage: Arc<dyn Storage>,
         script_service: ScriptService,
     ) -> Self {
         Self {
             podcast_repo: podcast_repo.clone(),
             episode_repo: episode_repo.clone(),
-            script_repo: script_repo.clone(),
             storage,
             script_service,
         }
@@ -106,7 +103,7 @@ impl EpisodeService {
     ) -> anyhow::Result<Option<Task>, Error> {
         let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
         let manuscript: Manuscript = self.generate_manuscript(podcast_id).await?;
-        let episode = new_episode(&podcast, manuscript.title);
+        let episode = new_episode(&podcast, manuscript.title, manuscript.sections);
 
         self.episode_repo.create(&episode).await?;
 
@@ -136,17 +133,9 @@ impl EpisodeService {
         episode_id: &EpisodeId,
     ) -> anyhow::Result<(), Error> {
         let (mut episode, _) = self.episode_repo.find_by_id(episode_id).await?;
-        let script = self
-            .script_repo
-            .find_by_id(&ScriptId(episode.script_id))
-            .await?;
-        let Some(result) = script.result.clone() else {
-            return Err(Error::Other(anyhow::anyhow!("Manuscript not found")));
-        };
-        let manuscript: Manuscript = serde_json::from_value(result).map_err(|e| {
-            Error::Other(anyhow::anyhow!("evaluated script is not ManuScript: {}", e))
-        })?;
-        let sentences = new_sentences(manuscript)?;
+        let sections: Vec<Section> = serde_json::from_value(episode.sections.clone())
+            .map_err(|e| Error::Other(anyhow!("Failed to parse sections: {}", e)))?;
+        let sentences = new_sentences(sections)?;
         let SynthesisResult { out_path, srt, .. } = generate_audio(work_dir, &sentences)
             .await
             .map_err(|e| Error::Other(anyhow::anyhow!("Failed to generate audio: {}", e)))?;

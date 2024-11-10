@@ -32,7 +32,6 @@ impl ScriptRepo for LocalFileScriptRepo {
             user_id: id.0,
             title: format!("{}", id.0.as_hyphenated()),
             template,
-            result: None,
         })
     }
 

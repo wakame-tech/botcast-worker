@@ -120,12 +120,12 @@ impl EpisodeRepo for PostgresEpisodeRepo {
     async fn create(&self, episode: &Episode) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Episode,
-            "insert into episodes (id, user_id, title, podcast_id, script_id, audio_url, srt_url) values ($1, $2, $3, $4, $5, $6, $7)",
+            "insert into episodes (id, user_id, title, podcast_id, sections, audio_url, srt_url) values ($1, $2, $3, $4, $5, $6, $7)",
             episode.id,
             episode.user_id,
             episode.title,
             episode.podcast_id,
-            episode.script_id,
+            episode.sections,
             episode.audio_url,
             episode.srt_url,
         )
@@ -229,12 +229,11 @@ impl ScriptRepo for PostgresScriptRepo {
 
     async fn update(&self, script: &Script) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
-            Episode,
-            "update scripts set title = $2, template = $3, result = $4 where id = $1",
+            Script,
+            "update scripts set title = $2, template = $3 where id = $1",
             script.id,
             script.title,
             script.template,
-            script.result,
         )
         .execute(&self.pool)
         .await
@@ -255,7 +254,6 @@ impl ScriptRepo for DummyScriptRepo {
             user_id: Uuid::new_v4(),
             title: "dummy".to_string(),
             template: self.template.clone(),
-            result: None,
         };
         Ok(script)
     }
@@ -288,7 +286,7 @@ impl TaskRepo for PostgresTaskRepo {
     async fn pop(&self, now: DateTime<Utc>) -> anyhow::Result<Option<Task>, Error> {
         let task = sqlx::query_as!(
             Task,
-            r#"select id, status as "status!: TaskStatus", args, execute_after, executed_at from tasks where status = $1 and execute_after < $2 order by execute_after limit 1"#,
+            r#"select id, status as "status!: TaskStatus", args, result, execute_after, executed_at from tasks where status = $1 and execute_after < $2 order by execute_after limit 1"#,
             TaskStatus::Pending as TaskStatus,
             now,
         )
@@ -301,10 +299,11 @@ impl TaskRepo for PostgresTaskRepo {
     async fn create(&self, task: &Task) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Task,
-            "insert into tasks (id, status, args, execute_after, executed_at) values ($1, $2, $3, $4, $5)",
+            "insert into tasks (id, status, args, result, execute_after, executed_at) values ($1, $2, $3, $4, $5, $6)",
             task.id,
             &task.status as &TaskStatus,
             task.args,
+            task.result,
             task.execute_after,
             task.executed_at,
         )
@@ -317,10 +316,11 @@ impl TaskRepo for PostgresTaskRepo {
     async fn update(&self, task: &Task) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Task,
-            "update tasks set status = $2, args = $3, execute_after = $4, executed_at = $5 where id = $1",
+            "update tasks set status = $2, args = $3, result = $4, execute_after = $5, executed_at = $6 where id = $1",
             task.id,
             &task.status as &TaskStatus,
             task.args,
+            task.result,
             task.execute_after,
             task.executed_at,
         )

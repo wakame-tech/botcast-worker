@@ -59,13 +59,10 @@ impl ScriptService {
         script_id: &ScriptId,
         values: BTreeMap<String, serde_json::Value>,
     ) -> anyhow::Result<serde_json::Value, Error> {
-        let mut script = self.script_repo.find_by_id(script_id).await?;
+        let script = self.script_repo.find_by_id(script_id).await?;
 
         log::info!("Evaluating script: {:?}", script);
         let result = self.run_template(&script.template, values).await?;
-
-        script.result = Some(result.clone());
-        self.script_repo.update(&script).await?;
         Ok(result)
     }
 
