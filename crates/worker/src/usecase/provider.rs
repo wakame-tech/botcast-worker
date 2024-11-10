@@ -46,8 +46,8 @@ impl Provider {
     pub(crate) fn episode_service(&self) -> EpisodeService {
         EpisodeService::new(
             self.provide_podcast_repo.podcast_repo(),
-            self.provide_episode_repo.episode_repo(),
             self.provide_script_repo.script_repo(),
+            self.provide_episode_repo.episode_repo(),
             self.provide_storage.storage(),
             self.script_service(),
         )

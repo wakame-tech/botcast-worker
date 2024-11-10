@@ -1,5 +1,5 @@
 use super::AppState;
-use crate::{ error::Error, model::Args};
+use crate::{error::Error, model::Args};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -25,18 +25,6 @@ async fn update_script(
     Ok(StatusCode::CREATED)
 }
 
-async fn run_script(
-    State(state): State<Arc<AppState>>,
-    Path(script_id): Path<Uuid>,
-) -> Result<impl IntoResponse, Error> {
-    let evaluated = state
-        .0
-        .script_service()
-        .evaluate_script(&ScriptId(script_id), BTreeMap::new())
-        .await?;
-    Ok(Json(evaluated))
-}
-
 async fn run_podcast_template(
     State(state): State<Arc<AppState>>,
     Path(podcast_id): Path<Uuid>,
@@ -49,11 +37,21 @@ async fn run_podcast_template(
     Ok(Json(manuscript))
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct EvalTemplateRequest {
+    template: Value,
+    context: BTreeMap<String, Value>,
+}
+
 async fn eval_template(
     State(state): State<Arc<AppState>>,
-    Json(template): Json<Value>,
+    Json(EvalTemplateRequest { template, context }): Json<EvalTemplateRequest>,
 ) -> Result<impl IntoResponse, Error> {
-    let evaluated = state.0.script_service().evaluate_once(&template).await?;
+    let evaluated = state
+        .0
+        .script_service()
+        .evaluate_template(&template, context)
+        .await?;
     Ok(Json(evaluated))
 }
 
@@ -80,7 +78,6 @@ pub(crate) fn routers() -> Router<Arc<AppState>> {
             post(run_podcast_template),
         )
         .route("/scripts/:script_id", post(update_script))
-        .route("/scripts/:script_id/run", post(run_script))
         .route("/createTask", post(create_task))
         .route("/evalTemplate", post(eval_template))
 }

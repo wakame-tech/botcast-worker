@@ -38,7 +38,7 @@ pub struct Episode {
     pub id: Uuid,
     pub title: String,
     pub audio_url: Option<String>,
-    pub script_id: Uuid,
+    pub sections: serde_json::Value,
     pub srt_url: Option<String>,
     pub podcast_id: Uuid,
     pub user_id: Option<Uuid>,
@@ -60,7 +60,6 @@ pub struct Script {
     pub user_id: Uuid,
     pub title: String,
     pub template: serde_json::Value,
-    pub result: Option<serde_json::Value>,
 }
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]
@@ -78,6 +77,7 @@ pub struct Task {
     pub id: Uuid,
     pub status: TaskStatus,
     pub args: serde_json::Value,
+    pub result: Option<serde_json::Value>,
     pub execute_after: DateTime<Utc>,
     pub executed_at: Option<DateTime<Utc>>,
 }
