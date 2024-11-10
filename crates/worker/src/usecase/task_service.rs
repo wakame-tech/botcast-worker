@@ -5,7 +5,6 @@ use crate::{model::Args, worker::use_work_dir};
 use chrono::{DateTime, Utc};
 use repos::entity::{Task, TaskStatus};
 use repos::repo::TaskRepo;
-use std::collections::BTreeMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -40,7 +39,7 @@ impl TaskService {
         }
     }
 
-    async fn execute(&self, task: &Task) -> anyhow::Result<(), Error> {
+    async fn execute(&self, task: &Task) -> anyhow::Result<serde_json::Value, Error> {
         let args: Args = serde_json::from_value(task.args.clone())
             .map_err(|e| Error::InvalidInput(anyhow::anyhow!("Args {}", e)))?;
         match args {
@@ -51,35 +50,37 @@ impl TaskService {
                 self.episode_service
                     .generate_audio(&work_dir, &episode_id)
                     .await?;
+                Ok(serde_json::Value::String("OK".to_string()))
             }
-            Args::EvaluateScript { script_id } => {
-                self.script_service
-                    .evaluate_script(&script_id, BTreeMap::new())
+            Args::EvaluateTemplate { template, context } => {
+                let result = self
+                    .script_service
+                    .evaluate_template(&template, context)
                     .await?;
+                Ok(result)
             }
             Args::NewEpisode { podcast_id } => {
-                let Some(task) = self
+                if let Some(next_task) = self
                     .episode_service
                     .new_episode_from_template(&podcast_id)
                     .await?
-                else {
-                    return Ok(());
+                {
+                    self.task_repo.create(&next_task).await?;
                 };
-                self.task_repo.create(&task).await?;
+                Ok(serde_json::Value::String("OK".to_string()))
             }
         }
-        Ok(())
     }
 
     async fn run_task(&self, mut task: Task) -> anyhow::Result<(), Error> {
         task.status = TaskStatus::Running;
         self.task_repo.update(&task).await?;
-        task.status = match self.execute(&task).await {
-            Ok(()) => TaskStatus::Completed,
-            Err(e) => {
-                log::error!("Failed to run task: {:?}", e);
-                TaskStatus::Failed
-            }
+        (task.status, task.result) = match self.execute(&task).await {
+            Ok(result) => (TaskStatus::Completed, Some(result)),
+            Err(e) => (
+                TaskStatus::Failed,
+                Some(serde_json::Value::String(e.to_string())),
+            ),
         };
         task.executed_at = Some(Utc::now());
         self.task_repo.update(&task).await?;

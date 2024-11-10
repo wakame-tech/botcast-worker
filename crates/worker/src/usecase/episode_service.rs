@@ -10,15 +10,19 @@ use audio_generator::{
     workdir::WorkDir,
 };
 use chrono::Utc;
-use repos::entity::{Episode, EpisodeId, Podcast, PodcastId, ScriptId, Task};
 use repos::repo::{EpisodeRepo, PodcastRepo};
 use repos::urn::Urn;
+use repos::{
+    entity::{Episode, EpisodeId, Podcast, PodcastId, ScriptId, Task},
+    repo::ScriptRepo,
+};
 use std::{collections::BTreeMap, fs::File, io::Read, str::FromStr, sync::Arc};
 use uuid::Uuid;
 
 #[derive(Clone)]
 pub(crate) struct EpisodeService {
     podcast_repo: Arc<dyn PodcastRepo>,
+    script_repo: Arc<dyn ScriptRepo>,
     episode_repo: Arc<dyn EpisodeRepo>,
     storage: Arc<dyn Storage>,
     script_service: ScriptService,
@@ -67,12 +71,14 @@ fn new_sentences(sections: Vec<Section>) -> Result<Vec<Sentence>, Error> {
 impl EpisodeService {
     pub(crate) fn new(
         podcast_repo: Arc<dyn PodcastRepo>,
+        script_repo: Arc<dyn ScriptRepo>,
         episode_repo: Arc<dyn EpisodeRepo>,
         storage: Arc<dyn Storage>,
         script_service: ScriptService,
     ) -> Self {
         Self {
             podcast_repo: podcast_repo.clone(),
+            script_repo: script_repo.clone(),
             episode_repo: episode_repo.clone(),
             storage,
             script_service,
@@ -84,13 +90,17 @@ impl EpisodeService {
         podcast_id: &PodcastId,
     ) -> anyhow::Result<Manuscript, Error> {
         let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
-        let context_values = BTreeMap::from_iter([(
+        let script = self
+            .script_repo
+            .find_by_id(&ScriptId(podcast.script_id))
+            .await?;
+        let context = BTreeMap::from_iter([(
             "self".to_string(),
             serde_json::Value::String(format!("urn:podcast:{}", podcast.id)),
         )]);
         let manuscript: Manuscript = serde_json::from_value(
             self.script_service
-                .evaluate_script(&ScriptId(podcast.script_id), context_values)
+                .evaluate_template(&script.template, context)
                 .await?,
         )
         .map_err(|e| Error::Other(anyhow::anyhow!("evaluated script is not ManuScript: {}", e)))?;

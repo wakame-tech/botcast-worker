@@ -47,23 +47,12 @@ impl ScriptService {
         runtime.run(template, values).await.map_err(Error::Other)
     }
 
-    pub(crate) async fn evaluate_once(
+    pub(crate) async fn evaluate_template(
         &self,
         template: &serde_json::Value,
+        context: BTreeMap<String, serde_json::Value>,
     ) -> anyhow::Result<serde_json::Value, Error> {
-        self.run_template(template, BTreeMap::new()).await
-    }
-
-    pub(crate) async fn evaluate_script(
-        &self,
-        script_id: &ScriptId,
-        values: BTreeMap<String, serde_json::Value>,
-    ) -> anyhow::Result<serde_json::Value, Error> {
-        let script = self.script_repo.find_by_id(script_id).await?;
-
-        log::info!("Evaluating script: {:?}", script);
-        let result = self.run_template(&script.template, values).await?;
-        Ok(result)
+        self.run_template(template, context).await
     }
 
     pub(crate) async fn update_template(
