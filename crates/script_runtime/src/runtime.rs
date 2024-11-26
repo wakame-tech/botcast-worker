@@ -45,14 +45,16 @@ pub struct ScriptRuntime<'a> {
     context: Context<'a>,
 }
 
-impl ScriptRuntime<'_> {
-    pub fn new() -> Self {
+impl Default for ScriptRuntime<'_> {
+    fn default() -> Self {
         let mut context = Context::new();
         builtins(&mut context);
         insert_custom_functions(&mut context);
-        ScriptRuntime { context }
+        Self { context }
     }
+}
 
+impl ScriptRuntime<'_> {
     pub fn register_function(&mut self, name: &'static str, f: Box<dyn AsyncCallable>) {
         self.context
             .insert(name.to_string(), Value::Function(Function::new(name, f)));

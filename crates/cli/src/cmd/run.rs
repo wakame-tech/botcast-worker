@@ -19,7 +19,7 @@ pub(crate) struct RunArgs {
 pub(crate) async fn cmd_run(project: Project, args: RunArgs) -> Result<()> {
     let template: serde_json::Value = serde_json::from_reader(File::open(&args.path)?)?;
     let context = serde_json::from_str(&args.context)?;
-    let mut runtime = ScriptRuntime::new();
+    let mut runtime = ScriptRuntime::default();
     runtime.register_function(
         "get",
         Box::new(UrnGet::new(

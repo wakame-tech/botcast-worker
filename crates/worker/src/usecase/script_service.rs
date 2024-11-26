@@ -37,7 +37,7 @@ impl ScriptService {
         template: &serde_json::Value,
         values: BTreeMap<String, serde_json::Value>,
     ) -> anyhow::Result<serde_json::Value, Error> {
-        let mut runtime = ScriptRuntime::new();
+        let mut runtime = ScriptRuntime::default();
         runtime.register_function(
             "get",
             Box::new(UrnGet::new(

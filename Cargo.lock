@@ -482,12 +482,15 @@ dependencies = [
  "anyhow",
  "async-trait",
  "clap",
+ "log",
  "repos",
  "reqwest",
  "script_runtime",
  "serde",
  "serde_json",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "urlencoding",
  "uuid",
 ]
@@ -2834,6 +2837,7 @@ dependencies = [
  "log",
  "openai-api-rs",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
