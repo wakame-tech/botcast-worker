@@ -4,7 +4,10 @@ use repos::provider::{
     DefaultProvider, ProvideCommentRepo, ProvideEpisodeRepo, ProvidePodcastRepo,
 };
 use script_runtime::{
-    imports::{llm::register_llm_functions, urn::UrnGet},
+    imports::{
+        llm::{create_thread, delete_thread, register_llm_functions},
+        urn::UrnGet,
+    },
     runtime::ScriptRuntime,
 };
 use std::{fs::File, path::PathBuf, sync::Arc};
@@ -30,8 +33,10 @@ pub(crate) async fn cmd_run(project: Project, args: RunArgs) -> Result<()> {
         )),
     );
     let open_ai_api_key = std::env::var("OPENAI_API_KEY")?;
-    register_llm_functions(&mut runtime, open_ai_api_key);
+    let thread_id = create_thread(open_ai_api_key.clone()).await?;
+    register_llm_functions(&mut runtime, open_ai_api_key.clone(), thread_id.clone());
     let result = runtime.run(&template, context).await?;
+    delete_thread(open_ai_api_key, thread_id).await?;
     println!("{}", serde_json::to_string_pretty(&result)?);
     Ok(())
 }

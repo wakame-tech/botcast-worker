@@ -4,7 +4,10 @@ use repos::{
     repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo},
 };
 use script_runtime::{
-    imports::{llm::register_llm_functions, urn::UrnGet},
+    imports::{
+        llm::{create_thread, delete_thread, register_llm_functions},
+        urn::UrnGet,
+    },
     runtime::ScriptRuntime,
 };
 use std::{collections::BTreeMap, sync::Arc};
@@ -48,8 +51,15 @@ impl ScriptService {
             )),
         );
         let open_ai_api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY is not set");
-        register_llm_functions(&mut runtime, open_ai_api_key);
-        runtime.run(template, values).await.map_err(Error::Other)
+        let thread_id = create_thread(open_ai_api_key.clone())
+            .await
+            .map_err(Error::Script)?;
+        register_llm_functions(&mut runtime, open_ai_api_key.clone(), thread_id.clone());
+        let res = runtime.run(template, values).await.map_err(Error::Script)?;
+        delete_thread(open_ai_api_key.clone(), thread_id)
+            .await
+            .map_err(Error::Script)?;
+        Ok(res)
     }
 
     pub(crate) async fn evaluate_template(
