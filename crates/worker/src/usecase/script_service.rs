@@ -3,7 +3,10 @@ use repos::{
     entity::ScriptId,
     repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo},
 };
-use script_runtime::{imports::urn::UrnGet, runtime::ScriptRuntime};
+use script_runtime::{
+    imports::{llm::register_llm_functions, urn::UrnGet},
+    runtime::ScriptRuntime,
+};
 use std::{collections::BTreeMap, sync::Arc};
 
 #[derive(Clone)]
@@ -44,6 +47,8 @@ impl ScriptService {
                 self.script_repo.clone(),
             )),
         );
+        let open_ai_api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY is not set");
+        register_llm_functions(&mut runtime, open_ai_api_key);
         runtime.run(template, values).await.map_err(Error::Other)
     }
 

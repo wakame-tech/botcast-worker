@@ -28,9 +28,9 @@ impl AsyncCallable for Eval {
             .await
             .map(Value::from)
             .map_err(|e| anyhow::anyhow!("eval error: {}", e))
-            .and_then(|v| v.try_into());
+            .and_then(|v| v.try_into())?;
         log::info!("{}", display_fn_io("eval", args, &ret)?);
-        Ok(ret?.into())
+        Ok(ret.into())
     }
 }
 
@@ -96,8 +96,8 @@ impl AsyncCallable for UrnGet {
             [serde_json::Value::String(urn)] => urn.parse::<Urn>(),
             _ => return Err(anyhow::anyhow!("invalid args".to_string())),
         }?;
-        let value = self.resolve_urn(urn).await;
+        let value = self.resolve_urn(urn).await?;
         log::info!("{}", display_fn_io("get", args, &value)?);
-        Ok(value?.into())
+        Ok(value.into())
     }
 }
