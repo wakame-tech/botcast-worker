@@ -3,7 +3,13 @@ use repos::{
     entity::ScriptId,
     repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo},
 };
-use script_runtime::{imports::urn::UrnGet, runtime::ScriptRuntime};
+use script_runtime::{
+    imports::{
+        llm::{create_thread, delete_thread, register_llm_functions},
+        urn::UrnGet,
+    },
+    runtime::ScriptRuntime,
+};
 use std::{collections::BTreeMap, sync::Arc};
 
 #[derive(Clone)]
@@ -34,7 +40,7 @@ impl ScriptService {
         template: &serde_json::Value,
         values: BTreeMap<String, serde_json::Value>,
     ) -> anyhow::Result<serde_json::Value, Error> {
-        let mut runtime = ScriptRuntime::new();
+        let mut runtime = ScriptRuntime::default();
         runtime.register_function(
             "get",
             Box::new(UrnGet::new(
@@ -44,7 +50,16 @@ impl ScriptService {
                 self.script_repo.clone(),
             )),
         );
-        runtime.run(template, values).await.map_err(Error::Other)
+        let open_ai_api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY is not set");
+        let thread_id = create_thread(open_ai_api_key.clone())
+            .await
+            .map_err(Error::Script)?;
+        register_llm_functions(&mut runtime, open_ai_api_key.clone(), thread_id.clone());
+        let res = runtime.run(template, values).await.map_err(Error::Script)?;
+        delete_thread(open_ai_api_key.clone(), thread_id)
+            .await
+            .map_err(Error::Script)?;
+        Ok(res)
     }
 
     pub(crate) async fn evaluate_template(

@@ -1,13 +1,21 @@
 mod fetch;
 mod jq;
-mod llm;
+pub mod llm;
 mod time;
 pub mod urn;
 
+use anyhow::Result;
 use json_e::{
     value::{AsyncCallable, Function, Value},
     Context,
 };
+
+fn as_string(value: &serde_json::Value) -> Result<String> {
+    match value {
+        serde_json::Value::String(s) => Ok(s.clone()),
+        _ => Err(anyhow::anyhow!("expected a string")),
+    }
+}
 
 pub(crate) fn insert_custom_functions(context: &mut Context) {
     let functions = [
@@ -16,7 +24,6 @@ pub(crate) fn insert_custom_functions(context: &mut Context) {
         ("fetch", Box::new(fetch::Fetch)),
         ("fetch_json", Box::new(fetch::FetchJson)),
         ("text", Box::new(fetch::Text)),
-        ("llm", Box::new(llm::Llm)),
         ("jq", Box::new(jq::Jq)),
     ];
     for (name, f) in functions.into_iter() {

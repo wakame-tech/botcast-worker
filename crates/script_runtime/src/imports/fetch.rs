@@ -1,3 +1,5 @@
+use super::as_string;
+use crate::runtime::evaluate_args;
 use anyhow::Result;
 use json_e::{
     value::{AsyncCallable, Value},
@@ -30,14 +32,11 @@ pub(crate) struct FetchJson;
 
 #[async_trait::async_trait]
 impl AsyncCallable for FetchJson {
-    async fn call(&self, _: &Context<'_>, args: &[Value]) -> Result<Value> {
-        match args {
-            [Value::String(url)] => {
-                let json = http_client().fetch_json(url.clone()).await?;
-                Ok(json.into())
-            }
-            _ => Err(anyhow::anyhow!("fetch only supports a string".to_string())),
-        }
+    async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
+        let evaluated = evaluate_args(ctx, args).await?;
+        let url = as_string(&evaluated[0])?;
+        let json = http_client().fetch_json(url.clone()).await?;
+        Ok(json.into())
     }
 }
 
@@ -46,14 +45,11 @@ pub(crate) struct Text;
 
 #[async_trait::async_trait]
 impl AsyncCallable for Text {
-    async fn call(&self, _: &Context<'_>, args: &[Value]) -> Result<Value> {
-        match args {
-            [Value::String(html)] => {
-                let md = ReadableText::extract(html)?;
-                Ok(Value::String(md))
-            }
-            _ => Err(anyhow::anyhow!("failed to extract".to_string())),
-        }
+    async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
+        let evaluated = evaluate_args(ctx, args).await?;
+        let html = as_string(&evaluated[0])?;
+        let md = ReadableText::extract(&html)?;
+        Ok(Value::String(md))
     }
 }
 

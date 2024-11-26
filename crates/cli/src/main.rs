@@ -11,6 +11,9 @@ use project::Project;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .init();
     let args = Args::try_parse()?;
     let pwd = args.project.unwrap_or(std::env::current_dir()?);
     let project = Project::new(pwd);

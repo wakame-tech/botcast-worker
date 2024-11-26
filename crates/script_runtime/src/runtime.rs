@@ -26,11 +26,7 @@ pub(crate) async fn evaluate_args<'a>(
     try_join_all(args.iter().map(|v| render_with_context(v, ctx))).await
 }
 
-pub(crate) fn display_fn_io(
-    name: &str,
-    args: &[Value],
-    ret: &Result<serde_json::Value>,
-) -> Result<String> {
+pub(crate) fn display_fn_io(name: &str, args: &[Value], ret: &serde_json::Value) -> Result<String> {
     Ok(format!(
         "{}(\n{}\n) = {}",
         name,
@@ -41,10 +37,7 @@ pub(crate) fn display_fn_io(
             .map(|v| serde_json::to_string_pretty(v).unwrap())
             .collect::<Vec<_>>()
             .join(",\n"),
-        match ret {
-            Ok(v) => format!("Ok({})", serde_json::to_string_pretty(&v).unwrap()),
-            Err(e) => format!("Err({})", e),
-        },
+        format!("{}", serde_json::to_string_pretty(&ret).unwrap()),
     ))
 }
 
@@ -52,14 +45,16 @@ pub struct ScriptRuntime<'a> {
     context: Context<'a>,
 }
 
-impl ScriptRuntime<'_> {
-    pub fn new() -> Self {
+impl Default for ScriptRuntime<'_> {
+    fn default() -> Self {
         let mut context = Context::new();
         builtins(&mut context);
         insert_custom_functions(&mut context);
-        ScriptRuntime { context }
+        Self { context }
     }
+}
 
+impl ScriptRuntime<'_> {
     pub fn register_function(&mut self, name: &'static str, f: Box<dyn AsyncCallable>) {
         self.context
             .insert(name.to_string(), Value::Function(Function::new(name, f)));
