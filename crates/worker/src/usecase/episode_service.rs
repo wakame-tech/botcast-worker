@@ -100,7 +100,7 @@ impl EpisodeService {
         )]);
         let manuscript: Manuscript = serde_json::from_value(
             self.script_service
-                .evaluate_template(&script.template, context)
+                .run_template(&script.template, context)
                 .await?,
         )
         .map_err(|e| Error::Other(anyhow::anyhow!("evaluated script is not ManuScript: {}", e)))?;

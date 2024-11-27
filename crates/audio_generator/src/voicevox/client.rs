@@ -3,9 +3,11 @@ use crate::AudioGenerator;
 use anyhow::Result;
 use async_trait::async_trait;
 use serde_json::Value;
+use tracing::instrument;
 
 #[async_trait]
 impl AudioGenerator for VoiceVoxClient {
+    #[instrument(skip(self))]
     async fn generate(&self, speaker_id: &str, text: &str) -> Result<Vec<u8>> {
         let speaker = speaker_id.parse()?;
         let query = self.query(text, &speaker).await?;
@@ -22,7 +24,7 @@ pub struct VoiceVoxClient {
 
 impl VoiceVoxClient {
     pub fn new(endpoint: String) -> Self {
-        log::info!("VoiceVox endpoint: {}", endpoint);
+        tracing::info!("VoiceVox endpoint: {}", endpoint);
         Self {
             endpoint,
             client: reqwest::Client::new(),
@@ -54,7 +56,7 @@ impl VoiceVoxClient {
             urlencoding::encode(text),
             speaker.id()
         );
-        log::info!("Query: {}", url);
+        tracing::info!("Query: {}", url);
         let res = self.client.post(url).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!(
@@ -73,7 +75,7 @@ impl VoiceVoxClient {
         speaker: &VoiceVoxSpeaker,
     ) -> anyhow::Result<Vec<u8>> {
         let url = format!("{}/synthesis?speaker={}", self.endpoint, speaker.id());
-        log::info!("Synthesis: {}", url);
+        tracing::info!("Synthesis: {}", url);
         let res = self.client.post(url).json(&query).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!(

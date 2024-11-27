@@ -23,7 +23,7 @@ impl Drop for WorkDir {
     fn drop(&mut self) {
         if self.0.exists() && !self.1 {
             fs::remove_dir_all(&self.0).unwrap_or_else(|e| {
-                log::error!("Failed to remove file: {}\n{}", self.0.display(), e);
+                tracing::error!("Failed to remove file: {}\n{}", self.0.display(), e);
             })
         }
     }

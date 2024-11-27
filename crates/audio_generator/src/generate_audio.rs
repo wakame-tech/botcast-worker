@@ -68,7 +68,7 @@ pub async fn generate_audio(
         let file = Box::new(File::open(path)?);
         let file: Wav<i16> = Wav::new(file)?;
         let (start, end) = (duration, duration + get_duration(&file));
-        log::info!("{} -> {}: {}", mmss(&start), mmss(&end), sentence);
+        tracing::info!("{} -> {}: {}", mmss(&start), mmss(&end), sentence);
         let sub = Subtitle::new(
             i,
             Timestamp::from_milliseconds(start.as_millis() as u32),

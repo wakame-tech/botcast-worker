@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use repos::entity::{Task, TaskStatus};
 use repos::repo::TaskRepo;
 use std::sync::Arc;
+use tracing::instrument;
 use uuid::Uuid;
 
 pub(crate) fn new_task(args: Args, execute_after: DateTime<Utc>) -> Task {
@@ -39,6 +40,7 @@ impl TaskService {
         }
     }
 
+    #[instrument(skip(self))]
     async fn execute(&self, task: &Task) -> anyhow::Result<serde_json::Value, Error> {
         let args: Args = serde_json::from_value(task.args.clone())
             .map_err(|e| Error::InvalidInput(anyhow::anyhow!("Args {}", e)))?;
@@ -53,10 +55,7 @@ impl TaskService {
                 Ok(serde_json::Value::String("OK".to_string()))
             }
             Args::EvaluateTemplate { template, context } => {
-                let result = self
-                    .script_service
-                    .evaluate_template(&template, context)
-                    .await?;
+                let result = self.script_service.run_template(&template, context).await?;
                 Ok(result)
             }
             Args::NewEpisode { podcast_id } => {
@@ -84,7 +83,7 @@ impl TaskService {
         };
         task.executed_at = Some(Utc::now());
         self.task_repo.update(&task).await?;
-        log::info!("task: {} completed", task.id);
+        tracing::info!("task: {} completed", task.id);
         Ok(())
     }
 
@@ -98,7 +97,7 @@ impl TaskService {
         let Some(task) = self.task_repo.pop(Utc::now()).await? else {
             return Ok(());
         };
-        log::info!("Found task: {} args={}", task.id, task.args);
+        tracing::info!("Found task: {} args={}", task.id, task.args);
         self.run_task(task).await?;
         Ok(())
     }

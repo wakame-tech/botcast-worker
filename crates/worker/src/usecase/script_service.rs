@@ -35,7 +35,7 @@ impl ScriptService {
         }
     }
 
-    async fn run_template(
+    pub(crate) async fn run_template(
         &self,
         template: &serde_json::Value,
         values: BTreeMap<String, serde_json::Value>,
@@ -60,14 +60,6 @@ impl ScriptService {
             .await
             .map_err(Error::Script)?;
         Ok(res)
-    }
-
-    pub(crate) async fn evaluate_template(
-        &self,
-        template: &serde_json::Value,
-        context: BTreeMap<String, serde_json::Value>,
-    ) -> anyhow::Result<serde_json::Value, Error> {
-        self.run_template(template, context).await
     }
 
     pub(crate) async fn update_template(

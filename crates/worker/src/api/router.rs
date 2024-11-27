@@ -50,7 +50,7 @@ async fn eval_template(
     let evaluated = state
         .0
         .script_service()
-        .evaluate_template(&template, context)
+        .run_template(&template, context)
         .await?;
     Ok(Json(evaluated))
 }
