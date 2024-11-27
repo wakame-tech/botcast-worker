@@ -26,21 +26,6 @@ pub(crate) async fn evaluate_args<'a>(
     try_join_all(args.iter().map(|v| render_with_context(v, ctx))).await
 }
 
-pub(crate) fn display_fn_io(name: &str, args: &[Value], ret: &serde_json::Value) -> Result<String> {
-    Ok(format!(
-        "{}(\n{}\n) = {}",
-        name,
-        args.iter()
-            .map(serde_json::Value::try_from)
-            .collect::<Result<Vec<_>>>()?
-            .iter()
-            .map(|v| serde_json::to_string_pretty(v).unwrap())
-            .collect::<Vec<_>>()
-            .join(",\n"),
-        format!("{}", serde_json::to_string_pretty(&ret).unwrap()),
-    ))
-}
-
 pub struct ScriptRuntime<'a> {
     context: Context<'a>,
 }

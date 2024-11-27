@@ -7,6 +7,7 @@ use json_e::{
 };
 use readable_text::ReadableText;
 use script_http_client::HttpClient;
+use tracing::instrument;
 
 fn http_client() -> HttpClient {
     HttpClient::new(std::env::var("USER_AGENT").ok())
@@ -17,6 +18,7 @@ pub(crate) struct Fetch;
 
 #[async_trait::async_trait]
 impl AsyncCallable for Fetch {
+    #[instrument(skip(self))]
     async fn call(&self, _: &Context<'_>, args: &[Value]) -> Result<Value> {
         let url = match args {
             [Value::String(url)] => Ok(url),
@@ -32,6 +34,7 @@ pub(crate) struct FetchJson;
 
 #[async_trait::async_trait]
 impl AsyncCallable for FetchJson {
+    #[instrument(skip(self, ctx))]
     async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
         let evaluated = evaluate_args(ctx, args).await?;
         let url = as_string(&evaluated[0])?;
@@ -45,6 +48,7 @@ pub(crate) struct Text;
 
 #[async_trait::async_trait]
 impl AsyncCallable for Text {
+    #[instrument(skip(self, ctx))]
     async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
         let evaluated = evaluate_args(ctx, args).await?;
         let html = as_string(&evaluated[0])?;

@@ -2849,7 +2849,6 @@ dependencies = [
  "chrono",
  "futures",
  "json-e",
- "log",
  "readable_text",
  "repos",
  "script_http_client",
@@ -2857,6 +2856,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tracing",
  "uuid",
  "xq",
 ]

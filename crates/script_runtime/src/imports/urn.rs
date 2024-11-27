@@ -1,4 +1,4 @@
-use crate::runtime::{display_fn_io, evaluate_args, insert_values};
+use crate::runtime::{evaluate_args, insert_values};
 use anyhow::Result;
 use json_e::{
     value::{AsyncCallable, Value},
@@ -9,27 +9,24 @@ use repos::{
     urn::Urn,
 };
 use std::sync::Arc;
+use tracing::instrument;
 
 #[derive(Clone)]
 pub(crate) struct Eval;
 
 #[async_trait::async_trait]
 impl AsyncCallable for Eval {
-    async fn call(&self, context: &Context<'_>, args: &[Value]) -> Result<Value> {
+    #[instrument(skip(self, ctx))]
+    async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
         let (template, values) = match args {
             [template, Value::Object(values)] => (template, values),
             _ => return Err(anyhow::anyhow!("invalid args".to_string())),
         };
 
-        let mut context = context.child();
+        let mut context = ctx.child();
         insert_values(&mut context, values.clone());
         let template = template.try_into()?;
-        let ret = json_e::render_with_context(&template, &context)
-            .await
-            .map(Value::from)
-            .map_err(|e| anyhow::anyhow!("eval error: {}", e))
-            .and_then(|v| v.try_into())?;
-        log::info!("{}", display_fn_io("eval", args, &ret)?);
+        let ret = json_e::render_with_context(&template, &context).await?;
         Ok(ret.into())
     }
 }
@@ -90,6 +87,7 @@ impl UrnGet {
 
 #[async_trait::async_trait]
 impl AsyncCallable for UrnGet {
+    #[instrument(skip(self, ctx))]
     async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
         let evaluated = evaluate_args(ctx, args).await?;
         let urn = match evaluated.as_slice() {
@@ -97,7 +95,6 @@ impl AsyncCallable for UrnGet {
             _ => return Err(anyhow::anyhow!("invalid args".to_string())),
         }?;
         let value = self.resolve_urn(urn).await?;
-        log::info!("{}", display_fn_io("get", args, &value)?);
         Ok(value.into())
     }
 }

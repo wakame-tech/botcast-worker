@@ -5,12 +5,14 @@ use json_e::{
     value::{AsyncCallable, Value},
     Context,
 };
+use tracing::instrument;
 
 #[derive(Clone)]
 pub(crate) struct Today;
 
 #[async_trait::async_trait]
 impl AsyncCallable for Today {
+    #[instrument(skip(self, ctx))]
     async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
         let evaluated = evaluate_args(ctx, args).await?;
         let format = as_string(&evaluated[0])?;
