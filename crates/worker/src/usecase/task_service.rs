@@ -2,6 +2,7 @@ use super::episode_service::EpisodeService;
 use super::script_service::ScriptService;
 use crate::error::Error;
 use crate::{model::Args, worker::use_work_dir};
+use anyhow::Context;
 use chrono::{DateTime, Utc};
 use repos::entity::{Task, TaskStatus};
 use repos::repo::TaskRepo;
@@ -46,9 +47,9 @@ impl TaskService {
             .map_err(|e| Error::InvalidInput(anyhow::anyhow!("Args {}", e)))?;
         match args {
             Args::GenerateAudio { episode_id } => {
-                let work_dir = use_work_dir(&task.id).map_err(|e| {
-                    Error::Other(anyhow::anyhow!("Failed to create work dir: {}", e))
-                })?;
+                let work_dir = use_work_dir(&task.id)
+                    .context("Failed to create work dir")
+                    .map_err(Error::Other)?;
                 self.episode_service
                     .generate_audio(&work_dir, &episode_id)
                     .await?;
