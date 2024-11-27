@@ -6,7 +6,7 @@ use repos::provider::{
 use script_runtime::{
     imports::{
         llm::{create_thread, delete_thread, register_llm_functions},
-        urn::UrnGet,
+        repo::register_repo_functions,
     },
     runtime::ScriptRuntime,
 };
@@ -23,14 +23,12 @@ pub(crate) async fn cmd_run(project: Project, args: RunArgs) -> Result<()> {
     let template: serde_json::Value = serde_json::from_reader(File::open(&args.path)?)?;
     let context = serde_json::from_str(&args.context)?;
     let mut runtime = ScriptRuntime::default();
-    runtime.register_function(
-        "get",
-        Box::new(UrnGet::new(
-            DefaultProvider.podcast_repo(),
-            DefaultProvider.episode_repo(),
-            DefaultProvider.comment_repo(),
-            Arc::new(LocalFileScriptRepo::new(project.scripts_dir())),
-        )),
+    register_repo_functions(
+        &mut runtime,
+        DefaultProvider.podcast_repo(),
+        DefaultProvider.episode_repo(),
+        DefaultProvider.comment_repo(),
+        Arc::new(LocalFileScriptRepo::new(project.scripts_dir())),
     );
     let open_ai_api_key = std::env::var("OPENAI_API_KEY")?;
     let thread_id = create_thread(open_ai_api_key.clone()).await?;

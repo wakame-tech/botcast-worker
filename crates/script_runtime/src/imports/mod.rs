@@ -1,8 +1,9 @@
+pub mod eval;
 mod fetch;
 mod jq;
 pub mod llm;
+pub mod repo;
 mod time;
-pub mod urn;
 
 use anyhow::Result;
 use json_e::{
@@ -20,7 +21,7 @@ fn as_string(value: &serde_json::Value) -> Result<String> {
 pub(crate) fn insert_custom_functions(context: &mut Context) {
     let functions = [
         ("today", Box::new(time::Today) as Box<dyn AsyncCallable>),
-        ("eval", Box::new(urn::Eval)),
+        ("eval", Box::new(eval::Eval)),
         ("fetch", Box::new(fetch::Fetch)),
         ("fetch_json", Box::new(fetch::FetchJson)),
         ("text", Box::new(fetch::Text)),

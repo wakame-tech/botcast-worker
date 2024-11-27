@@ -6,7 +6,7 @@ use repos::{
 use script_runtime::{
     imports::{
         llm::{create_thread, delete_thread, register_llm_functions},
-        urn::UrnGet,
+        repo::register_repo_functions,
     },
     runtime::ScriptRuntime,
 };
@@ -41,14 +41,12 @@ impl ScriptService {
         values: BTreeMap<String, serde_json::Value>,
     ) -> anyhow::Result<serde_json::Value, Error> {
         let mut runtime = ScriptRuntime::default();
-        runtime.register_function(
-            "get",
-            Box::new(UrnGet::new(
-                self.podcast_repo.clone(),
-                self.episode_repo.clone(),
-                self.comment_repo.clone(),
-                self.script_repo.clone(),
-            )),
+        register_repo_functions(
+            &mut runtime,
+            self.podcast_repo.clone(),
+            self.episode_repo.clone(),
+            self.comment_repo.clone(),
+            self.script_repo.clone(),
         );
         let open_ai_api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY is not set");
         let thread_id = create_thread(open_ai_api_key.clone())

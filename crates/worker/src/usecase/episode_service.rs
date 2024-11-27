@@ -11,7 +11,6 @@ use audio_generator::{
 };
 use chrono::Utc;
 use repos::repo::{EpisodeRepo, PodcastRepo};
-use repos::urn::Urn;
 use repos::{
     entity::{Episode, EpisodeId, Podcast, PodcastId, ScriptId, Task},
     repo::ScriptRepo,
@@ -46,22 +45,12 @@ fn new_sentences(sections: Vec<Section>) -> Result<Vec<Sentence>, Error> {
     for section in sections.iter() {
         match section {
             Section::Serif { text, speaker } => {
-                let Urn::Other(resource, speaker_id) = speaker
-                    .parse()
-                    .with_context(|| format!("Invalid urn: {}", speaker))
-                    .map_err(Error::Other)?
-                else {
-                    return Err(Error::Other(anyhow::anyhow!("Invalid urn: {}", speaker)));
-                };
                 for sentence in text.split(['\n', '。']) {
                     let sentence = sentence.trim();
                     if sentence.is_empty() {
                         continue;
                     }
-                    sentences.push(Sentence::new(
-                        (resource.clone(), speaker_id.to_string()),
-                        sentence.to_string(),
-                    ));
+                    sentences.push(Sentence::new(speaker.to_string(), sentence.to_string()));
                 }
             }
         }
