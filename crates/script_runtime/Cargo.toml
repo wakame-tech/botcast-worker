@@ -19,4 +19,4 @@ script_http_client = { path = "../script_http_client" }
 script_llm = { path = "../script_llm" }
 readable_text = { path = "../readable_text" }
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
-repos = { path = "../repos" }
+api = { path = "../api" }

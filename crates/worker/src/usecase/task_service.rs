@@ -45,6 +45,7 @@ impl TaskService {
     async fn execute(&self, task: &Task) -> anyhow::Result<serde_json::Value, Error> {
         let args: Args = serde_json::from_value(task.args.clone())
             .map_err(|e| Error::InvalidInput(anyhow::anyhow!("Args {}", e)))?;
+        let token = "".to_string();
         match args {
             Args::GenerateAudio { episode_id } => {
                 let work_dir = use_work_dir(&task.id)
@@ -56,13 +57,16 @@ impl TaskService {
                 Ok(serde_json::Value::String("OK".to_string()))
             }
             Args::EvaluateTemplate { template, context } => {
-                let result = self.script_service.run_template(&template, context).await?;
+                let result = self
+                    .script_service
+                    .run_template(token, &template, context)
+                    .await?;
                 Ok(result)
             }
             Args::NewEpisode { podcast_id } => {
                 if let Some(next_task) = self
                     .episode_service
-                    .new_episode_from_template(&podcast_id)
+                    .new_episode_from_template(token, &podcast_id)
                     .await?
                 {
                     self.task_repo.create(&next_task).await?;

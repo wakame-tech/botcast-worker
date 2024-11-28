@@ -54,11 +54,6 @@ impl Provider {
     }
 
     pub(crate) fn script_service(&self) -> ScriptService {
-        ScriptService::new(
-            self.provide_podcast_repo.podcast_repo(),
-            self.provide_episode_repo.episode_repo(),
-            self.provide_comment_repo.comment_repo(),
-            self.provide_script_repo.script_repo(),
-        )
+        ScriptService::new(self.provide_script_repo.script_repo())
     }
 }

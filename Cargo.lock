@@ -120,6 +120,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "chrono",
  "log",
  "repos",
  "reqwest",
@@ -2864,12 +2865,12 @@ name = "script_runtime"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "api",
  "async-trait",
  "chrono",
  "futures",
  "json-e",
  "readable_text",
- "repos",
  "script_http_client",
  "script_llm",
  "serde",
@@ -4376,6 +4377,7 @@ name = "worker"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "api",
  "async-trait",
  "audio_generator",
  "axum",
