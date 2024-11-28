@@ -1,4 +1,3 @@
-mod api;
 mod cmd;
 mod credential;
 mod project;

@@ -1,9 +1,6 @@
-use crate::{
-    api::{client::ApiClient, dto::NewScript},
-    credential::Credential,
-    project::Project,
-};
+use crate::{credential::Credential, project::Project};
 use anyhow::Result;
+use api::{client::ApiClient, script::NewScript};
 
 #[derive(Debug, clap::Parser)]
 pub(crate) struct AddArgs {

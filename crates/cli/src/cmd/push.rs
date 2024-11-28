@@ -1,9 +1,6 @@
-use crate::{
-    api::{client::ApiClient, dto::UpdateScript},
-    credential::Credential,
-    project::Project,
-};
+use crate::{credential::Credential, project::Project};
 use anyhow::Result;
+use api::{client::ApiClient, script::UpdateScript};
 use repos::entity::Script;
 use std::fs::File;
 
@@ -21,7 +18,11 @@ pub(crate) async fn cmd_push(project: Project, _args: PushArgs) -> Result<()> {
         let file_name = entry.file_name().to_owned();
         let path = project.script_path(&file_name.to_string_lossy());
         let script: Script = serde_json::from_reader(File::open(&path)?)?;
-        let input = UpdateScript::new(script.id, script.title, script.template);
+        let input = UpdateScript {
+            id: script.id,
+            title: script.title,
+            template: serde_json::to_string(&script.template)?,
+        };
         client.update_script(input).await?;
 
         println!("pushed {}", path.display());

@@ -1,5 +1,6 @@
-use crate::{api::client::ApiClient, credential::Credential, project::Project};
+use crate::{credential::Credential, project::Project};
 use anyhow::Result;
+use api::client::ApiClient;
 
 #[derive(Debug, clap::Parser)]
 pub(crate) struct ListArgs {}
