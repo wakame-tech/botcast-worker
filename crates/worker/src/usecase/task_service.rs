@@ -26,6 +26,7 @@ pub(crate) struct TaskService {
     task_repo: Arc<dyn TaskRepo>,
     episode_service: EpisodeService,
     script_service: ScriptService,
+    service_role_key: String,
 }
 
 impl TaskService {
@@ -34,10 +35,13 @@ impl TaskService {
         episode_service: EpisodeService,
         script_service: ScriptService,
     ) -> Self {
+        let service_role_key = std::env::var("SUPABASE_SERVICE_ROLE_KEY")
+            .expect("SUPABASE_SERVICE_ROLE_KEY is not set");
         Self {
             task_repo,
             episode_service,
             script_service,
+            service_role_key,
         }
     }
 
@@ -45,7 +49,6 @@ impl TaskService {
     async fn execute(&self, task: &Task) -> anyhow::Result<serde_json::Value, Error> {
         let args: Args = serde_json::from_value(task.args.clone())
             .map_err(|e| Error::InvalidInput(anyhow::anyhow!("Args {}", e)))?;
-        let token = "".to_string();
         match args {
             Args::GenerateAudio { episode_id } => {
                 let work_dir = use_work_dir(&task.id)
@@ -59,14 +62,14 @@ impl TaskService {
             Args::EvaluateTemplate { template, context } => {
                 let result = self
                     .script_service
-                    .run_template(token, &template, context)
+                    .run_template(self.service_role_key.clone(), &template, context)
                     .await?;
                 Ok(result)
             }
             Args::NewEpisode { podcast_id } => {
                 if let Some(next_task) = self
                     .episode_service
-                    .new_episode_from_template(token, &podcast_id)
+                    .new_episode_from_template(self.service_role_key.clone(), &podcast_id)
                     .await?
                 {
                     self.task_repo.create(&next_task).await?;

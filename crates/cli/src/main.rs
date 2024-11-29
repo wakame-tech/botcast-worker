@@ -1,7 +1,6 @@
 mod cmd;
 mod credential;
 mod project;
-mod provider;
 
 use anyhow::Result;
 use clap::Parser;
