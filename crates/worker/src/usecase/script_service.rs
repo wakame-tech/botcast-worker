@@ -3,8 +3,8 @@ use api::client::ApiClient;
 use repos::{entity::ScriptId, repo::ScriptRepo};
 use script_runtime::{
     imports::{
+        api::register_api_functions,
         llm::{create_thread, delete_thread, register_llm_functions},
-        repo::register_repo_functions,
     },
     runtime::ScriptRuntime,
 };
@@ -30,7 +30,7 @@ impl ScriptService {
             .map_err(|_| Error::InvalidInput(anyhow::anyhow!("API_ENDPOINT is not set")))?;
         let client = Arc::new(ApiClient::new(&api_endpoint, &token));
         let mut runtime = ScriptRuntime::default();
-        register_repo_functions(&mut runtime, client);
+        register_api_functions(&mut runtime, client);
         let open_ai_api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY is not set");
         let thread_id = create_thread(open_ai_api_key.clone())
             .await

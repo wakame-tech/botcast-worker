@@ -16,4 +16,16 @@ impl ApiClient {
         let comment: Comment = serde_json::from_value(resp["comment"].clone())?;
         Ok(comment)
     }
+
+    pub async fn new_comment(&self, episode_id: &str, content: &str) -> Result<()> {
+        self.mutation(
+            "newComment",
+            json!({
+                "episodeId": episode_id,
+                "content": content,
+            }),
+        )
+        .await?;
+        Ok(())
+    }
 }

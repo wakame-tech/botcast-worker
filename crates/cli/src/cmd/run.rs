@@ -3,8 +3,8 @@ use anyhow::Result;
 use api::client::ApiClient;
 use script_runtime::{
     imports::{
+        api::register_api_functions,
         llm::{create_thread, delete_thread, register_llm_functions},
-        repo::register_repo_functions,
     },
     runtime::ScriptRuntime,
 };
@@ -24,7 +24,7 @@ pub(crate) async fn cmd_run(project: Project, args: RunArgs) -> Result<()> {
     let template: serde_json::Value = serde_json::from_reader(File::open(&args.path)?)?;
     let context = serde_json::from_str(&args.context)?;
     let mut runtime = ScriptRuntime::default();
-    register_repo_functions(&mut runtime, client);
+    register_api_functions(&mut runtime, client);
     let open_ai_api_key = std::env::var("OPENAI_API_KEY")?;
     let thread_id = create_thread(open_ai_api_key.clone()).await?;
     register_llm_functions(&mut runtime, open_ai_api_key.clone(), thread_id.clone());

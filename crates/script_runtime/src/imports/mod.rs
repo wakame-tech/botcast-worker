@@ -1,8 +1,8 @@
+pub mod api;
 pub mod eval;
 mod fetch;
 mod jq;
 pub mod llm;
-pub mod repo;
 mod time;
 
 use anyhow::Result;

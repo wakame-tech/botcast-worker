@@ -61,6 +61,24 @@ impl AsyncCallable for GetComment {
 }
 
 #[derive(Clone)]
+pub struct NewComment {
+    client: Arc<ApiClient>,
+}
+
+#[async_trait::async_trait]
+impl AsyncCallable for NewComment {
+    #[instrument(skip(self, ctx))]
+    async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
+        let evaluated = evaluate_args(ctx, args).await?;
+        let episode_id = as_string(&evaluated[0])?;
+        let content = as_string(&evaluated[1])?;
+        let res = self.client.new_comment(&episode_id, &content).await?;
+        let res = serde_json::to_value(res)?;
+        Ok(res.into())
+    }
+}
+
+#[derive(Clone)]
 pub struct GetScript {
     client: Arc<ApiClient>,
 }
@@ -77,29 +95,40 @@ impl AsyncCallable for GetScript {
     }
 }
 
-pub fn register_repo_functions(runtime: &mut ScriptRuntime, client: Arc<ApiClient>) {
-    runtime.register_function(
-        "get_podcast",
-        Box::new(GetPodcast {
-            client: client.clone(),
-        }),
-    );
-    runtime.register_function(
-        "get_episode",
-        Box::new(GetEpisode {
-            client: client.clone(),
-        }),
-    );
-    runtime.register_function(
-        "get_comment",
-        Box::new(GetComment {
-            client: client.clone(),
-        }),
-    );
-    runtime.register_function(
-        "get_script",
-        Box::new(GetScript {
-            client: client.clone(),
-        }),
-    );
+pub fn register_api_functions(runtime: &mut ScriptRuntime, client: Arc<ApiClient>) {
+    let api_functions = vec![
+        (
+            "get_podcast",
+            Box::new(GetPodcast {
+                client: client.clone(),
+            }) as Box<dyn AsyncCallable>,
+        ),
+        (
+            "get_episode",
+            Box::new(GetEpisode {
+                client: client.clone(),
+            }),
+        ),
+        (
+            "get_comment",
+            Box::new(GetComment {
+                client: client.clone(),
+            }),
+        ),
+        (
+            "new_comment",
+            Box::new(NewComment {
+                client: client.clone(),
+            }),
+        ),
+        (
+            "get_script",
+            Box::new(GetScript {
+                client: client.clone(),
+            }),
+        ),
+    ];
+    for (name, func) in api_functions {
+        runtime.register_function(name, func);
+    }
 }
