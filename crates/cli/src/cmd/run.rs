@@ -1,12 +1,10 @@
-use crate::{project::Project, provider::LocalFileScriptRepo};
+use crate::{credential::Credential, project::Project};
 use anyhow::Result;
-use repos::provider::{
-    DefaultProvider, ProvideCommentRepo, ProvideEpisodeRepo, ProvidePodcastRepo,
-};
+use api::client::ApiClient;
 use script_runtime::{
     imports::{
+        api::register_api_functions,
         llm::{create_thread, delete_thread, register_llm_functions},
-        urn::UrnGet,
     },
     runtime::ScriptRuntime,
 };
@@ -20,18 +18,13 @@ pub(crate) struct RunArgs {
 }
 
 pub(crate) async fn cmd_run(project: Project, args: RunArgs) -> Result<()> {
+    let credential = Credential::load(&project.credential_path())?;
+    let client = Arc::new(ApiClient::new(&credential.api_endpoint, &credential.token));
+
     let template: serde_json::Value = serde_json::from_reader(File::open(&args.path)?)?;
     let context = serde_json::from_str(&args.context)?;
     let mut runtime = ScriptRuntime::default();
-    runtime.register_function(
-        "get",
-        Box::new(UrnGet::new(
-            DefaultProvider.podcast_repo(),
-            DefaultProvider.episode_repo(),
-            DefaultProvider.comment_repo(),
-            Arc::new(LocalFileScriptRepo::new(project.scripts_dir())),
-        )),
-    );
+    register_api_functions(&mut runtime, client);
     let open_ai_api_key = std::env::var("OPENAI_API_KEY")?;
     let thread_id = create_thread(open_ai_api_key.clone()).await?;
     register_llm_functions(&mut runtime, open_ai_api_key.clone(), thread_id.clone());

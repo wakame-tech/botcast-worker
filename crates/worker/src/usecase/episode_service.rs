@@ -4,14 +4,13 @@ use crate::{
     model::{Args, Manuscript, Section},
     r2_storage::Storage,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{Context, Result};
 use audio_generator::{
     generate_audio::{generate_audio, Sentence, SynthesisResult},
     workdir::WorkDir,
 };
 use chrono::Utc;
 use repos::repo::{EpisodeRepo, PodcastRepo};
-use repos::urn::Urn;
 use repos::{
     entity::{Episode, EpisodeId, Podcast, PodcastId, ScriptId, Task},
     repo::ScriptRepo,
@@ -46,21 +45,12 @@ fn new_sentences(sections: Vec<Section>) -> Result<Vec<Sentence>, Error> {
     for section in sections.iter() {
         match section {
             Section::Serif { text, speaker } => {
-                let Urn::Other(resource, speaker_id) = speaker
-                    .parse()
-                    .map_err(|e| Error::Other(anyhow::anyhow!("Invalid urn: {}", e)))?
-                else {
-                    return Err(Error::Other(anyhow::anyhow!("Invalid urn: {}", speaker)));
-                };
                 for sentence in text.split(['\n', '。']) {
                     let sentence = sentence.trim();
                     if sentence.is_empty() {
                         continue;
                     }
-                    sentences.push(Sentence::new(
-                        (resource.clone(), speaker_id.to_string()),
-                        sentence.to_string(),
-                    ));
+                    sentences.push(Sentence::new(speaker.to_string(), sentence.to_string()));
                 }
             }
         }
@@ -87,6 +77,7 @@ impl EpisodeService {
 
     pub(crate) async fn generate_manuscript(
         &self,
+        token: String,
         podcast_id: &PodcastId,
     ) -> anyhow::Result<Manuscript, Error> {
         let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
@@ -100,29 +91,33 @@ impl EpisodeService {
         )]);
         let manuscript: Manuscript = serde_json::from_value(
             self.script_service
-                .evaluate_template(&script.template, context)
+                .run_template(token, &script.template, context)
                 .await?,
         )
-        .map_err(|e| Error::Other(anyhow::anyhow!("evaluated script is not ManuScript: {}", e)))?;
+        .context("evaluated script is not ManuScript")
+        .map_err(Error::Other)?;
         Ok(manuscript)
     }
 
     pub(crate) async fn new_episode_from_template(
         &self,
+        token: String,
         podcast_id: &PodcastId,
     ) -> anyhow::Result<Option<Task>, Error> {
         let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
-        let manuscript: Manuscript = self.generate_manuscript(podcast_id).await?;
+        let manuscript: Manuscript = self.generate_manuscript(token, podcast_id).await?;
         let episode = new_episode(&podcast, manuscript.title, manuscript.sections);
 
         self.episode_repo.create(&episode).await?;
 
         let task = if let Some(cron) = podcast.cron {
             let next = cron::Schedule::from_str(&cron)
-                .map_err(|e| Error::Other(anyhow::anyhow!("Invalid cron: {}", e)))?
+                .context("Invalid cron")
+                .map_err(Error::Other)?
                 .upcoming(Utc)
                 .next()
-                .ok_or_else(|| Error::Other(anyhow::anyhow!("Failed to get next cron")))?;
+                .context("Failed to get next cron")
+                .map_err(Error::Other)?;
 
             let task = new_task(
                 Args::NewEpisode {
@@ -144,30 +139,36 @@ impl EpisodeService {
     ) -> anyhow::Result<(), Error> {
         let (mut episode, _) = self.episode_repo.find_by_id(episode_id).await?;
         let sections: Vec<Section> = serde_json::from_value(episode.sections.clone())
-            .map_err(|e| Error::Other(anyhow!("Failed to parse sections: {}", e)))?;
+            .context("Failed to parse sections")
+            .map_err(Error::Other)?;
         let sentences = new_sentences(sections)?;
         let SynthesisResult { out_path, srt, .. } = generate_audio(work_dir, &sentences)
             .await
-            .map_err(|e| Error::Other(anyhow::anyhow!("Failed to generate audio: {}", e)))?;
+            .context("Failed to generate audio")
+            .map_err(Error::Other)?;
 
         let mut file = File::open(&out_path)
-            .map_err(|e| Error::Other(anyhow::anyhow!("Failed to open audio file: {}", e)))?;
+            .context("Failed to open audio file")
+            .map_err(Error::Other)?;
         let mut audio = vec![];
         file.read_to_end(&mut audio)
-            .map_err(|e| Error::Other(anyhow::anyhow!("Failed to read audio file: {}", e)))?;
+            .context("Failed to read audio file")
+            .map_err(Error::Other)?;
 
         let audio_path = format!("episodes/{}.mp3", episode.id.hyphenated());
         self.storage
             .upload(&audio_path, &audio, "audio/mp3")
             .await
-            .map_err(|e| Error::Other(anyhow::anyhow!("Failed to upload audio: {}", e)))?;
+            .context("Failed to upload audio")
+            .map_err(Error::Other)?;
         episode.audio_url = Some(audio_path);
 
         let srt_path = format!("episodes/{}.srt", episode.id.hyphenated());
         self.storage
             .upload(&srt_path, srt.as_bytes(), "text/plain")
             .await
-            .map_err(|e| Error::Other(anyhow::anyhow!("Failed to upload srt: {}", e)))?;
+            .context("Failed to upload srt")
+            .map_err(Error::Other)?;
         episode.srt_url = Some(srt_path);
 
         self.episode_repo.update(&episode).await?;

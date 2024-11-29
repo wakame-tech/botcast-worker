@@ -1,3 +1,4 @@
+use crate::client::ApiClient;
 use anyhow::Result;
 use reqwest::header::AUTHORIZATION;
 use serde_json::Value;
@@ -9,7 +10,7 @@ pub(crate) struct TrpcError {
     data: Value,
 }
 
-pub(crate) async fn trpc_query(
+async fn trpc_query(
     client: &reqwest::Client,
     endpoint: &str,
     name: &str,
@@ -37,7 +38,7 @@ pub(crate) async fn trpc_query(
     Ok(body["result"]["data"].clone())
 }
 
-pub(crate) async fn trpc_mutation(
+async fn trpc_mutation(
     client: &reqwest::Client,
     endpoint: &str,
     name: &str,
@@ -59,4 +60,35 @@ pub(crate) async fn trpc_mutation(
     }
     // println!("{}", serde_json::to_string_pretty(&body)?);
     Ok(body["result"].clone())
+}
+
+#[async_trait::async_trait]
+pub(crate) trait TrpcClient {
+    async fn query(&self, name: &str, input: Value) -> Result<Value>;
+    async fn mutation(&self, name: &str, input: Value) -> Result<Value>;
+}
+
+#[async_trait::async_trait]
+impl TrpcClient for ApiClient {
+    async fn query(&self, name: &str, input: Value) -> Result<Value> {
+        trpc_query(
+            &self.client,
+            &self.endpoint,
+            name,
+            input,
+            self.authorization.clone(),
+        )
+        .await
+    }
+
+    async fn mutation(&self, name: &str, input: Value) -> Result<Value> {
+        trpc_mutation(
+            &self.client,
+            &self.endpoint,
+            name,
+            input,
+            self.authorization.clone(),
+        )
+        .await
+    }
 }

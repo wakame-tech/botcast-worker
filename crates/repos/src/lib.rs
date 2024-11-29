@@ -3,4 +3,3 @@ pub mod error;
 pub mod postgres;
 pub mod provider;
 pub mod repo;
-pub mod urn;

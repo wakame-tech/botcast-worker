@@ -9,9 +9,9 @@ script_http_client = { path = "../script_http_client" }
 script_runtime = { path = "../script_runtime" }
 audio_generator = { path = "../audio_generator" }
 repos = { path = "../repos" }
+api = { path = "../api" }
 anyhow = "1.0.86"
 axum = "0.7.5"
-log = "0.4.22"
 reqwest = { version = "0.12.7", features = ["json"] }
 rust-s3 = "0.35.1"
 serde = { version = "1.0", features = ["derive"] }

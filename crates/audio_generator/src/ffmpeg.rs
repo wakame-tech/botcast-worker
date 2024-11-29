@@ -1,6 +1,7 @@
 use super::workdir::WorkDir;
 use std::{fs::OpenOptions, io::Write, path::PathBuf, time::Duration};
 use tokio::process::Command;
+use tracing::instrument;
 use wavers::Wav;
 
 pub(crate) fn get_duration(wav: &Wav<i16>) -> Duration {
@@ -13,6 +14,7 @@ pub(crate) fn get_duration(wav: &Wav<i16>) -> Duration {
     Duration::from_secs_f32(data_size as f32 / (sample_rate * n_channels * bytes_per_sample) as f32)
 }
 
+#[instrument(skip(work_dir, paths))]
 pub(crate) async fn concat_audios(
     work_dir: &WorkDir,
     paths: &[PathBuf],

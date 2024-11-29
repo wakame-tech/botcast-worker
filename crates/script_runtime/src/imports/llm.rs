@@ -1,6 +1,6 @@
 use crate::{
     imports::as_string,
-    runtime::{display_fn_io, evaluate_args, ScriptRuntime},
+    runtime::{evaluate_args, ScriptRuntime},
 };
 use anyhow::Result;
 use json_e::{
@@ -9,6 +9,7 @@ use json_e::{
 };
 use script_llm::{chat_assistant, chat_completion};
 pub use script_llm::{create_thread, delete_thread};
+use tracing::instrument;
 
 #[derive(Clone)]
 struct ChatCompletion {
@@ -17,12 +18,13 @@ struct ChatCompletion {
 
 #[async_trait::async_trait]
 impl AsyncCallable for ChatCompletion {
+    #[instrument(skip(self, ctx))]
     async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
         let evaluated = evaluate_args(ctx, args).await?;
         let prompt = as_string(&evaluated[0])?;
         let ret = chat_completion(prompt, self.open_ai_api_key.clone()).await?;
+        tracing::info!("{}", ret);
         let ret = serde_json::Value::String(ret);
-        log::info!("{}", display_fn_io("llm", args, &ret)?);
         Ok(ret.into())
     }
 }
@@ -35,6 +37,7 @@ struct ChatAssistant {
 
 #[async_trait::async_trait]
 impl AsyncCallable for ChatAssistant {
+    #[instrument(skip(self, ctx))]
     async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
         let evaluated = evaluate_args(ctx, args).await?;
         let prompt = as_string(&evaluated[0])?;
@@ -46,8 +49,8 @@ impl AsyncCallable for ChatAssistant {
             self.open_ai_api_key.clone(),
         )
         .await?;
+        tracing::info!("{}", ret);
         let ret = serde_json::Value::String(ret);
-        log::info!("{}", display_fn_io("llm_assistant", args, &ret)?);
         Ok(ret.into())
     }
 }

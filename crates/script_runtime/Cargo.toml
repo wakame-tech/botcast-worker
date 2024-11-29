@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-log = "0.4.22"
+tracing = "0.1.37"
 anyhow = "1.0.89"
 async-trait = "0.1.83"
 chrono = "0.4.38"
@@ -19,4 +19,4 @@ script_http_client = { path = "../script_http_client" }
 script_llm = { path = "../script_llm" }
 readable_text = { path = "../readable_text" }
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
-repos = { path = "../repos" }
+api = { path = "../api" }

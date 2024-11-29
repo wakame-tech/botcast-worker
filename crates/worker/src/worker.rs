@@ -16,10 +16,10 @@ pub fn start_worker(provider: Provider) {
         let interval = Duration::from_secs(5);
 
         loop {
-            log::info!("Watching tasks...");
+            tracing::info!("Watching tasks...");
 
             if let Err(e) = task_service.execute_queued_tasks().await {
-                log::error!("Error: {:?}", e);
+                tracing::error!("Error: {:?}", e);
             }
             tokio::time::sleep(interval).await;
         }

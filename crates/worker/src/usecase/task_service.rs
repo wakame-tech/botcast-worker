@@ -2,10 +2,12 @@ use super::episode_service::EpisodeService;
 use super::script_service::ScriptService;
 use crate::error::Error;
 use crate::{model::Args, worker::use_work_dir};
+use anyhow::Context;
 use chrono::{DateTime, Utc};
 use repos::entity::{Task, TaskStatus};
 use repos::repo::TaskRepo;
 use std::sync::Arc;
+use tracing::instrument;
 use uuid::Uuid;
 
 pub(crate) fn new_task(args: Args, execute_after: DateTime<Utc>) -> Task {
@@ -24,6 +26,7 @@ pub(crate) struct TaskService {
     task_repo: Arc<dyn TaskRepo>,
     episode_service: EpisodeService,
     script_service: ScriptService,
+    service_role_key: String,
 }
 
 impl TaskService {
@@ -32,21 +35,25 @@ impl TaskService {
         episode_service: EpisodeService,
         script_service: ScriptService,
     ) -> Self {
+        let service_role_key = std::env::var("SUPABASE_SERVICE_ROLE_KEY")
+            .expect("SUPABASE_SERVICE_ROLE_KEY is not set");
         Self {
             task_repo,
             episode_service,
             script_service,
+            service_role_key,
         }
     }
 
+    #[instrument(skip(self))]
     async fn execute(&self, task: &Task) -> anyhow::Result<serde_json::Value, Error> {
         let args: Args = serde_json::from_value(task.args.clone())
             .map_err(|e| Error::InvalidInput(anyhow::anyhow!("Args {}", e)))?;
         match args {
             Args::GenerateAudio { episode_id } => {
-                let work_dir = use_work_dir(&task.id).map_err(|e| {
-                    Error::Other(anyhow::anyhow!("Failed to create work dir: {}", e))
-                })?;
+                let work_dir = use_work_dir(&task.id)
+                    .context("Failed to create work dir")
+                    .map_err(Error::Other)?;
                 self.episode_service
                     .generate_audio(&work_dir, &episode_id)
                     .await?;
@@ -55,14 +62,14 @@ impl TaskService {
             Args::EvaluateTemplate { template, context } => {
                 let result = self
                     .script_service
-                    .evaluate_template(&template, context)
+                    .run_template(self.service_role_key.clone(), &template, context)
                     .await?;
                 Ok(result)
             }
             Args::NewEpisode { podcast_id } => {
                 if let Some(next_task) = self
                     .episode_service
-                    .new_episode_from_template(&podcast_id)
+                    .new_episode_from_template(self.service_role_key.clone(), &podcast_id)
                     .await?
                 {
                     self.task_repo.create(&next_task).await?;
@@ -84,7 +91,7 @@ impl TaskService {
         };
         task.executed_at = Some(Utc::now());
         self.task_repo.update(&task).await?;
-        log::info!("task: {} completed", task.id);
+        tracing::info!("task: {} completed", task.id);
         Ok(())
     }
 
@@ -98,7 +105,7 @@ impl TaskService {
         let Some(task) = self.task_repo.pop(Utc::now()).await? else {
             return Ok(());
         };
-        log::info!("Found task: {} args={}", task.id, task.args);
+        tracing::info!("Found task: {} args={}", task.id, task.args);
         self.run_task(task).await?;
         Ok(())
     }

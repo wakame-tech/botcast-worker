@@ -1,5 +1,6 @@
-use crate::{api::dto::Script, credential::Credential};
+use crate::credential::Credential;
 use anyhow::Result;
+use api::script::Script;
 use std::{io::Write, path::PathBuf};
 
 #[derive(Debug)]

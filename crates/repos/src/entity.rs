@@ -22,7 +22,7 @@ pub struct ScriptId(pub Uuid);
 #[serde(transparent)]
 pub struct TaskId(pub Uuid);
 
-#[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct Podcast {
     pub id: Uuid,
     pub title: String,
@@ -33,7 +33,7 @@ pub struct Podcast {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct Episode {
     pub id: Uuid,
     pub title: String,
@@ -45,7 +45,7 @@ pub struct Episode {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, sqlx::FromRow)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct Comment {
     pub id: Uuid,
     pub user_id: Uuid,

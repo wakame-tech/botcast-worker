@@ -9,24 +9,19 @@ use srtlib::{Subtitle, Subtitles, Timestamp};
 use std::{fs::File, io::Write, path::PathBuf, time::Duration};
 use wavers::Wav;
 
-fn resolve_audio_generator(resource: &str) -> Result<Box<dyn AudioGenerator>> {
-    match resource {
-        "voicevox" => {
-            let end_point = std::env::var("VOICEVOX_ENDPOINT")?;
-            Ok(Box::new(VoiceVoxClient::new(end_point)))
-        }
-        _ => anyhow::bail!("Unsupported generator: {}", resource),
-    }
+fn resolve_audio_generator(_speaker: &str) -> Result<Box<dyn AudioGenerator>> {
+    let end_point = std::env::var("VOICEVOX_ENDPOINT")?;
+    Ok(Box::new(VoiceVoxClient::new(end_point)))
 }
 
 #[derive(Debug)]
 pub struct Sentence {
-    speaker: (String, String),
+    speaker: String,
     text: String,
 }
 
 impl Sentence {
-    pub fn new(speaker: (String, String), text: String) -> Self {
+    pub fn new(speaker: String, text: String) -> Self {
         Self { speaker, text }
     }
 }
@@ -41,17 +36,10 @@ pub async fn generate_audio(
     sentences: &[Sentence],
 ) -> anyhow::Result<SynthesisResult> {
     let mut paths = vec![];
-    for (
-        i,
-        Sentence {
-            speaker: (generator, speaker_id),
-            text,
-        },
-    ) in sentences.iter().enumerate()
-    {
-        let generator = resolve_audio_generator(generator)?;
+    for (i, Sentence { speaker, text }) in sentences.iter().enumerate() {
+        let generator = resolve_audio_generator(&speaker)?;
         let sentence_wav_path = work_dir.dir().join(format!("{}.wav", i));
-        let wav = generator.generate(speaker_id, text).await?;
+        let wav = generator.generate(&speaker, text).await?;
         let mut sentence_wav = File::create(&sentence_wav_path)?;
         sentence_wav.write_all(&wav)?;
 
@@ -68,7 +56,7 @@ pub async fn generate_audio(
         let file = Box::new(File::open(path)?);
         let file: Wav<i16> = Wav::new(file)?;
         let (start, end) = (duration, duration + get_duration(&file));
-        log::info!("{} -> {}: {}", mmss(&start), mmss(&end), sentence);
+        tracing::info!("{} -> {}: {}", mmss(&start), mmss(&end), sentence);
         let sub = Subtitle::new(
             i,
             Timestamp::from_milliseconds(start.as_millis() as u32),
