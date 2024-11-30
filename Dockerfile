@@ -17,7 +17,7 @@ WORKDIR /app
 
 RUN apk add --update --no-cache ffmpeg
 
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/main .
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/worker .
 
 # CMD ["sleep", "infinity"]
-CMD ["/app/main"]
+CMD ["/app/worker"]
