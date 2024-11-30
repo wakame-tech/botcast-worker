@@ -10,6 +10,7 @@ use axum::{
 use repos::entity::{PodcastId, ScriptId};
 use serde_json::{json, Value};
 use std::{collections::BTreeMap, sync::Arc};
+use tracing::instrument;
 use uuid::Uuid;
 
 fn get_authorization(headers: &HeaderMap) -> Result<String, Error> {
@@ -19,6 +20,7 @@ fn get_authorization(headers: &HeaderMap) -> Result<String, Error> {
         .ok_or_else(|| Error::Other(anyhow::anyhow!("unauthorized")))
 }
 
+#[instrument(skip(state))]
 async fn update_script(
     State(state): State<Arc<AppState>>,
     Path(script_id): Path<Uuid>,
@@ -32,6 +34,7 @@ async fn update_script(
     Ok(StatusCode::CREATED)
 }
 
+#[instrument(skip(state, headers))]
 async fn run_podcast_template(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -52,6 +55,7 @@ struct EvalTemplateRequest {
     context: BTreeMap<String, Value>,
 }
 
+#[instrument(skip(state, headers))]
 async fn eval_template(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -66,6 +70,7 @@ async fn eval_template(
     Ok(Json(evaluated))
 }
 
+#[instrument(skip(state))]
 async fn create_task(
     State(state): State<Arc<AppState>>,
     Json(args): Json<Args>,

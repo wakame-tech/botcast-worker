@@ -16,7 +16,7 @@ pub fn start_worker(provider: Provider) {
         let interval = Duration::from_secs(5);
 
         loop {
-            tracing::info!("Watching tasks...");
+            // tracing::info!("Watching tasks...");
 
             if let Err(e) = task_service.execute_queued_tasks().await {
                 tracing::error!("Error: {:?}", e);

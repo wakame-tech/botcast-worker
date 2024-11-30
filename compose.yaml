@@ -9,6 +9,25 @@ services:
         reservations:
           devices:
             - capabilities: [gpu]
+  jaeger:
+    image: "jaegertracing/all-in-one:latest"
+    ports:
+      - "5000:5000" # gRPC server
+      - "16686:16686" # Web UI
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    command:
+      - "--collector.otlp.grpc.host-port=5000"
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    restart: always
+    command: ["--config=/etc/otel-collector-config.yaml", ""]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"
+    depends_on:
+      - jaeger
   rust:
     build:
       context: .

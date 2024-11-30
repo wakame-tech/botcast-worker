@@ -78,7 +78,7 @@ pub async fn chat_assistant(
     let results = client.list_messages(thread_id).await?;
     for (i, data) in results.data.iter().enumerate() {
         for (j, content) in data.content.iter().enumerate() {
-            log::debug!(
+            tracing::debug!(
                 "[{}:{}] {:?}: {:?} {:?}",
                 i,
                 j,
@@ -95,7 +95,8 @@ pub async fn chat_assistant(
         .find(|d| d.role == message::MessageRole::assistant)
         .ok_or_else(|| anyhow::anyhow!("No response found"))?;
     let content = response
-        .content.first()
+        .content
+        .first()
         .ok_or_else(|| anyhow::anyhow!("No content found"))?;
     Ok(content.text.value.clone())
 }

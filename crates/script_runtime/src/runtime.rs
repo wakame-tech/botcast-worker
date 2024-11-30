@@ -49,6 +49,7 @@ impl ScriptRuntime<'_> {
         self.context.insert(name.to_string(), value);
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn run(
         &mut self,
         template: &serde_json::Value,
