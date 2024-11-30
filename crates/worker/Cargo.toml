@@ -12,6 +12,8 @@ repos = { path = "../repos" }
 api = { path = "../api" }
 anyhow = "1.0.86"
 axum = "0.7.5"
+tower = "0.5.1"
+tower-http = { version = "=0.6.2", features = ["trace"] }
 reqwest = { version = "0.12.7", features = ["json"] }
 rust-s3 = "0.35.1"
 serde = { version = "1.0", features = ["derive"] }
@@ -28,7 +30,12 @@ tokio = { version = "1.39.3", features = [
     "rt-multi-thread",
 ] }
 tracing = "0.1.37"
-tracing-subscriber = "0.3.16"
+tracing-subscriber = { version = "0.3.16", features = ["json", "env-filter"] }
+opentelemetry = { version = "0.27.0", features = ["trace"] }
+opentelemetry_sdk = { version = "0.27.0", features = ["trace", "rt-tokio"] }
+opentelemetry-otlp = { version = "0.27.0", features = ["trace"] }
+tracing-opentelemetry = "0.28.0"
+opentelemetry-stdout = { version = "0.27.0", features = ["trace"] }
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
 clap = { version = "4.5.17", features = ["derive"] }
 chrono = "0.4.38"

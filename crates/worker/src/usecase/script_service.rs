@@ -9,6 +9,7 @@ use script_runtime::{
     runtime::ScriptRuntime,
 };
 use std::{collections::BTreeMap, sync::Arc};
+use tracing::instrument;
 
 #[derive(Clone)]
 pub(crate) struct ScriptService {
@@ -20,6 +21,7 @@ impl ScriptService {
         Self { script_repo }
     }
 
+    #[instrument(skip(self, token), ret)]
     pub(crate) async fn run_template(
         &self,
         token: String,
