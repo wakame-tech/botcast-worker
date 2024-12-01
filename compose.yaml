@@ -18,6 +18,8 @@ services:
       - COLLECTOR_OTLP_ENABLED=true
     command:
       - "--collector.otlp.grpc.host-port=5000"
+    networks:
+      - botcast-network
   otel-collector:
     image: otel/opentelemetry-collector:latest
     restart: always
@@ -26,6 +28,8 @@ services:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
       - "4317:4317"
+    networks:
+      - botcast-network
     depends_on:
       - jaeger
   rust:
@@ -49,3 +53,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - OTLP_COLLECTOR_ENDPOINT=${OTLP_COLLECTOR_ENDPOINT}
+    networks:
+      - botcast-network
+networks:
+  botcast-network:
+    driver: bridge
