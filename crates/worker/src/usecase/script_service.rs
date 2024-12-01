@@ -6,10 +6,7 @@ use repos::{
     repo::{ScriptRepo, SecretRepo},
 };
 use script_runtime::{
-    imports::{
-        api::register_api_functions,
-        llm::{create_thread, delete_thread, register_llm_functions},
-    },
+    imports::{api::register_api_functions, llm::register_llm_functions},
     runtime::ScriptRuntime,
 };
 use std::{collections::BTreeMap, sync::Arc};
@@ -20,13 +17,19 @@ use uuid::Uuid;
 pub(crate) struct ScriptService {
     script_repo: Arc<dyn ScriptRepo>,
     secret_repo: Arc<dyn SecretRepo>,
+    api_client: Arc<ApiClient>,
 }
 
 impl ScriptService {
-    pub(crate) fn new(script_repo: Arc<dyn ScriptRepo>, secret_repo: Arc<dyn SecretRepo>) -> Self {
+    pub(crate) fn new(
+        script_repo: Arc<dyn ScriptRepo>,
+        secret_repo: Arc<dyn SecretRepo>,
+        api_client: Arc<ApiClient>,
+    ) -> Self {
         Self {
             script_repo,
             secret_repo,
+            api_client,
         }
     }
 
@@ -56,17 +59,13 @@ impl ScriptService {
         Ok(context?.into_iter().collect())
     }
 
-    #[instrument(skip(self, token), ret)]
+    #[instrument(skip(self), ret)]
     pub(crate) async fn run_template(
         &self,
-        token: String,
         template: &serde_json::Value,
         context: BTreeMap<String, serde_json::Value>,
     ) -> anyhow::Result<serde_json::Value, Error> {
-        let api_endpoint = std::env::var("API_ENDPOINT")
-            .map_err(|_| Error::InvalidInput(anyhow::anyhow!("API_ENDPOINT is not set")))?;
-        let client = Arc::new(ApiClient::new(&api_endpoint, &token));
-        let me = client.me().await.map_err(Error::Other)?;
+        let me = self.api_client.me().await.map_err(Error::Other)?;
         let user_id: Uuid = me
             .id
             .parse()
@@ -74,20 +73,12 @@ impl ScriptService {
 
         let context = self.replace_context_to_secrets(user_id, context).await?;
 
-        let open_ai_api_key = std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY is not set");
-        let thread_id = create_thread(open_ai_api_key.clone())
-            .await
-            .map_err(Error::Script)?;
-
         let mut runtime = ScriptRuntime::default();
-        register_api_functions(&mut runtime, client);
-        register_llm_functions(&mut runtime, open_ai_api_key.clone(), thread_id.clone());
+        register_api_functions(&mut runtime, self.api_client.clone());
+        register_llm_functions(&mut runtime);
 
         let res = runtime
             .run(template, context)
-            .await
-            .map_err(Error::Script)?;
-        delete_thread(open_ai_api_key.clone(), thread_id)
             .await
             .map_err(Error::Script)?;
         Ok(res)

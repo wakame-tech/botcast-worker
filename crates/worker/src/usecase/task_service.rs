@@ -3,6 +3,7 @@ use super::script_service::ScriptService;
 use crate::error::Error;
 use crate::{model::Args, worker::use_work_dir};
 use anyhow::Context;
+use api::client::ApiClient;
 use chrono::{DateTime, Utc};
 use repos::entity::{Task, TaskStatus};
 use repos::repo::TaskRepo;
@@ -26,7 +27,7 @@ pub(crate) struct TaskService {
     task_repo: Arc<dyn TaskRepo>,
     episode_service: EpisodeService,
     script_service: ScriptService,
-    service_role_key: String,
+    api_client: Arc<ApiClient>,
 }
 
 impl TaskService {
@@ -34,14 +35,13 @@ impl TaskService {
         task_repo: Arc<dyn TaskRepo>,
         episode_service: EpisodeService,
         script_service: ScriptService,
+        api_client: Arc<ApiClient>,
     ) -> Self {
-        let service_role_key = std::env::var("SUPABASE_SERVICE_ROLE_KEY")
-            .expect("SUPABASE_SERVICE_ROLE_KEY is not set");
         Self {
             task_repo,
             episode_service,
             script_service,
-            service_role_key,
+            api_client,
         }
     }
 
@@ -60,16 +60,13 @@ impl TaskService {
                 Ok(serde_json::Value::String("OK".to_string()))
             }
             Args::EvaluateTemplate { template, context } => {
-                let result = self
-                    .script_service
-                    .run_template(self.service_role_key.clone(), &template, context)
-                    .await?;
+                let result = self.script_service.run_template(&template, context).await?;
                 Ok(result)
             }
             Args::NewEpisode { podcast_id } => {
                 if let Some(next_task) = self
                     .episode_service
-                    .new_episode_from_template(self.service_role_key.clone(), &podcast_id)
+                    .new_episode_from_template(self.api_client.clone(), &podcast_id)
                     .await?
                 {
                     self.task_repo.create(&next_task).await?;

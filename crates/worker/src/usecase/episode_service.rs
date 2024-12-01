@@ -5,6 +5,7 @@ use crate::{
     r2_storage::Storage,
 };
 use anyhow::{Context, Result};
+use api::client::ApiClient;
 use audio_generator::{
     generate_audio::{generate_audio, Sentence, SynthesisResult},
     workdir::WorkDir,
@@ -77,7 +78,6 @@ impl EpisodeService {
 
     pub(crate) async fn generate_manuscript(
         &self,
-        token: String,
         podcast_id: &PodcastId,
     ) -> anyhow::Result<Manuscript, Error> {
         let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
@@ -91,7 +91,7 @@ impl EpisodeService {
         )]);
         let manuscript: Manuscript = serde_json::from_value(
             self.script_service
-                .run_template(token, &script.template, context)
+                .run_template(&script.template, context)
                 .await?,
         )
         .context("evaluated script is not ManuScript")
@@ -101,11 +101,11 @@ impl EpisodeService {
 
     pub(crate) async fn new_episode_from_template(
         &self,
-        token: String,
+        api_client: Arc<ApiClient>,
         podcast_id: &PodcastId,
     ) -> anyhow::Result<Option<Task>, Error> {
         let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
-        let manuscript: Manuscript = self.generate_manuscript(token, podcast_id).await?;
+        let manuscript: Manuscript = self.generate_manuscript(podcast_id).await?;
         let episode = new_episode(&podcast, manuscript.title, manuscript.sections);
 
         self.episode_repo.create(&episode).await?;
