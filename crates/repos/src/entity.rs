@@ -81,3 +81,9 @@ pub struct Task {
     pub execute_after: DateTime<Utc>,
     pub executed_at: Option<DateTime<Utc>>,
 }
+
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
+pub struct Secret {
+    pub name: Option<String>,
+    pub decrypted_secret: Option<String>,
+}

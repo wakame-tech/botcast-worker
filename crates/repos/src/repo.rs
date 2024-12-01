@@ -1,11 +1,13 @@
 use crate::{
     entity::{
-        Comment, CommentId, Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Task, TaskId,
+        Comment, CommentId, Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Secret, Task,
+        TaskId,
     },
     error::Error,
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 #[async_trait]
 pub trait PodcastRepo: Send + Sync {
@@ -46,4 +48,9 @@ pub trait TaskRepo: Send + Sync {
     async fn update(&self, task: &Task) -> anyhow::Result<(), Error>;
     #[allow(dead_code)]
     async fn delete(&self, id: &TaskId) -> anyhow::Result<(), Error>;
+}
+
+#[async_trait]
+pub trait SecretRepo: Send + Sync {
+    async fn find_by_name(&self, user_id: &Uuid, name: &str) -> anyhow::Result<Secret, Error>;
 }
