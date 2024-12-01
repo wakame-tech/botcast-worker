@@ -4660,6 +4660,7 @@ dependencies = [
  "chrono",
  "clap",
  "cron",
+ "futures",
  "json-e",
  "opentelemetry",
  "opentelemetry-otlp",

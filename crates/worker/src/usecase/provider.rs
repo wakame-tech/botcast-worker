@@ -12,6 +12,7 @@ pub struct Provider<
     ProvideCommentRepo = DefaultProvider,
     ProvideScriptRepo = DefaultProvider,
     ProvideStorage = DefaultProvider,
+    ProvideSecretRepo = DefaultProvider,
 > {
     pub(crate) provide_podcast_repo: ProvidePodcastRepo,
     pub(crate) provide_episode_repo: ProvideEpisodeRepo,
@@ -19,6 +20,7 @@ pub struct Provider<
     pub(crate) provide_comment_repo: ProvideCommentRepo,
     pub(crate) provide_script_repo: ProvideScriptRepo,
     pub(crate) provide_storage: ProvideStorage,
+    pub(crate) provide_secret_repo: ProvideSecretRepo,
 }
 
 impl Default for Provider {
@@ -30,6 +32,7 @@ impl Default for Provider {
             provide_comment_repo: DefaultProvider,
             provide_script_repo: DefaultProvider,
             provide_storage: DefaultProvider,
+            provide_secret_repo: DefaultProvider,
         }
     }
 }
@@ -54,6 +57,9 @@ impl Provider {
     }
 
     pub(crate) fn script_service(&self) -> ScriptService {
-        ScriptService::new(self.provide_script_repo.script_repo())
+        ScriptService::new(
+            self.provide_script_repo.script_repo(),
+            self.provide_secret_repo.secret_repo(),
+        )
     }
 }
