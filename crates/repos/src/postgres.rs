@@ -1,10 +1,10 @@
 use crate::{
     entity::{
-        Comment, CommentId, Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Task, TaskId,
-        TaskStatus,
+        Comment, CommentId, Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Secret, Task,
+        TaskId, TaskStatus,
     },
     error::Error,
-    repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo, TaskRepo},
+    repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo, SecretRepo, TaskRepo},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -337,5 +337,45 @@ impl TaskRepo for PostgresTaskRepo {
             .await
             .map_err(Error::Other)?;
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PostgresSecretRepo {
+    pool: Pool<Postgres>,
+}
+
+impl Default for PostgresSecretRepo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PostgresSecretRepo {
+    pub fn new() -> Self {
+        let pool = PG_POOL.clone();
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl SecretRepo for PostgresSecretRepo {
+    async fn find_by_name(&self, user_id: &Uuid, name: &str) -> anyhow::Result<Secret, Error> {
+        // NOTE: `name` is globally unique for users, so prefixed `user_uuid`
+        let Some(secret) = sqlx::query_as!(
+            Secret,
+            "select name, decrypted_secret from vault.decrypted_secrets where name = $1",
+            format!("{}:{}", user_id.hyphenated(), name),
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(Error::Other)?
+        else {
+            return Err(Error::NotFound("secret".to_string(), name.to_string()));
+        };
+        Ok(Secret {
+            name: Some(name.to_string()),
+            decrypted_secret: secret.decrypted_secret,
+        })
     }
 }

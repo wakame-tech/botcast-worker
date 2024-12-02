@@ -9,6 +9,14 @@ pub struct ApiClient {
     pub(crate) client: reqwest::Client,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct User {
+    pub id: String,
+    pub auth_id: String,
+    pub email: String,
+    pub name: Option<String>,
+}
+
 impl ApiClient {
     pub fn new(endpoint: &str, token: &str) -> Self {
         Self {
@@ -16,6 +24,12 @@ impl ApiClient {
             authorization: token.to_string(),
             client: reqwest::Client::new(),
         }
+    }
+
+    pub async fn me(&self) -> Result<User> {
+        let resp = self.query("me", json!({})).await?;
+        let user: User = serde_json::from_value(resp["user"].clone())?;
+        Ok(user)
     }
 
     pub async fn sign_in(&self, email: &str, password: &str) -> Result<String> {

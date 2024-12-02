@@ -17,7 +17,7 @@ fn create_client(open_ai_api_key: String) -> Result<OpenAIClient> {
     Ok(client)
 }
 
-pub async fn chat_completion(prompt: String, open_ai_api_key: String) -> Result<String> {
+pub async fn chat_completion(open_ai_api_key: String, prompt: String) -> Result<String> {
     let client = create_client(open_ai_api_key)?;
     let req = ChatCompletionRequest::new(
         GPT4_O_MINI.to_string(),
@@ -53,10 +53,10 @@ pub async fn delete_thread(open_ai_api_key: String, thread_id: String) -> Result
 }
 
 pub async fn chat_assistant(
-    prompt: String,
+    open_ai_api_key: String,
     thread_id: String,
     assistant_id: String,
-    open_ai_api_key: String,
+    prompt: String,
 ) -> Result<String> {
     let client = create_client(open_ai_api_key)?;
     let req = CreateMessageRequest::new(message::MessageRole::user, prompt);

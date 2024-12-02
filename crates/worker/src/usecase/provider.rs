@@ -1,5 +1,6 @@
 use super::{
     episode_service::EpisodeService, script_service::ScriptService, task_service::TaskService,
+    ProvideApiClient,
 };
 use crate::r2_storage::ProvideStorage;
 use repos::provider::*;
@@ -12,6 +13,8 @@ pub struct Provider<
     ProvideCommentRepo = DefaultProvider,
     ProvideScriptRepo = DefaultProvider,
     ProvideStorage = DefaultProvider,
+    ProvideSecretRepo = DefaultProvider,
+    ProvideApiClient = DefaultProvider,
 > {
     pub(crate) provide_podcast_repo: ProvidePodcastRepo,
     pub(crate) provide_episode_repo: ProvideEpisodeRepo,
@@ -19,6 +22,8 @@ pub struct Provider<
     pub(crate) provide_comment_repo: ProvideCommentRepo,
     pub(crate) provide_script_repo: ProvideScriptRepo,
     pub(crate) provide_storage: ProvideStorage,
+    pub(crate) provide_secret_repo: ProvideSecretRepo,
+    pub(crate) provide_api_client: ProvideApiClient,
 }
 
 impl Default for Provider {
@@ -30,6 +35,8 @@ impl Default for Provider {
             provide_comment_repo: DefaultProvider,
             provide_script_repo: DefaultProvider,
             provide_storage: DefaultProvider,
+            provide_secret_repo: DefaultProvider,
+            provide_api_client: DefaultProvider,
         }
     }
 }
@@ -40,6 +47,7 @@ impl Provider {
             self.provide_task_repo.task_repo(),
             self.episode_service(),
             self.script_service(),
+            self.provide_api_client.api_client(),
         )
     }
 
@@ -54,6 +62,10 @@ impl Provider {
     }
 
     pub(crate) fn script_service(&self) -> ScriptService {
-        ScriptService::new(self.provide_script_repo.script_repo())
+        ScriptService::new(
+            self.provide_script_repo.script_repo(),
+            self.provide_secret_repo.secret_repo(),
+            self.provide_api_client.api_client(),
+        )
     }
 }
