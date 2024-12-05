@@ -3,8 +3,13 @@ mod credential;
 mod project;
 
 use anyhow::Result;
+use api::{
+    client::ApiClient,
+    episode::{NewEpisode, Section},
+};
 use clap::Parser;
 use cmd::{Args, Cmd};
+use credential::Credential;
 use project::Project;
 
 #[tokio::main]
@@ -20,13 +25,29 @@ async fn main() -> Result<()> {
         return cmd::login::cmd_login(project, args).await;
     }
 
+    let credential = Credential::load(&project.credential_path())?;
+    let client = ApiClient::new(&credential.api_endpoint, &credential.token);
+
+    client
+        .new_episode(NewEpisode {
+            podcast_id: "c71cb588-615a-45c3-bc8c-64f1c5a42afc".to_string(),
+            title: "Hello, world!".to_string(),
+            sections: vec![Section::Serif {
+                speaker: "a".to_string(),
+                text: "こんにちは".to_string(),
+            }],
+        })
+        .await?;
+
+    return Ok(());
+
     match args.cmd {
         Cmd::New(args) => cmd::new::cmd_new(args)?,
-        Cmd::List(args) => cmd::list::cmd_list(project, args).await?,
-        Cmd::Pull(args) => cmd::pull::cmd_pull(project, args).await?,
-        Cmd::Push(args) => cmd::push::cmd_push(project, args).await?,
-        Cmd::Add(args) => cmd::add::cmd_add(project, args).await?,
-        Cmd::Run(args) => cmd::run::cmd_run(project, args).await?,
+        Cmd::List(args) => cmd::list::cmd_list(client, args).await?,
+        Cmd::Pull(args) => cmd::pull::cmd_pull(client, project, args).await?,
+        Cmd::Push(args) => cmd::push::cmd_push(client, project, args).await?,
+        Cmd::Add(args) => cmd::add::cmd_add(client, project, args).await?,
+        Cmd::Run(args) => cmd::run::cmd_run(client, project, args).await?,
         Cmd::Login(_) => (),
     };
     Ok(())

@@ -1,4 +1,4 @@
-use crate::{credential::Credential, project::Project};
+use crate::project::Project;
 use anyhow::Result;
 use api::{client::ApiClient, script::UpdateScript};
 use std::fs::File;
@@ -6,9 +6,7 @@ use std::fs::File;
 #[derive(Debug, clap::Parser)]
 pub(crate) struct PushArgs;
 
-pub(crate) async fn cmd_push(project: Project, _args: PushArgs) -> Result<()> {
-    let credential = Credential::load(&project.credential_path())?;
-    let client = ApiClient::new(&credential.api_endpoint, &credential.token);
+pub(crate) async fn cmd_push(client: ApiClient, project: Project, _args: PushArgs) -> Result<()> {
     for script_path in project.scripts_dir().read_dir()? {
         let entry = script_path?;
         if !entry.file_type()?.is_file() {

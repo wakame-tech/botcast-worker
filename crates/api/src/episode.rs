@@ -32,7 +32,7 @@ impl ApiClient {
     }
 
     pub async fn new_episode(&self, new_episode: NewEpisode) -> Result<()> {
-        self.query("newEpisode", serde_json::to_value(new_episode)?)
+        self.mutation("newEpisode", serde_json::to_value(new_episode)?)
             .await?;
         Ok(())
     }
