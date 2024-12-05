@@ -1,7 +1,10 @@
 use super::as_string;
 use crate::runtime::{evaluate_args, ScriptRuntime};
 use anyhow::Result;
-use api::client::ApiClient;
+use api::{
+    client::ApiClient,
+    episode::{NewEpisode as NewEpisodeReq, Section},
+};
 use json_e::{
     value::{AsyncCallable, Value},
     Context,
@@ -95,6 +98,30 @@ impl AsyncCallable for GetScript {
     }
 }
 
+#[derive(Clone)]
+pub struct NewEpisode {
+    client: Arc<ApiClient>,
+}
+
+#[async_trait::async_trait]
+impl AsyncCallable for NewEpisode {
+    #[instrument(skip(self, ctx))]
+    async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
+        let evaluated = evaluate_args(ctx, args).await?;
+        let podcast_id = as_string(&evaluated[0])?;
+        let title = as_string(&evaluated[1])?;
+        let sections: Vec<Section> = serde_json::from_value(evaluated[2].clone())?;
+        self.client
+            .new_episode(NewEpisodeReq {
+                podcast_id,
+                title,
+                sections,
+            })
+            .await?;
+        Ok(Value::Null)
+    }
+}
+
 pub fn register_api_functions(runtime: &mut ScriptRuntime, client: Arc<ApiClient>) {
     let api_functions = vec![
         (
@@ -124,6 +151,12 @@ pub fn register_api_functions(runtime: &mut ScriptRuntime, client: Arc<ApiClient
         (
             "get_script",
             Box::new(GetScript {
+                client: client.clone(),
+            }),
+        ),
+        (
+            "new_episode",
+            Box::new(NewEpisode {
                 client: client.clone(),
             }),
         ),

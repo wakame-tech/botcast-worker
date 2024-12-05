@@ -50,12 +50,10 @@ impl PodcastRepo for PostgresPodcastRepo {
     async fn update(&self, podcast: &Podcast) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Podcast,
-            "update podcasts set title = $2, icon = $3, script_id = $4, cron = $5 where id = $1",
+            "update podcasts set title = $2, icon = $3 where id = $1",
             podcast.id,
             podcast.title,
             podcast.icon,
-            podcast.script_id,
-            podcast.cron,
         )
         .execute(&self.pool)
         .await
@@ -286,7 +284,7 @@ impl TaskRepo for PostgresTaskRepo {
     async fn pop(&self, now: DateTime<Utc>) -> anyhow::Result<Option<Task>, Error> {
         let task = sqlx::query_as!(
             Task,
-            r#"select id, status as "status!: TaskStatus", args, result, execute_after, executed_at from tasks where status = $1 and execute_after < $2 order by execute_after limit 1"#,
+            r#"select id, status as "status!: TaskStatus", cron, args, result, execute_after, executed_at from tasks where status = $1 and execute_after < $2 order by execute_after limit 1"#,
             TaskStatus::Pending as TaskStatus,
             now,
         )
@@ -299,9 +297,10 @@ impl TaskRepo for PostgresTaskRepo {
     async fn create(&self, task: &Task) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Task,
-            "insert into tasks (id, status, args, result, execute_after, executed_at) values ($1, $2, $3, $4, $5, $6)",
+            "insert into tasks (id, status, cron, args, result, execute_after, executed_at) values ($1, $2, $3, $4, $5, $6, $7)",
             task.id,
             &task.status as &TaskStatus,
+            task.cron,
             task.args,
             task.result,
             task.execute_after,
