@@ -4,7 +4,7 @@ use crate::error::Error;
 use crate::worker::use_work_dir;
 use anyhow::Context;
 use chrono::{DateTime, Utc};
-use repos::entity::{EpisodeId, PodcastId, ScriptId, Task, TaskStatus};
+use repos::entity::{EpisodeId, Task, TaskStatus};
 use repos::repo::TaskRepo;
 use std::collections::BTreeMap;
 use std::str::FromStr;
@@ -22,10 +22,6 @@ pub(crate) enum Args {
     EvaluateTemplate {
         template: serde_json::Value,
         context: BTreeMap<String, serde_json::Value>,
-    },
-    NewEpisode {
-        podcast_id: PodcastId,
-        script_id: ScriptId,
     },
 }
 
@@ -91,15 +87,6 @@ impl TaskService {
             Args::EvaluateTemplate { template, context } => {
                 let result = self.script_service.run_template(&template, context).await?;
                 Ok(result)
-            }
-            Args::NewEpisode {
-                script_id,
-                podcast_id,
-            } => {
-                self.episode_service
-                    .new_episode_from_template(&script_id, &podcast_id)
-                    .await?;
-                Ok(serde_json::Value::String("OK".to_string()))
             }
         }
     }
