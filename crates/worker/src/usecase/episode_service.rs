@@ -1,11 +1,10 @@
-use super::{script_service::ScriptService, task_service::new_task};
+use super::script_service::ScriptService;
 use crate::{
     error::Error,
-    model::{Args, Manuscript, Section},
+    model::{Manuscript, Section},
     r2_storage::Storage,
 };
 use anyhow::{Context, Result};
-use api::client::ApiClient;
 use audio_generator::{
     generate_audio::{generate_audio, Sentence, SynthesisResult},
     workdir::WorkDir,
@@ -13,10 +12,10 @@ use audio_generator::{
 use chrono::Utc;
 use repos::repo::{EpisodeRepo, PodcastRepo};
 use repos::{
-    entity::{Episode, EpisodeId, Podcast, PodcastId, ScriptId, Task},
+    entity::{Episode, EpisodeId, Podcast, PodcastId, ScriptId},
     repo::ScriptRepo,
 };
-use std::{collections::BTreeMap, fs::File, io::Read, str::FromStr, sync::Arc};
+use std::{collections::BTreeMap, fs::File, io::Read, sync::Arc};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -76,60 +75,30 @@ impl EpisodeService {
         }
     }
 
-    pub(crate) async fn generate_manuscript(
-        &self,
-        podcast_id: &PodcastId,
-    ) -> anyhow::Result<Manuscript, Error> {
-        let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
-        let script = self
-            .script_repo
-            .find_by_id(&ScriptId(podcast.script_id))
-            .await?;
-        let context = BTreeMap::from_iter([(
-            "self".to_string(),
-            serde_json::Value::String(format!("urn:podcast:{}", podcast.id)),
-        )]);
-        let manuscript: Manuscript = serde_json::from_value(
-            self.script_service
-                .run_template(&script.template, context)
-                .await?,
-        )
-        .context("evaluated script is not ManuScript")
-        .map_err(Error::Other)?;
-        Ok(manuscript)
-    }
-
     pub(crate) async fn new_episode_from_template(
         &self,
-        api_client: Arc<ApiClient>,
+        script_id: &ScriptId,
         podcast_id: &PodcastId,
-    ) -> anyhow::Result<Option<Task>, Error> {
+    ) -> anyhow::Result<(), Error> {
+        let script = self.script_repo.find_by_id(script_id).await?;
         let podcast = self.podcast_repo.find_by_id(podcast_id).await?;
-        let manuscript: Manuscript = self.generate_manuscript(podcast_id).await?;
+
+        let context = BTreeMap::from_iter([(
+            "self".to_string(),
+            serde_json::Value::String(format!("{}", podcast.id)),
+        )]);
+        let run_result = self
+            .script_service
+            .run_template(&script.template, context)
+            .await?;
+        let manuscript: Manuscript = serde_json::from_value(run_result)
+            .context("evaluated script is not ManuScript")
+            .map_err(Error::Other)?;
+
         let episode = new_episode(&podcast, manuscript.title, manuscript.sections);
 
         self.episode_repo.create(&episode).await?;
-
-        let task = if let Some(cron) = podcast.cron {
-            let next = cron::Schedule::from_str(&cron)
-                .context("Invalid cron")
-                .map_err(Error::Other)?
-                .upcoming(Utc)
-                .next()
-                .context("Failed to get next cron")
-                .map_err(Error::Other)?;
-
-            let task = new_task(
-                Args::NewEpisode {
-                    podcast_id: podcast_id.clone(),
-                },
-                next,
-            );
-            Some(task)
-        } else {
-            None
-        };
-        Ok(task)
+        Ok(())
     }
 
     pub(crate) async fn generate_audio(
@@ -172,22 +141,6 @@ impl EpisodeService {
         episode.srt_url = Some(srt_path);
 
         self.episode_repo.update(&episode).await?;
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use chrono::{DateTime, Local};
-    use cron::Schedule;
-
-    #[test]
-    fn test_cron() -> anyhow::Result<()> {
-        // every monday at 9:00 UTC = 18:00 JST
-        let schedule = Schedule::from_str("0 0 9 * * Mon")?;
-        let next = schedule.upcoming(Utc).next().unwrap();
-        println!("{:?}", DateTime::<Local>::from(next));
         Ok(())
     }
 }

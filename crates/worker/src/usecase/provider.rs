@@ -47,7 +47,6 @@ impl Provider {
             self.provide_task_repo.task_repo(),
             self.episode_service(),
             self.script_service(),
-            self.provide_api_client.api_client(),
         )
     }
 

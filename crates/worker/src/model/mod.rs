@@ -1,4 +1,4 @@
-use repos::entity::{EpisodeId, PodcastId};
+use repos::entity::{EpisodeId, PodcastId, ScriptId};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -14,6 +14,7 @@ pub(crate) enum Args {
     },
     NewEpisode {
         podcast_id: PodcastId,
+        script_id: ScriptId,
     },
 }
 

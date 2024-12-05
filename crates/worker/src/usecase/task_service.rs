@@ -3,18 +3,19 @@ use super::script_service::ScriptService;
 use crate::error::Error;
 use crate::{model::Args, worker::use_work_dir};
 use anyhow::Context;
-use api::client::ApiClient;
 use chrono::{DateTime, Utc};
 use repos::entity::{Task, TaskStatus};
 use repos::repo::TaskRepo;
+use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 use uuid::Uuid;
 
-pub(crate) fn new_task(args: Args, execute_after: DateTime<Utc>) -> Task {
+pub(crate) fn new_task(cron: Option<String>, args: Args, execute_after: DateTime<Utc>) -> Task {
     Task {
         id: Uuid::new_v4(),
         status: TaskStatus::Pending,
+        cron,
         args: serde_json::to_value(args).unwrap(),
         result: None,
         execute_after,
@@ -27,7 +28,6 @@ pub(crate) struct TaskService {
     task_repo: Arc<dyn TaskRepo>,
     episode_service: EpisodeService,
     script_service: ScriptService,
-    api_client: Arc<ApiClient>,
 }
 
 impl TaskService {
@@ -35,13 +35,11 @@ impl TaskService {
         task_repo: Arc<dyn TaskRepo>,
         episode_service: EpisodeService,
         script_service: ScriptService,
-        api_client: Arc<ApiClient>,
     ) -> Self {
         Self {
             task_repo,
             episode_service,
             script_service,
-            api_client,
         }
     }
 
@@ -49,6 +47,19 @@ impl TaskService {
     async fn execute(&self, task: &Task) -> anyhow::Result<serde_json::Value, Error> {
         let args: Args = serde_json::from_value(task.args.clone())
             .map_err(|e| Error::InvalidInput(anyhow::anyhow!("Args {}", e)))?;
+
+        if let Some(cron) = &task.cron {
+            let next = cron::Schedule::from_str(cron)
+                .context("Invalid cron")
+                .map_err(Error::Other)?
+                .upcoming(Utc)
+                .next()
+                .context("Failed to get next cron")
+                .map_err(Error::Other)?;
+            let task = new_task(Some(cron.to_string()), args.clone(), next);
+            self.task_repo.create(&task).await?;
+        }
+
         match args {
             Args::GenerateAudio { episode_id } => {
                 let work_dir = use_work_dir(&task.id)
@@ -63,14 +74,13 @@ impl TaskService {
                 let result = self.script_service.run_template(&template, context).await?;
                 Ok(result)
             }
-            Args::NewEpisode { podcast_id } => {
-                if let Some(next_task) = self
-                    .episode_service
-                    .new_episode_from_template(self.api_client.clone(), &podcast_id)
-                    .await?
-                {
-                    self.task_repo.create(&next_task).await?;
-                };
+            Args::NewEpisode {
+                script_id,
+                podcast_id,
+            } => {
+                self.episode_service
+                    .new_episode_from_template(&script_id, &podcast_id)
+                    .await?;
                 Ok(serde_json::Value::String("OK".to_string()))
             }
         }
@@ -93,7 +103,7 @@ impl TaskService {
     }
 
     pub(crate) async fn create_task(&self, args: Args) -> anyhow::Result<(), Error> {
-        let task = new_task(args, Utc::now());
+        let task = new_task(None, args, Utc::now());
         self.task_repo.create(&task).await?;
         Ok(())
     }

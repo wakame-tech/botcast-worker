@@ -7,7 +7,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use repos::entity::{PodcastId, ScriptId};
+use repos::entity::ScriptId;
 use serde_json::{json, Value};
 use std::{collections::BTreeMap, sync::Arc};
 use tracing::instrument;
@@ -25,19 +25,6 @@ async fn update_script(
         .update_template(&ScriptId(script_id), template)
         .await?;
     Ok(StatusCode::CREATED)
-}
-
-#[instrument(skip(state))]
-async fn run_podcast_template(
-    State(state): State<Arc<AppState>>,
-    Path(podcast_id): Path<Uuid>,
-) -> Result<impl IntoResponse, Error> {
-    let manuscript = state
-        .0
-        .episode_service()
-        .generate_manuscript(&PodcastId(podcast_id))
-        .await?;
-    Ok(Json(manuscript))
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -78,10 +65,6 @@ async fn version() -> Result<impl IntoResponse, Error> {
 pub(crate) fn routers() -> Router<Arc<AppState>> {
     Router::new()
         .route("/version", get(version))
-        .route(
-            "/podcasts/:podcast_id/runTemplate",
-            post(run_podcast_template),
-        )
         .route("/scripts/:script_id", post(update_script))
         .route("/createTask", post(create_task))
         .route("/evalTemplate", post(eval_template))
