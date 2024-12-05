@@ -27,8 +27,6 @@ pub struct Podcast {
     pub id: Uuid,
     pub title: String,
     pub icon: String,
-    pub script_id: Uuid,
-    pub cron: Option<String>,
     pub user_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
@@ -76,6 +74,7 @@ pub enum TaskStatus {
 pub struct Task {
     pub id: Uuid,
     pub status: TaskStatus,
+    pub cron: Option<String>,
     pub args: serde_json::Value,
     pub result: Option<serde_json::Value>,
     pub execute_after: DateTime<Utc>,
