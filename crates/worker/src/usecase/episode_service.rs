@@ -1,10 +1,7 @@
 use super::script_service::ScriptService;
-use crate::{
-    error::Error,
-    model::{Manuscript, Section},
-    r2_storage::Storage,
-};
+use crate::{error::Error, r2_storage::Storage};
 use anyhow::{Context, Result};
+use api::episode::Section;
 use audio_generator::{
     generate_audio::{generate_audio, Sentence, SynthesisResult},
     workdir::WorkDir,
@@ -17,6 +14,13 @@ use repos::{
 };
 use std::{collections::BTreeMap, fs::File, io::Read, sync::Arc};
 use uuid::Uuid;
+
+/// evaluated script
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct Manuscript {
+    title: String,
+    sections: Vec<Section>,
+}
 
 #[derive(Clone)]
 pub(crate) struct EpisodeService {

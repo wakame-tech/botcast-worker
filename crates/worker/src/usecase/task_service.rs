@@ -1,15 +1,33 @@
 use super::episode_service::EpisodeService;
 use super::script_service::ScriptService;
 use crate::error::Error;
-use crate::{model::Args, worker::use_work_dir};
+use crate::worker::use_work_dir;
 use anyhow::Context;
 use chrono::{DateTime, Utc};
-use repos::entity::{Task, TaskStatus};
+use repos::entity::{EpisodeId, PodcastId, ScriptId, Task, TaskStatus};
 use repos::repo::TaskRepo;
+use std::collections::BTreeMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 use uuid::Uuid;
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "type")]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
+pub(crate) enum Args {
+    GenerateAudio {
+        episode_id: EpisodeId,
+    },
+    EvaluateTemplate {
+        template: serde_json::Value,
+        context: BTreeMap<String, serde_json::Value>,
+    },
+    NewEpisode {
+        podcast_id: PodcastId,
+        script_id: ScriptId,
+    },
+}
 
 pub(crate) fn new_task(cron: Option<String>, args: Args, execute_after: DateTime<Utc>) -> Task {
     Task {

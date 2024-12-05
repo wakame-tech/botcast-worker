@@ -1,5 +1,5 @@
 use super::AppState;
-use crate::{error::Error, model::Args};
+use crate::{error::Error, usecase::task_service::Args};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
