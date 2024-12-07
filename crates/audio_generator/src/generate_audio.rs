@@ -1,6 +1,6 @@
 use crate::{
     audio_downloader::AudioDownloader,
-    ffmpeg::{concat_audios, get_duration},
+    ffmpeg::{concat_audios, convert_to_stereo_wav, get_duration},
     voicevox::client::VoiceVoxClient,
     workdir::WorkDir,
     AudioGenerator,
@@ -9,7 +9,7 @@ use anyhow::Result;
 use reqwest::Url;
 use srtlib::{Subtitle, Subtitles, Timestamp};
 use std::{
-    fs::{File, OpenOptions},
+    fs::{self, File, OpenOptions},
     io::Write,
     path::PathBuf,
     time::Duration,
@@ -79,8 +79,14 @@ pub async fn generate_audio(
     let mmss = |d: &Duration| format!("{:02}:{:02}", d.as_secs() / 60, d.as_secs() % 60);
     for (i, (path, sentence)) in paths.iter().enumerate() {
         let file = Box::new(File::open(path)?);
-        let file: Wav<i16> = Wav::new(file)?;
-        let (start, end) = (duration, duration + get_duration(&file));
+        let mut r = Wav::<i16>::new(file)?;
+        if r.channels().count() == 1 {
+            let tmp = work_dir.dir().join("tmp.wav");
+            convert_to_stereo_wav(path.clone(), tmp.clone())?;
+            fs::rename(tmp, path)?;
+        }
+
+        let (start, end) = (duration, duration + get_duration(&r));
         tracing::info!("{} -> {}: {}", mmss(&start), mmss(&end), sentence);
         let sub = Subtitle::new(
             i,

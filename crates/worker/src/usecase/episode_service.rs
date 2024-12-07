@@ -39,17 +39,13 @@ fn into_segments(sections: Vec<Section>) -> Result<Vec<SectionSegment>, Error> {
                     });
                 }
             }
-            Section::Audio {
-                url,
-                from_sec,
-                to_sec,
-            } => {
+            Section::Audio { url, from, to } => {
                 sentences.push(SectionSegment::Audio {
                     url: url
                         .parse()
                         .map_err(|_| Error::Other(anyhow::anyhow!("Invalid url")))?,
-                    from_sec: *from_sec,
-                    to_sec: *to_sec,
+                    from_sec: *from,
+                    to_sec: *to,
                 });
             }
         }
@@ -65,7 +61,7 @@ impl EpisodeService {
         }
     }
 
-    #[instrument(skip(self, work_dir))]
+    #[instrument(skip(self, work_dir), ret)]
     pub(crate) async fn generate_audio(
         &self,
         work_dir: &WorkDir,

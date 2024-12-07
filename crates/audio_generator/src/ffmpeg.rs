@@ -17,22 +17,43 @@ pub(crate) fn get_duration(wav: &Wav<i16>) -> Duration {
 pub(crate) async fn slice_audio(
     input: &PathBuf,
     output: &PathBuf,
-    from_sec: f64,
-    duration_sec: f64,
+    from_sec: Option<f64>,
+    to_sec: Option<f64>,
 ) -> anyhow::Result<()> {
     let mut cmd = Command::new("ffmpeg");
-    cmd.args([
-        "-ss",
-        from_sec.to_string().as_str(),
-        "-to",
-        duration_sec.to_string().as_str(),
-        "-i",
-        input.display().to_string().as_str(),
-        output.display().to_string().as_str(),
-    ]);
+    let mut args = vec!["-i".to_string(), input.display().to_string()];
+    if let (Some(from_sec), Some(to_sec)) = (from_sec, to_sec) {
+        args.extend([
+            "-ss".to_string(),
+            from_sec.to_string(),
+            "-to".to_string(),
+            (to_sec - from_sec).to_string(),
+        ]);
+    }
+    args.push(output.display().to_string());
+    cmd.args(args);
     let res = cmd.output().await?;
     if !res.status.success() {
         anyhow::bail!("Failed to slice audio: {}", String::from_utf8(res.stderr)?);
+    }
+    Ok(())
+}
+
+pub(crate) fn convert_to_stereo_wav(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
+    let mut cmd = std::process::Command::new("ffmpeg");
+    cmd.args([
+        "-i",
+        input.display().to_string().as_str(),
+        "-ac",
+        "2",
+        output.display().to_string().as_str(),
+    ]);
+    let res = cmd.output()?;
+    if !res.status.success() {
+        anyhow::bail!(
+            "Failed to convert to stereo wav: {}",
+            String::from_utf8(res.stderr)?
+        );
     }
     Ok(())
 }

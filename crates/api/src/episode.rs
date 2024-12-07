@@ -12,8 +12,10 @@ pub enum Section {
     },
     Audio {
         url: String,
-        from_sec: Option<f64>,
-        to_sec: Option<f64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        from: Option<f64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        to: Option<f64>,
     },
 }
 
