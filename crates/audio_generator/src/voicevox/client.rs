@@ -1,4 +1,3 @@
-use super::speaker::VoiceVoxSpeaker;
 use crate::AudioGenerator;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -9,9 +8,8 @@ use tracing::instrument;
 impl AudioGenerator for VoiceVoxClient {
     #[instrument(skip(self))]
     async fn generate(&self, speaker_id: &str, text: &str) -> Result<Vec<u8>> {
-        let speaker = speaker_id.parse()?;
-        let query = self.query(text, &speaker).await?;
-        let audio = self.synthesis(query, &speaker).await?;
+        let query = self.query(text, speaker_id).await?;
+        let audio = self.synthesis(query, speaker_id).await?;
         Ok(audio)
     }
 }
@@ -45,18 +43,13 @@ impl VoiceVoxClient {
         Ok(res)
     }
 
-    pub(crate) async fn query(
-        &self,
-        text: &str,
-        speaker: &VoiceVoxSpeaker,
-    ) -> anyhow::Result<Value> {
+    #[instrument(skip(self))]
+    pub(crate) async fn query(&self, text: &str, speaker: &str) -> anyhow::Result<Value> {
+        let text = urlencoding::encode(text);
         let url = format!(
             "{}/audio_query?text={}&speaker={}",
-            self.endpoint,
-            urlencoding::encode(text),
-            speaker.id()
+            self.endpoint, text, speaker,
         );
-        tracing::info!("Query: {}", url);
         let res = self.client.post(url).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!(
@@ -69,12 +62,9 @@ impl VoiceVoxClient {
         Ok(res)
     }
 
-    pub(crate) async fn synthesis(
-        &self,
-        query: Value,
-        speaker: &VoiceVoxSpeaker,
-    ) -> anyhow::Result<Vec<u8>> {
-        let url = format!("{}/synthesis?speaker={}", self.endpoint, speaker.id());
+    #[instrument(skip(self, query))]
+    pub(crate) async fn synthesis(&self, query: Value, speaker: &str) -> anyhow::Result<Vec<u8>> {
+        let url = format!("{}/synthesis?speaker={}", self.endpoint, speaker);
         tracing::info!("Synthesis: {}", url);
         let res = self.client.post(url).json(&query).send().await?;
         if res.status() != reqwest::StatusCode::OK {

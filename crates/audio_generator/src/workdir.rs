@@ -17,6 +17,10 @@ impl WorkDir {
     pub fn dir(&self) -> &PathBuf {
         &self.0
     }
+
+    pub fn is_keep_dir(&self) -> bool {
+        self.1
+    }
 }
 
 impl Drop for WorkDir {

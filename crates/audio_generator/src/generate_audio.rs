@@ -6,7 +6,12 @@ use crate::{
 };
 use anyhow::Result;
 use srtlib::{Subtitle, Subtitles, Timestamp};
-use std::{fs::File, io::Write, path::PathBuf, time::Duration};
+use std::{
+    fs::{File, OpenOptions},
+    io::Write,
+    path::PathBuf,
+    time::Duration,
+};
 use wavers::Wav;
 
 fn resolve_audio_generator(_speaker: &str) -> Result<Box<dyn AudioGenerator>> {
@@ -35,16 +40,24 @@ pub async fn generate_audio(
     work_dir: &WorkDir,
     sentences: &[Sentence],
 ) -> anyhow::Result<SynthesisResult> {
+    let mut sentences_file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .write(true)
+        .open(work_dir.dir().join("sentences.txt"))?;
     let mut paths = vec![];
     for (i, Sentence { speaker, text }) in sentences.iter().enumerate() {
         let generator = resolve_audio_generator(&speaker)?;
         let sentence_wav_path = work_dir.dir().join(format!("{}.wav", i));
-        let wav = generator.generate(&speaker, text).await?;
-        let mut sentence_wav = File::create(&sentence_wav_path)?;
-        sentence_wav.write_all(&wav)?;
+        if !(work_dir.is_keep_dir() && sentence_wav_path.exists()) {
+            let wav = generator.generate(&speaker, text).await?;
+            let mut sentence_wav = File::create(&sentence_wav_path)?;
+            sentence_wav.write_all(&wav)?;
+        }
 
         if sentence_wav_path.exists() {
             paths.push((sentence_wav_path, text));
+            sentences_file.write(format!("file '{}'\n", text).as_bytes())?;
         }
     }
 

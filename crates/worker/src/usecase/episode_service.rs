@@ -8,6 +8,7 @@ use audio_generator::{
 use repos::entity::EpisodeId;
 use repos::repo::EpisodeRepo;
 use std::{fs::File, io::Read, sync::Arc};
+use tracing::instrument;
 
 /// evaluated script
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -48,6 +49,7 @@ impl EpisodeService {
         }
     }
 
+    #[instrument(skip(self, work_dir))]
     pub(crate) async fn generate_audio(
         &self,
         work_dir: &WorkDir,
