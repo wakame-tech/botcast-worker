@@ -26,6 +26,8 @@ pub(crate) fn insert_custom_functions(context: &mut Context) {
         ("fetch_json", Box::new(fetch::FetchJson)),
         ("text", Box::new(fetch::Text)),
         ("jq", Box::new(jq::Jq)),
+        ("hq", Box::new(jq::Hq)),
+        ("replace", Box::new(jq::Replace)),
     ];
     for (name, f) in functions.into_iter() {
         context.insert(name.to_string(), Value::Function(Function::new(name, f)));
