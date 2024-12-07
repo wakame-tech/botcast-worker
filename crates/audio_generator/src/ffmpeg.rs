@@ -14,6 +14,29 @@ pub(crate) fn get_duration(wav: &Wav<i16>) -> Duration {
     Duration::from_secs_f32(data_size as f32 / (sample_rate * n_channels * bytes_per_sample) as f32)
 }
 
+pub(crate) async fn slice_audio(
+    input: &PathBuf,
+    output: &PathBuf,
+    from_sec: f64,
+    duration_sec: f64,
+) -> anyhow::Result<()> {
+    let mut cmd = Command::new("ffmpeg");
+    cmd.args([
+        "-ss",
+        from_sec.to_string().as_str(),
+        "-to",
+        duration_sec.to_string().as_str(),
+        "-i",
+        input.display().to_string().as_str(),
+        output.display().to_string().as_str(),
+    ]);
+    let res = cmd.output().await?;
+    if !res.status.success() {
+        anyhow::bail!("Failed to slice audio: {}", String::from_utf8(res.stderr)?);
+    }
+    Ok(())
+}
+
 #[instrument(skip(work_dir, paths))]
 pub(crate) async fn concat_audios(
     work_dir: &WorkDir,

@@ -1,4 +1,4 @@
-use crate::AudioGenerator;
+use crate::{generate_audio::SectionSegment, workdir::WorkDir, AudioGenerator};
 use anyhow::Result;
 use async_trait::async_trait;
 use serde_json::Value;
@@ -7,9 +7,12 @@ use tracing::instrument;
 #[async_trait]
 impl AudioGenerator for VoiceVoxClient {
     #[instrument(skip(self))]
-    async fn generate(&self, speaker_id: &str, text: &str) -> Result<Vec<u8>> {
-        let query = self.query(text, speaker_id).await?;
-        let audio = self.synthesis(query, speaker_id).await?;
+    async fn generate(&self, _: &WorkDir, segment: SectionSegment) -> Result<Vec<u8>> {
+        let SectionSegment::SerifSentence { text, speaker } = segment else {
+            return Err(anyhow::anyhow!("Invalid segment"));
+        };
+        let query = self.query(&text, &speaker).await?;
+        let audio = self.synthesis(query, &speaker).await?;
         Ok(audio)
     }
 }

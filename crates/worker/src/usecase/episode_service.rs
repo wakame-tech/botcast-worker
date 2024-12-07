@@ -2,7 +2,7 @@ use crate::{error::Error, r2_storage::Storage};
 use anyhow::{Context, Result};
 use api::episode::Section;
 use audio_generator::{
-    generate_audio::{generate_audio, Sentence, SynthesisResult},
+    generate_audio::{generate_audio, SectionSegment, SynthesisResult},
     workdir::WorkDir,
 };
 use repos::entity::EpisodeId;
@@ -23,7 +23,7 @@ pub(crate) struct EpisodeService {
     storage: Arc<dyn Storage>,
 }
 
-fn new_sentences(sections: Vec<Section>) -> Result<Vec<Sentence>, Error> {
+fn into_segments(sections: Vec<Section>) -> Result<Vec<SectionSegment>, Error> {
     let mut sentences = vec![];
     for section in sections.iter() {
         match section {
@@ -33,8 +33,24 @@ fn new_sentences(sections: Vec<Section>) -> Result<Vec<Sentence>, Error> {
                     if sentence.is_empty() {
                         continue;
                     }
-                    sentences.push(Sentence::new(speaker.to_string(), sentence.to_string()));
+                    sentences.push(SectionSegment::SerifSentence {
+                        speaker: speaker.to_string(),
+                        text: sentence.to_string(),
+                    });
                 }
+            }
+            Section::Audio {
+                url,
+                from_sec,
+                to_sec,
+            } => {
+                sentences.push(SectionSegment::Audio {
+                    url: url
+                        .parse()
+                        .map_err(|_| Error::Other(anyhow::anyhow!("Invalid url")))?,
+                    from_sec: *from_sec,
+                    to_sec: *to_sec,
+                });
             }
         }
     }
@@ -59,8 +75,8 @@ impl EpisodeService {
         let sections: Vec<Section> = serde_json::from_value(episode.sections.clone())
             .context("Failed to parse sections")
             .map_err(Error::Other)?;
-        let sentences = new_sentences(sections)?;
-        let SynthesisResult { out_path, srt, .. } = generate_audio(work_dir, &sentences)
+        let segments = into_segments(sections)?;
+        let SynthesisResult { out_path, srt, .. } = generate_audio(work_dir, segments)
             .await
             .context("Failed to generate audio")
             .map_err(Error::Other)?;

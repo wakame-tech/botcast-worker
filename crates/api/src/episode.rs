@@ -6,7 +6,15 @@ use serde_json::json;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type")]
 pub enum Section {
-    Serif { speaker: String, text: String },
+    Serif {
+        speaker: String,
+        text: String,
+    },
+    Audio {
+        url: String,
+        from_sec: Option<f64>,
+        to_sec: Option<f64>,
+    },
 }
 
 #[derive(Debug, serde::Serialize)]

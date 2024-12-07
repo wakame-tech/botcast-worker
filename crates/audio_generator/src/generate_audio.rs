@@ -1,10 +1,12 @@
 use crate::{
+    audio_downloader::AudioDownloader,
     ffmpeg::{concat_audios, get_duration},
     voicevox::client::VoiceVoxClient,
     workdir::WorkDir,
     AudioGenerator,
 };
 use anyhow::Result;
+use reqwest::Url;
 use srtlib::{Subtitle, Subtitles, Timestamp};
 use std::{
     fs::{File, OpenOptions},
@@ -14,21 +16,27 @@ use std::{
 };
 use wavers::Wav;
 
-fn resolve_audio_generator(_speaker: &str) -> Result<Box<dyn AudioGenerator>> {
-    let end_point = std::env::var("VOICEVOX_ENDPOINT")?;
-    Ok(Box::new(VoiceVoxClient::new(end_point)))
+fn resolve_audio_generator(segment: &SectionSegment) -> Result<Box<dyn AudioGenerator>> {
+    match segment {
+        SectionSegment::SerifSentence { .. } => {
+            let end_point = std::env::var("VOICEVOX_ENDPOINT")?;
+            Ok(Box::new(VoiceVoxClient::new(end_point)))
+        }
+        SectionSegment::Audio { .. } => Ok(Box::new(AudioDownloader::new())),
+    }
 }
 
 #[derive(Debug)]
-pub struct Sentence {
-    speaker: String,
-    text: String,
-}
-
-impl Sentence {
-    pub fn new(speaker: String, text: String) -> Self {
-        Self { speaker, text }
-    }
+pub enum SectionSegment {
+    SerifSentence {
+        speaker: String,
+        text: String,
+    },
+    Audio {
+        url: Url,
+        from_sec: Option<f64>,
+        to_sec: Option<f64>,
+    },
 }
 
 pub struct SynthesisResult {
@@ -38,7 +46,7 @@ pub struct SynthesisResult {
 
 pub async fn generate_audio(
     work_dir: &WorkDir,
-    sentences: &[Sentence],
+    segments: Vec<SectionSegment>,
 ) -> anyhow::Result<SynthesisResult> {
     let mut sentences_file = OpenOptions::new()
         .append(true)
@@ -46,18 +54,22 @@ pub async fn generate_audio(
         .write(true)
         .open(work_dir.dir().join("sentences.txt"))?;
     let mut paths = vec![];
-    for (i, Sentence { speaker, text }) in sentences.iter().enumerate() {
-        let generator = resolve_audio_generator(&speaker)?;
-        let sentence_wav_path = work_dir.dir().join(format!("{}.wav", i));
-        if !(work_dir.is_keep_dir() && sentence_wav_path.exists()) {
-            let wav = generator.generate(&speaker, text).await?;
-            let mut sentence_wav = File::create(&sentence_wav_path)?;
-            sentence_wav.write_all(&wav)?;
-        }
+    for (i, segment) in segments.into_iter().enumerate() {
+        let generator = resolve_audio_generator(&segment)?;
 
-        if sentence_wav_path.exists() {
-            paths.push((sentence_wav_path, text));
-            sentences_file.write(format!("file '{}'\n", text).as_bytes())?;
+        let text = match &segment {
+            SectionSegment::SerifSentence { text, .. } => text.clone(),
+            SectionSegment::Audio { url, .. } => url.as_str().to_string(),
+        };
+        let wav_path = work_dir.dir().join(format!("{}.wav", i));
+        if !(work_dir.is_keep_dir() && wav_path.exists()) {
+            let wav = generator.generate(work_dir, segment).await?;
+            let mut f = File::create(&wav_path)?;
+            f.write_all(&wav)?;
+        }
+        if wav_path.exists() {
+            paths.push((wav_path, text.clone()));
+            sentences_file.write_all(format!("file '{}'\n", text).as_bytes())?;
         }
     }
 
