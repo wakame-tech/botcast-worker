@@ -291,7 +291,7 @@ impl TaskRepo for PostgresTaskRepo {
     async fn pop(&self, now: DateTime<Utc>) -> anyhow::Result<Option<Task>, Error> {
         let task = sqlx::query_as!(
             Task,
-            r#"select id, user_id, status as "status!: TaskStatus", cron, args, result, execute_after, executed_at from tasks where status = $1 and execute_after < $2 order by execute_after limit 1"#,
+            r#"select id, user_id, status as "status!: TaskStatus", cron, args, result, execute_after, executed_at, executed_finished_at from tasks where status = $1 and execute_after < $2 order by execute_after limit 1"#,
             TaskStatus::Pending as TaskStatus,
             now,
         )
@@ -304,7 +304,7 @@ impl TaskRepo for PostgresTaskRepo {
     async fn create(&self, task: &Task) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Task,
-            "insert into tasks (id, user_id, status, cron, args, result, execute_after, executed_at) values ($1, $2, $3, $4, $5, $6, $7, $8)",
+            "insert into tasks (id, user_id, status, cron, args, result, execute_after, executed_at, executed_finished_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             task.id,
             task.user_id,
             &task.status as &TaskStatus,
@@ -313,6 +313,7 @@ impl TaskRepo for PostgresTaskRepo {
             task.result,
             task.execute_after,
             task.executed_at,
+            task.executed_finished_at,
         )
         .execute(&self.pool)
         .await
@@ -323,13 +324,14 @@ impl TaskRepo for PostgresTaskRepo {
     async fn update(&self, task: &Task) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Task,
-            "update tasks set status = $2, args = $3, result = $4, execute_after = $5, executed_at = $6 where id = $1",
+            "update tasks set status = $2, args = $3, result = $4, execute_after = $5, executed_at = $6, executed_finished_at = $7 where id = $1",
             task.id,
             &task.status as &TaskStatus,
             task.args,
             task.result,
             task.execute_after,
             task.executed_at,
+            task.executed_finished_at,
         )
         .execute(&self.pool)
         .await

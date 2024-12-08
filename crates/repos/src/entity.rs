@@ -84,6 +84,7 @@ pub struct Task {
     pub result: Option<serde_json::Value>,
     pub execute_after: DateTime<Utc>,
     pub executed_at: Option<DateTime<Utc>>,
+    pub executed_finished_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, serde::Serialize, sqlx::FromRow)]

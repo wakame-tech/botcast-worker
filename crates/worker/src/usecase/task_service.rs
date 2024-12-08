@@ -41,6 +41,7 @@ pub(crate) fn new_task(
         result: None,
         execute_after,
         executed_at: None,
+        executed_finished_at: None,
     }
 }
 
@@ -103,6 +104,7 @@ impl TaskService {
 
     async fn run_task(&self, mut task: Task) -> anyhow::Result<(), Error> {
         task.status = TaskStatus::Running;
+        task.executed_at = Some(Utc::now());
         self.task_repo.update(&task).await?;
         (task.status, task.result) = match self.execute(&task).await {
             Ok(result) => (TaskStatus::Completed, Some(result)),
@@ -111,7 +113,7 @@ impl TaskService {
                 Some(serde_json::Value::String(e.to_string())),
             ),
         };
-        task.executed_at = Some(Utc::now());
+        task.executed_finished_at = Some(Utc::now());
         self.task_repo.update(&task).await?;
         tracing::info!("task: {} completed", task.id);
         Ok(())
