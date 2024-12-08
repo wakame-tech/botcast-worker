@@ -45,6 +45,7 @@ impl Provider {
     pub(crate) fn task_service(&self) -> TaskService {
         TaskService::new(
             self.provide_task_repo.task_repo(),
+            self.provide_api_client.api_client(),
             self.episode_service(),
             self.script_service(),
         )

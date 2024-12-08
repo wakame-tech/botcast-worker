@@ -77,6 +77,7 @@ pub enum TaskStatus {
 #[derive(Debug, serde::Serialize, sqlx::FromRow)]
 pub struct Task {
     pub id: Uuid,
+    pub user_id: Option<Uuid>,
     pub status: TaskStatus,
     pub cron: Option<String>,
     pub args: serde_json::Value,

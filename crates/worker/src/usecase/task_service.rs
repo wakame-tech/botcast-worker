@@ -3,6 +3,7 @@ use super::script_service::ScriptService;
 use crate::error::Error;
 use crate::worker::use_work_dir;
 use anyhow::Context;
+use api::client::ApiClient;
 use chrono::{DateTime, Utc};
 use repos::entity::{EpisodeId, Task, TaskStatus};
 use repos::repo::TaskRepo;
@@ -25,9 +26,15 @@ pub(crate) enum Args {
     },
 }
 
-pub(crate) fn new_task(cron: Option<String>, args: Args, execute_after: DateTime<Utc>) -> Task {
+pub(crate) fn new_task(
+    user_id: Option<Uuid>,
+    cron: Option<String>,
+    args: Args,
+    execute_after: DateTime<Utc>,
+) -> Task {
     Task {
         id: Uuid::new_v4(),
+        user_id,
         status: TaskStatus::Pending,
         cron,
         args: serde_json::to_value(args).unwrap(),
@@ -40,6 +47,7 @@ pub(crate) fn new_task(cron: Option<String>, args: Args, execute_after: DateTime
 #[derive(Clone)]
 pub(crate) struct TaskService {
     task_repo: Arc<dyn TaskRepo>,
+    api_client: Arc<ApiClient>,
     episode_service: EpisodeService,
     script_service: ScriptService,
 }
@@ -47,11 +55,13 @@ pub(crate) struct TaskService {
 impl TaskService {
     pub(crate) fn new(
         task_repo: Arc<dyn TaskRepo>,
+        api_client: Arc<ApiClient>,
         episode_service: EpisodeService,
         script_service: ScriptService,
     ) -> Self {
         Self {
             task_repo,
+            api_client,
             episode_service,
             script_service,
         }
@@ -70,7 +80,7 @@ impl TaskService {
                 .next()
                 .context("Failed to get next cron")
                 .map_err(Error::Other)?;
-            let task = new_task(Some(cron.to_string()), args.clone(), next);
+            let task = new_task(task.user_id, Some(cron.to_string()), args.clone(), next);
             self.task_repo.create(&task).await?;
         }
 
@@ -108,7 +118,18 @@ impl TaskService {
     }
 
     pub(crate) async fn create_task(&self, args: Args) -> anyhow::Result<(), Error> {
-        let task = new_task(None, args, Utc::now());
+        let user = self
+            .api_client
+            .me()
+            .await
+            .context("Failed to get user")
+            .map_err(Error::Other)?;
+        let user_id = user
+            .id
+            .parse()
+            .context("Failed to parse user id")
+            .map_err(Error::Other)?;
+        let task = new_task(Some(user_id), None, args, Utc::now());
         self.task_repo.create(&task).await?;
         Ok(())
     }
