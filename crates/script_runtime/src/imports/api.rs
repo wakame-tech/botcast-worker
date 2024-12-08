@@ -111,10 +111,12 @@ impl AsyncCallable for NewEpisode {
         let podcast_id = as_string(&evaluated[0])?;
         let title = as_string(&evaluated[1])?;
         let sections: Vec<Section> = serde_json::from_value(evaluated[2].clone())?;
+        let description = evaluated.get(3).map(|v| as_string(v)).transpose()?;
         self.client
             .new_episode(NewEpisodeReq {
                 podcast_id,
                 title,
+                description,
                 sections,
             })
             .await?;

@@ -50,9 +50,10 @@ impl PodcastRepo for PostgresPodcastRepo {
     async fn update(&self, podcast: &Podcast) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Podcast,
-            "update podcasts set title = $2, icon = $3 where id = $1",
+            "update podcasts set title = $2, description = $3, icon = $4 where id = $1",
             podcast.id,
             podcast.title,
+            podcast.description,
             podcast.icon,
         )
         .execute(&self.pool)
@@ -118,13 +119,15 @@ impl EpisodeRepo for PostgresEpisodeRepo {
     async fn create(&self, episode: &Episode) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Episode,
-            "insert into episodes (id, user_id, title, podcast_id, sections, audio_url, srt_url) values ($1, $2, $3, $4, $5, $6, $7)",
+            "insert into episodes (id, user_id, title, description, podcast_id, sections, audio_url, duration_sec, srt_url) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             episode.id,
             episode.user_id,
             episode.title,
+            episode.description,
             episode.podcast_id,
             episode.sections,
             episode.audio_url,
+            episode.duration_sec,
             episode.srt_url,
         )
         .execute(&self.pool)
@@ -136,10 +139,12 @@ impl EpisodeRepo for PostgresEpisodeRepo {
     async fn update(&self, episode: &Episode) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Episode,
-            "update episodes set title = $2, audio_url = $3, srt_url = $4 where id = $1",
+            "update episodes set title = $2, description = $3, audio_url = $4, duration_sec = $5, srt_url = $6 where id = $1",
             episode.id,
             episode.title,
+            episode.description,
             episode.audio_url,
+            episode.duration_sec,
             episode.srt_url,
         )
         .execute(&self.pool)
@@ -228,9 +233,10 @@ impl ScriptRepo for PostgresScriptRepo {
     async fn update(&self, script: &Script) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Script,
-            "update scripts set title = $2, template = $3 where id = $1",
+            "update scripts set title = $2, description = $3, template = $4 where id = $1",
             script.id,
             script.title,
+            script.description,
             script.template,
         )
         .execute(&self.pool)
@@ -251,6 +257,7 @@ impl ScriptRepo for DummyScriptRepo {
             id: id.0,
             user_id: Uuid::new_v4(),
             title: "dummy".to_string(),
+            description: None,
             template: self.template.clone(),
         };
         Ok(script)
@@ -284,7 +291,7 @@ impl TaskRepo for PostgresTaskRepo {
     async fn pop(&self, now: DateTime<Utc>) -> anyhow::Result<Option<Task>, Error> {
         let task = sqlx::query_as!(
             Task,
-            r#"select id, status as "status!: TaskStatus", cron, args, result, execute_after, executed_at from tasks where status = $1 and execute_after < $2 order by execute_after limit 1"#,
+            r#"select id, user_id, status as "status!: TaskStatus", cron, args, result, execute_after, executed_at, executed_finished_at from tasks where status = $1 and execute_after < $2 order by execute_after limit 1"#,
             TaskStatus::Pending as TaskStatus,
             now,
         )
@@ -297,14 +304,16 @@ impl TaskRepo for PostgresTaskRepo {
     async fn create(&self, task: &Task) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Task,
-            "insert into tasks (id, status, cron, args, result, execute_after, executed_at) values ($1, $2, $3, $4, $5, $6, $7)",
+            "insert into tasks (id, user_id, status, cron, args, result, execute_after, executed_at, executed_finished_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             task.id,
+            task.user_id,
             &task.status as &TaskStatus,
             task.cron,
             task.args,
             task.result,
             task.execute_after,
             task.executed_at,
+            task.executed_finished_at,
         )
         .execute(&self.pool)
         .await
@@ -315,13 +324,14 @@ impl TaskRepo for PostgresTaskRepo {
     async fn update(&self, task: &Task) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
             Task,
-            "update tasks set status = $2, args = $3, result = $4, execute_after = $5, executed_at = $6 where id = $1",
+            "update tasks set status = $2, args = $3, result = $4, execute_after = $5, executed_at = $6, executed_finished_at = $7 where id = $1",
             task.id,
             &task.status as &TaskStatus,
             task.args,
             task.result,
             task.execute_after,
             task.executed_at,
+            task.executed_finished_at,
         )
         .execute(&self.pool)
         .await

@@ -42,6 +42,7 @@ pub enum SectionSegment {
 pub struct SynthesisResult {
     pub out_path: PathBuf,
     pub srt: String,
+    pub duration_sec: f64,
 }
 
 pub async fn generate_audio(
@@ -104,5 +105,6 @@ pub async fn generate_audio(
     Ok(SynthesisResult {
         out_path: episode_audio_path,
         srt: subs.to_string(),
+        duration_sec: duration.as_secs_f64(),
     })
 }

@@ -22,6 +22,7 @@ pub struct UpdateScript {
 #[derive(Debug, serde::Serialize)]
 pub struct NewScript {
     pub title: String,
+    pub description: Option<String>,
     // json
     pub template: String,
 }
@@ -35,6 +36,7 @@ impl NewScript {
 
         Self {
             title,
+            description: None,
             template: default_template,
         }
     }

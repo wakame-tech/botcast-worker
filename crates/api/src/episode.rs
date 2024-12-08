@@ -24,6 +24,7 @@ pub enum Section {
 pub struct NewEpisode {
     pub podcast_id: String,
     pub title: String,
+    pub description: Option<String>,
     pub sections: Vec<Section>,
 }
 

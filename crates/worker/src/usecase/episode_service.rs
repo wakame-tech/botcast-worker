@@ -72,11 +72,16 @@ impl EpisodeService {
             .context("Failed to parse sections")
             .map_err(Error::Other)?;
         let segments = into_segments(sections)?;
-        let SynthesisResult { out_path, srt, .. } = generate_audio(work_dir, segments)
+        let SynthesisResult {
+            out_path,
+            srt,
+            duration_sec,
+        } = generate_audio(work_dir, segments)
             .await
             .context("Failed to generate audio")
             .map_err(Error::Other)?;
 
+        episode.duration_sec = Some(duration_sec.round() as i32);
         let mut file = File::open(&out_path)
             .context("Failed to open audio file")
             .map_err(Error::Other)?;

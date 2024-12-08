@@ -3,10 +3,7 @@ mod credential;
 mod project;
 
 use anyhow::Result;
-use api::{
-    client::ApiClient,
-    episode::{NewEpisode, Section},
-};
+use api::client::ApiClient;
 use clap::Parser;
 use cmd::{Args, Cmd};
 use credential::Credential;
@@ -27,19 +24,6 @@ async fn main() -> Result<()> {
 
     let credential = Credential::load(&project.credential_path())?;
     let client = ApiClient::new(&credential.api_endpoint, &credential.token);
-
-    client
-        .new_episode(NewEpisode {
-            podcast_id: "c71cb588-615a-45c3-bc8c-64f1c5a42afc".to_string(),
-            title: "Hello, world!".to_string(),
-            sections: vec![Section::Serif {
-                speaker: "a".to_string(),
-                text: "こんにちは".to_string(),
-            }],
-        })
-        .await?;
-
-    return Ok(());
 
     match args.cmd {
         Cmd::New(args) => cmd::new::cmd_new(args)?,
