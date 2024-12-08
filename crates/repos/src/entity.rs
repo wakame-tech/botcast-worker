@@ -26,6 +26,7 @@ pub struct TaskId(pub Uuid);
 pub struct Podcast {
     pub id: Uuid,
     pub title: String,
+    pub description: Option<String>,
     pub icon: String,
     pub user_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -35,7 +36,9 @@ pub struct Podcast {
 pub struct Episode {
     pub id: Uuid,
     pub title: String,
+    pub description: Option<String>,
     pub audio_url: Option<String>,
+    pub duration_sec: Option<i32>,
     pub sections: serde_json::Value,
     pub srt_url: Option<String>,
     pub podcast_id: Uuid,
@@ -57,6 +60,7 @@ pub struct Script {
     pub id: Uuid,
     pub user_id: Uuid,
     pub title: String,
+    pub description: Option<String>,
     pub template: serde_json::Value,
 }
 
