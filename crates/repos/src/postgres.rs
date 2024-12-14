@@ -258,6 +258,7 @@ impl ScriptRepo for DummyScriptRepo {
             user_id: Uuid::new_v4(),
             title: "dummy".to_string(),
             description: None,
+            arguments: serde_json::json!({}),
             template: self.template.clone(),
         };
         Ok(script)

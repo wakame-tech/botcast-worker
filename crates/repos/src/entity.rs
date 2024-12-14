@@ -61,6 +61,7 @@ pub struct Script {
     pub user_id: Uuid,
     pub title: String,
     pub description: Option<String>,
+    pub arguments: serde_json::Value,
     pub template: serde_json::Value,
 }
 
