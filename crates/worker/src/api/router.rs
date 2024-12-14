@@ -30,18 +30,21 @@ async fn update_script(
 #[derive(Debug, serde::Deserialize)]
 struct EvalTemplateRequest {
     template: Value,
-    context: BTreeMap<String, Value>,
+    arguments: BTreeMap<String, Value>,
 }
 
 #[instrument(skip(state))]
 async fn eval_template(
     State(state): State<Arc<AppState>>,
-    Json(EvalTemplateRequest { template, context }): Json<EvalTemplateRequest>,
+    Json(EvalTemplateRequest {
+        template,
+        arguments,
+    }): Json<EvalTemplateRequest>,
 ) -> Result<impl IntoResponse, Error> {
     let evaluated = state
         .0
         .script_service()
-        .run_template(&template, context)
+        .run_template(&template, arguments)
         .await?;
     Ok(Json(evaluated))
 }

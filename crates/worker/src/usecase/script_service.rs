@@ -63,7 +63,7 @@ impl ScriptService {
     pub(crate) async fn run_template(
         &self,
         template: &serde_json::Value,
-        context: BTreeMap<String, serde_json::Value>,
+        parameters: BTreeMap<String, serde_json::Value>,
     ) -> anyhow::Result<serde_json::Value, Error> {
         let me = self.api_client.me().await.map_err(Error::Other)?;
         let user_id: Uuid = me
@@ -71,7 +71,7 @@ impl ScriptService {
             .parse()
             .map_err(|_| Error::InvalidInput(anyhow::anyhow!("invalid user id")))?;
 
-        let context = self.replace_context_to_secrets(user_id, context).await?;
+        let context = self.replace_context_to_secrets(user_id, parameters).await?;
 
         let mut runtime = ScriptRuntime::default();
         register_api_functions(&mut runtime, self.api_client.clone());

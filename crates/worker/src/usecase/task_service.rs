@@ -22,7 +22,7 @@ pub(crate) enum Args {
     },
     EvaluateTemplate {
         template: serde_json::Value,
-        context: BTreeMap<String, serde_json::Value>,
+        parameters: BTreeMap<String, serde_json::Value>,
     },
 }
 
@@ -95,8 +95,14 @@ impl TaskService {
                     .await?;
                 Ok(serde_json::Value::String("OK".to_string()))
             }
-            Args::EvaluateTemplate { template, context } => {
-                let result = self.script_service.run_template(&template, context).await?;
+            Args::EvaluateTemplate {
+                template,
+                parameters,
+            } => {
+                let result = self
+                    .script_service
+                    .run_template(&template, parameters)
+                    .await?;
                 Ok(result)
             }
         }
