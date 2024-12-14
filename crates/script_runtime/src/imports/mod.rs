@@ -3,6 +3,7 @@ pub mod eval;
 mod fetch;
 mod jq;
 pub mod llm;
+mod rss;
 mod time;
 
 use anyhow::Result;
@@ -28,6 +29,7 @@ pub(crate) fn insert_custom_functions(context: &mut Context) {
         ("jq", Box::new(jq::Jq)),
         ("hq", Box::new(jq::Hq)),
         ("replace", Box::new(jq::Replace)),
+        ("rss", Box::new(rss::Rss)),
     ];
     for (name, f) in functions.into_iter() {
         context.insert(name.to_string(), Value::Function(Function::new(name, f)));
