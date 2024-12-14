@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 readable_text = { path = "../readable_text" }
-script_http_client = { path = "../script_http_client" }
 script_runtime = { path = "../script_runtime" }
 audio_generator = { path = "../audio_generator" }
 repos = { path = "../repos" }

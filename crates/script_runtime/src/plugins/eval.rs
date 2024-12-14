@@ -1,13 +1,14 @@
+use super::Plugin;
 use crate::runtime::insert_values;
 use anyhow::Result;
 use json_e::{
-    value::{AsyncCallable, Value},
+    value::{AsyncCallable, Function, Value},
     Context,
 };
 use tracing::instrument;
 
 #[derive(Clone)]
-pub(crate) struct Eval;
+struct Eval;
 
 #[async_trait::async_trait]
 impl AsyncCallable for Eval {
@@ -23,5 +24,16 @@ impl AsyncCallable for Eval {
         let template = template.try_into()?;
         let ret = json_e::render_with_context(&template, &context).await?;
         Ok(ret.into())
+    }
+}
+
+pub(super) struct EvalPlugin;
+
+impl Plugin for EvalPlugin {
+    fn register_functions(&self, context: &mut Context<'_>) {
+        context.insert(
+            "eval",
+            Value::Function(Function::new("eval", Box::new(Eval))),
+        );
     }
 }

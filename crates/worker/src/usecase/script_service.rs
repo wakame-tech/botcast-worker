@@ -5,10 +5,7 @@ use repos::{
     entity::ScriptId,
     repo::{ScriptRepo, SecretRepo},
 };
-use script_runtime::{
-    imports::{api::register_api_functions, llm::register_llm_functions},
-    runtime::ScriptRuntime,
-};
+use script_runtime::{plugins::botcast_api::BotCastApiPlugin, runtime::ScriptRuntime};
 use std::{collections::BTreeMap, sync::Arc};
 use tracing::instrument;
 use uuid::Uuid;
@@ -74,8 +71,7 @@ impl ScriptService {
         let context = self.replace_context_to_secrets(user_id, parameters).await?;
 
         let mut runtime = ScriptRuntime::default();
-        register_api_functions(&mut runtime, self.api_client.clone());
-        register_llm_functions(&mut runtime);
+        runtime.install_plugin(BotCastApiPlugin::new(self.api_client.clone()));
 
         let res = runtime
             .run(template, context)

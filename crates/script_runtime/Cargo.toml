@@ -11,12 +11,14 @@ chrono = "0.4.38"
 futures = "0.3.31"
 json-e = { git = "https://github.com/wakame-tech/json-e", branch = "fix-pub-context" }
 # json-e = { path = "../../../json-e/rs" }
+reqwest = { version = "0.12.7", features = ["json"] }
+xmldecl = "0.2.0"
 xq = "0.4.1"
+encoding = "0.2.33"
 tl = "0.7.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread", "time"] }
-script_http_client = { path = "../script_http_client" }
 script_llm = { path = "../script_llm" }
 readable_text = { path = "../readable_text" }
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
