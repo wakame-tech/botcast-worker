@@ -3154,6 +3154,7 @@ dependencies = [
  "encoding",
  "futures",
  "json-e",
+ "rand",
  "readable_text",
  "reqwest",
  "rss",

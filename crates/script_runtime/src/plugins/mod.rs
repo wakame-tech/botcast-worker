@@ -4,6 +4,7 @@ mod fetch;
 mod html;
 mod json;
 mod llm;
+mod rand;
 mod rss;
 mod time;
 
@@ -24,6 +25,7 @@ pub(crate) fn default_plugins() -> Vec<Box<dyn Plugin>> {
         Box::new(fetch::FetchPlugin::default()),
         Box::new(llm::LlmPlugin),
         Box::new(eval::EvalPlugin),
+        Box::new(rand::RandPlugin),
     ]
 }
 
@@ -42,5 +44,21 @@ fn as_string(value: &serde_json::Value) -> Result<String> {
     match value {
         serde_json::Value::String(s) => Ok(s.clone()),
         _ => Err(anyhow::anyhow!("expected a string")),
+    }
+}
+
+fn as_u64(value: &serde_json::Value) -> Result<u64> {
+    match value {
+        serde_json::Value::Number(n) => n
+            .as_u64()
+            .ok_or_else(|| anyhow::anyhow!("expected a usize")),
+        _ => Err(anyhow::anyhow!("expected a usize")),
+    }
+}
+
+fn as_array(value: &serde_json::Value) -> Result<Vec<serde_json::Value>> {
+    match value {
+        serde_json::Value::Array(a) => Ok(a.clone()),
+        _ => Err(anyhow::anyhow!("expected an array")),
     }
 }

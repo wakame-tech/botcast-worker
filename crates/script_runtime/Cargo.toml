@@ -24,3 +24,4 @@ readable_text = { path = "../readable_text" }
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
 rss = "2.0"
 api = { path = "../api" }
+rand = "0.8.5"

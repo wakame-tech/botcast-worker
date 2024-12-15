@@ -27,13 +27,12 @@ impl AsyncCallable for Eval {
     }
 }
 
-pub(super) struct EvalPlugin;
+pub(crate) struct EvalPlugin;
 
 impl Plugin for EvalPlugin {
     fn register_functions(&self, context: &mut Context<'_>) {
-        context.insert(
-            "eval",
-            Value::Function(Function::new("eval", Box::new(Eval))),
-        );
+        for (name, f) in [("eval", Box::new(Eval))] {
+            context.insert(name, Value::Function(Function::new(name, f)));
+        }
     }
 }
