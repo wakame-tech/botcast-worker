@@ -1,21 +1,5 @@
-use crate::{generate_audio::SectionSegment, workdir::WorkDir, AudioGenerator};
-use anyhow::Result;
-use async_trait::async_trait;
 use serde_json::Value;
 use tracing::instrument;
-
-#[async_trait]
-impl AudioGenerator for VoiceVoxClient {
-    #[instrument(skip(self))]
-    async fn generate(&self, _: &WorkDir, segment: SectionSegment) -> Result<Vec<u8>> {
-        let SectionSegment::SerifSentence { text, speaker } = segment else {
-            return Err(anyhow::anyhow!("Invalid segment"));
-        };
-        let query = self.query(&text, &speaker).await?;
-        let audio = self.synthesis(query, &speaker).await?;
-        Ok(audio)
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct VoiceVoxClient {
@@ -32,7 +16,7 @@ impl VoiceVoxClient {
         }
     }
 
-    pub(crate) async fn version(&self) -> anyhow::Result<Value> {
+    async fn _version(&self) -> anyhow::Result<Value> {
         let url = format!("{}/version", self.endpoint);
         let res = self.client.get(url).send().await?;
         if res.status() != reqwest::StatusCode::OK {
@@ -48,15 +32,17 @@ impl VoiceVoxClient {
 
     #[instrument(skip(self))]
     pub(crate) async fn query(&self, text: &str, speaker: &str) -> anyhow::Result<Value> {
-        let text = urlencoding::encode(text);
+        let encoded = urlencoding::encode(text);
         let url = format!(
             "{}/audio_query?text={}&speaker={}",
-            self.endpoint, text, speaker,
+            self.endpoint, encoded, speaker,
         );
-        let res = self.client.post(url).send().await?;
+        let res = self.client.post(&url).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!(
-                "Failed to query: {} {}",
+                "Failed to query {}: text={}, {} {}",
+                url,
+                text,
                 res.status(),
                 res.json::<Value>().await?.to_string()
             );
@@ -68,11 +54,11 @@ impl VoiceVoxClient {
     #[instrument(skip(self, query))]
     pub(crate) async fn synthesis(&self, query: Value, speaker: &str) -> anyhow::Result<Vec<u8>> {
         let url = format!("{}/synthesis?speaker={}", self.endpoint, speaker);
-        tracing::info!("Synthesis: {}", url);
-        let res = self.client.post(url).json(&query).send().await?;
+        let res = self.client.post(&url).json(&query).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!(
-                "Failed to synthesis: {} {}",
+                "Failed to synthesis {}: {} {}",
+                url,
                 res.status(),
                 res.text().await?
             );

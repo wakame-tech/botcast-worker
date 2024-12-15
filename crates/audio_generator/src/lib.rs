@@ -1,15 +1,21 @@
-mod audio_downloader;
 pub mod ffmpeg;
 pub mod generate_audio;
 pub mod voicevox;
 pub mod workdir;
 
+mod audio_downloader;
+
+use api::episode::Section;
 use async_trait::async_trait;
-use generate_audio::SectionSegment;
+use std::path::PathBuf;
 use workdir::WorkDir;
 
 #[async_trait]
 pub trait AudioGenerator: Send + Sync {
-    async fn generate(&self, workdir: &WorkDir, segment: SectionSegment)
-        -> anyhow::Result<Vec<u8>>;
+    async fn generate(
+        &self,
+        i: &mut usize,
+        workdir: &WorkDir,
+        section: Section,
+    ) -> anyhow::Result<Vec<(PathBuf, String)>>;
 }

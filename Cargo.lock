@@ -233,6 +233,7 @@ name = "audio_generator"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "api",
  "async-trait",
  "reqwest",
  "serde",

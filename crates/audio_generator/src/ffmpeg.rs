@@ -39,7 +39,7 @@ pub(crate) async fn slice_audio(
     Ok(())
 }
 
-pub(crate) fn convert_to_stereo_wav(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
+pub(crate) fn convert_to_stereo_wav(input: &PathBuf, output: &PathBuf) -> anyhow::Result<()> {
     let mut cmd = std::process::Command::new("ffmpeg");
     cmd.args([
         "-i",

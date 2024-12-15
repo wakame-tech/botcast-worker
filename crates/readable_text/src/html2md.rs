@@ -6,7 +6,6 @@ pub struct ReadableText;
 impl ReadableText {
     pub fn extract(html: &str) -> anyhow::Result<String> {
         let md = parse_to_md(html);
-        let md = md.replace("\n", " ");
         Ok(md)
     }
 }

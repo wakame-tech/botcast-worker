@@ -1,6 +1,7 @@
-use crate::{
-    ffmpeg::slice_audio, generate_audio::SectionSegment, workdir::WorkDir, AudioGenerator,
-};
+use std::path::PathBuf;
+
+use crate::{ffmpeg::slice_audio, workdir::WorkDir, AudioGenerator};
+use api::episode::Section;
 use async_trait::async_trait;
 use tokio::fs;
 
@@ -20,26 +21,22 @@ impl AudioDownloader {
 impl AudioGenerator for AudioDownloader {
     async fn generate(
         &self,
+        i: &mut usize,
         work_dir: &WorkDir,
-        segment: SectionSegment,
-    ) -> anyhow::Result<Vec<u8>> {
-        let SectionSegment::Audio {
-            url,
-            from_sec,
-            to_sec,
-        } = segment
-        else {
+        section: Section,
+    ) -> anyhow::Result<Vec<(PathBuf, String)>> {
+        let Section::Audio { url, from, to } = section else {
             return Err(anyhow::anyhow!("Invalid segment"));
         };
         let response = self.client.get(url).send().await?;
         let audio = response.bytes().await?;
         let audio_file_path = work_dir.dir().join("tmp.mp3");
-        let sliced_audio_file_path = work_dir.dir().join("tmp_sliced.wav");
         std::fs::write(&audio_file_path, &audio)?;
-        slice_audio(&audio_file_path, &sliced_audio_file_path, from_sec, to_sec).await?;
-        let sliced = fs::read(&sliced_audio_file_path).await?;
+
+        let sliced_audio_file_path = work_dir.dir().join(&format!("{}.wav", i));
+        *i += 1;
+        slice_audio(&audio_file_path, &sliced_audio_file_path, from, to).await?;
         fs::remove_file(&audio_file_path).await?;
-        fs::remove_file(&sliced_audio_file_path).await?;
-        Ok(sliced)
+        Ok(vec![(sliced_audio_file_path, "♪".to_string())])
     }
 }
