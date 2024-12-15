@@ -118,11 +118,12 @@ struct UpdateEpisode(Arc<ApiClient>);
 impl AsyncCallable for UpdateEpisode {
     #[instrument(skip(self, ctx))]
     async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
-        let evaluated = evaluate_args(ctx, args).await?;
-        let episode_id = as_string(&evaluated[0])?;
-        let title = as_string(&evaluated[1])?;
-        let sections: Vec<Section> = serde_json::from_value(evaluated[2].clone())?;
-        let description = evaluated.get(3).map(|v| as_string(v)).transpose()?;
+        let args = evaluate_args(ctx, args).await?;
+        let episode_id = as_string(&args[0])?;
+        let title = as_string(&args[1])?;
+        let sections: Option<Vec<Section>> =
+            (!args[2].is_null()).then_some(serde_json::from_value(args[2].clone())?);
+        let description = (!args[3].is_null()).then_some(as_string(&args[3])?);
         self.0
             .update_episode(UpdateEpisodeReq {
                 id: episode_id,

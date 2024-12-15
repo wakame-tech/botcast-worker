@@ -33,8 +33,10 @@ pub struct NewEpisode {
 pub struct UpdateEpisode {
     pub id: String,
     pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    pub sections: Vec<Section>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sections: Option<Vec<Section>>,
 }
 
 impl ApiClient {
