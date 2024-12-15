@@ -1,14 +1,14 @@
 use axum::async_trait;
 use repos::provider::DefaultProvider;
 use s3::{creds::Credentials, Bucket, Region};
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 #[async_trait]
 pub(crate) trait Storage: Send + Sync {
     async fn upload(&self, path: &str, data: &[u8], content_type: &str) -> anyhow::Result<()>;
 }
 
-pub(crate) trait ProvideStorage {
+pub(crate) trait ProvideStorage: Debug + Send + Sync {
     fn storage(&self) -> Arc<dyn Storage>;
 }
 

@@ -4,7 +4,7 @@ use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::runtime::Tokio;
 use opentelemetry_sdk::trace::TracerProvider;
 use opentelemetry_sdk::Resource;
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::EnvFilter;
@@ -43,7 +43,7 @@ async fn main() -> anyhow::Result<()> {
     let otlp_collector_endpoint = std::env::var("OTLP_COLLECTOR_ENDPOINT")?;
     init_tracing(otlp_collector_endpoint)?;
 
-    let provider = Provider::default();
-    start_worker(provider);
+    let provider = Arc::new(Provider::default());
+    start_worker(provider.clone());
     start_api(provider).await
 }

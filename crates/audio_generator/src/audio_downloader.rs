@@ -1,8 +1,7 @@
-use std::path::PathBuf;
-
 use crate::{ffmpeg::slice_audio, workdir::WorkDir, AudioGenerator};
 use api::episode::Section;
 use async_trait::async_trait;
+use std::path::PathBuf;
 use tokio::fs;
 
 pub(crate) struct AudioDownloader {

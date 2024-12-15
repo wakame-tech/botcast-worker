@@ -6,7 +6,7 @@ use api::episode::Section;
 use async_trait::async_trait;
 use client::VoiceVoxClient;
 use std::{
-    fs::{self, File, OpenOptions},
+    fs::{self, OpenOptions},
     io::Write,
     path::PathBuf,
 };
