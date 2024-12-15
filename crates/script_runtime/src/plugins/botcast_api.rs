@@ -2,7 +2,7 @@ use super::{as_string, evaluate_args, Plugin};
 use anyhow::Result;
 use api::{
     client::ApiClient,
-    episode::{NewEpisode as NewEpisodeReq, Section},
+    episode::{NewEpisode as NewEpisodeReq, Section, UpdateEpisode as UpdateEpisodeReq},
 };
 use json_e::{
     value::{AsyncCallable, Function, Value},
@@ -111,6 +111,30 @@ impl AsyncCallable for NewEpisode {
     }
 }
 
+#[derive(Clone)]
+struct UpdateEpisode(Arc<ApiClient>);
+
+#[async_trait::async_trait]
+impl AsyncCallable for UpdateEpisode {
+    #[instrument(skip(self, ctx))]
+    async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
+        let evaluated = evaluate_args(ctx, args).await?;
+        let episode_id = as_string(&evaluated[0])?;
+        let title = as_string(&evaluated[1])?;
+        let sections: Vec<Section> = serde_json::from_value(evaluated[2].clone())?;
+        let description = evaluated.get(3).map(|v| as_string(v)).transpose()?;
+        self.0
+            .update_episode(UpdateEpisodeReq {
+                id: episode_id,
+                title,
+                description,
+                sections,
+            })
+            .await?;
+        Ok(Value::Null)
+    }
+}
+
 pub struct BotCastApiPlugin {
     client: Arc<ApiClient>,
 }
@@ -133,6 +157,10 @@ impl Plugin for BotCastApiPlugin {
             ("new_comment", Box::new(NewComment(self.client.clone()))),
             ("get_script", Box::new(GetScript(self.client.clone()))),
             ("new_episode", Box::new(NewEpisode(self.client.clone()))),
+            (
+                "update_episode",
+                Box::new(UpdateEpisode(self.client.clone())),
+            ),
         ];
         for (name, func) in functions {
             context.insert(name, Value::Function(Function::new(name, func)));

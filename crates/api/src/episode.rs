@@ -28,6 +28,15 @@ pub struct NewEpisode {
     pub sections: Vec<Section>,
 }
 
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateEpisode {
+    pub id: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub sections: Vec<Section>,
+}
+
 impl ApiClient {
     pub async fn episode(&self, id: &str) -> Result<Episode> {
         let resp = self
@@ -44,6 +53,12 @@ impl ApiClient {
 
     pub async fn new_episode(&self, new_episode: NewEpisode) -> Result<()> {
         self.mutation("newEpisode", serde_json::to_value(new_episode)?)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn update_episode(&self, update_episode: UpdateEpisode) -> Result<()> {
+        self.mutation("updateEpisode", serde_json::to_value(update_episode)?)
             .await?;
         Ok(())
     }
