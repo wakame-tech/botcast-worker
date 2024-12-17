@@ -12,6 +12,19 @@ use std::sync::Arc;
 use tracing::instrument;
 
 #[derive(Clone)]
+struct Me(Arc<ApiClient>);
+
+#[async_trait::async_trait]
+impl AsyncCallable for Me {
+    #[instrument(skip(self))]
+    async fn call(&self, _: &Context<'_>, _: &[Value]) -> Result<Value> {
+        let me = self.0.me().await?;
+        let me = serde_json::to_value(me)?;
+        Ok(me.into())
+    }
+}
+
+#[derive(Clone)]
 struct GetPodcast(Arc<ApiClient>);
 
 #[async_trait::async_trait]
@@ -150,9 +163,10 @@ impl Plugin for BotCastApiPlugin {
     fn register_functions(&self, context: &mut Context<'_>) {
         let functions = vec![
             (
-                "get_podcast",
-                Box::new(GetPodcast(self.client.clone())) as Box<dyn AsyncCallable>,
+                "me",
+                Box::new(Me(self.client.clone())) as Box<dyn AsyncCallable>,
             ),
+            ("get_podcast", Box::new(GetPodcast(self.client.clone()))),
             ("get_episode", Box::new(GetEpisode(self.client.clone()))),
             ("get_comment", Box::new(GetComment(self.client.clone()))),
             ("new_comment", Box::new(NewComment(self.client.clone()))),

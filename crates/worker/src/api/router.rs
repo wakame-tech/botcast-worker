@@ -16,11 +16,18 @@ use std::{collections::BTreeMap, sync::Arc};
 use tracing::instrument;
 use uuid::Uuid;
 
-fn with_user_api_client(provider: &Provider, token: &str) -> Provider {
+fn with_user_api_client(provider: &Provider, token: Option<String>) -> Provider {
     Provider {
-        provide_api_client: Arc::new(UserApiClientProvider::new(Some(token.to_string()))),
+        provide_api_client: Arc::new(UserApiClientProvider::new(token)),
         ..provider.clone()
     }
+}
+
+fn get_authorization(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get("Authorization")
+        .and_then(|value| value.to_str().ok())
+        .map(ToString::to_string)
 }
 
 #[instrument(skip(state))]
@@ -52,11 +59,7 @@ async fn eval_template(
         arguments,
     }): Json<EvalTemplateRequest>,
 ) -> Result<impl IntoResponse, Error> {
-    let token = headers
-        .get("Authorization")
-        .and_then(|value| value.to_str().ok())
-        .ok_or_else(|| Error::UnAuthorized)?;
-    let provider = with_user_api_client(&state.0, token);
+    let provider = with_user_api_client(&state.0, get_authorization(&headers));
 
     let evaluated = provider
         .script_service()
@@ -71,11 +74,7 @@ async fn create_task(
     headers: HeaderMap,
     Json(args): Json<Args>,
 ) -> Result<impl IntoResponse, Error> {
-    let token = headers
-        .get("Authorization")
-        .and_then(|value| value.to_str().ok())
-        .ok_or_else(|| Error::UnAuthorized)?;
-    let provider = with_user_api_client(&state.0, token);
+    let provider = with_user_api_client(&state.0, get_authorization(&headers));
 
     provider.task_service().create_task(args).await?;
     Ok(StatusCode::CREATED)
