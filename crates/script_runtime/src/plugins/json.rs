@@ -1,15 +1,14 @@
-use crate::{runtime::evaluate_args, xq::run_xq};
+use super::{as_string, evaluate_args, Plugin};
+use crate::libs::xq::run_xq;
 use anyhow::Result;
 use json_e::{
-    value::{AsyncCallable, Value},
+    value::{AsyncCallable, Function, Value},
     Context,
 };
 use tracing::instrument;
 
-use super::as_string;
-
 #[derive(Clone)]
-pub(crate) struct Jq;
+struct Jq;
 
 #[async_trait::async_trait]
 impl AsyncCallable for Jq {
@@ -25,13 +24,13 @@ impl AsyncCallable for Jq {
 }
 
 #[derive(Clone)]
-pub(crate) struct Hq;
+struct Hq;
 
 #[async_trait::async_trait]
 impl AsyncCallable for Hq {
     #[instrument(skip(self, ctx))]
     async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
-        let args = evaluate_args(ctx, &args).await?;
+        let args = evaluate_args(ctx, args).await?;
         let html = as_string(&args[0])?;
         let query = as_string(&args[1])?;
 
@@ -50,7 +49,7 @@ impl AsyncCallable for Hq {
 }
 
 #[derive(Clone)]
-pub(crate) struct Replace;
+struct Replace;
 
 #[async_trait::async_trait]
 impl AsyncCallable for Replace {
@@ -63,5 +62,19 @@ impl AsyncCallable for Replace {
 
         let ret = text.replace(&pat, &to);
         Ok(Value::String(ret))
+    }
+}
+
+pub(crate) struct JsonPlugin;
+
+impl Plugin for JsonPlugin {
+    fn register_functions(&self, context: &mut Context<'_>) {
+        for (name, function) in [
+            ("jq", Box::new(Jq) as Box<dyn AsyncCallable>),
+            ("hq", Box::new(Hq)),
+            ("replace", Box::new(Replace)),
+        ] {
+            context.insert(name, Value::Function(Function::new(name, function)));
+        }
     }
 }

@@ -1,14 +1,12 @@
-use crate::{
-    imports::as_string,
-    runtime::{evaluate_args, ScriptRuntime},
-};
+use super::Plugin;
+use crate::plugins::{as_string, evaluate_args};
 use anyhow::Result;
 use json_e::{
-    value::{AsyncCallable, Value},
+    value::{AsyncCallable, Function, Value},
     Context,
 };
 use script_llm::{chat_assistant, chat_completion, function_calling};
-pub use script_llm::{create_thread, delete_thread};
+use script_llm::{create_thread, delete_thread};
 use tracing::instrument;
 
 /// OpenAI ChatCompletion API
@@ -95,7 +93,7 @@ impl AsyncCallable for DeleteThread {
         let thread_id = as_string(&evaluated[1])?;
 
         delete_thread(api_key, thread_id).await?;
-        Ok(Value::Null.into())
+        Ok(Value::Null)
     }
 }
 
@@ -125,10 +123,18 @@ impl AsyncCallable for ChatAssistant {
     }
 }
 
-pub fn register_llm_functions(runtime: &mut ScriptRuntime) {
-    runtime.register_function("create_thread", Box::new(CreateThread));
-    runtime.register_function("delete_thread", Box::new(DeleteThread));
-    runtime.register_function("llm", Box::new(ChatCompletion));
-    runtime.register_function("llm_function_calling", Box::new(FunctionCalling));
-    runtime.register_function("llm_assistant", Box::new(ChatAssistant));
+pub(crate) struct LlmPlugin;
+
+impl Plugin for LlmPlugin {
+    fn register_functions(&self, context: &mut Context<'_>) {
+        for (name, f) in [
+            ("llm", Box::new(ChatCompletion) as Box<dyn AsyncCallable>),
+            ("llm_function_calling", Box::new(FunctionCalling)),
+            ("create_thread", Box::new(CreateThread)),
+            ("delete_thread", Box::new(DeleteThread)),
+            ("llm_assistant", Box::new(ChatAssistant)),
+        ] {
+            context.insert(name.to_string(), Value::Function(Function::new(name, f)));
+        }
+    }
 }

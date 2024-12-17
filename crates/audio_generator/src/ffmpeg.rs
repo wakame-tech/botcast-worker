@@ -1,5 +1,10 @@
 use super::workdir::WorkDir;
-use std::{fs::OpenOptions, io::Write, path::PathBuf, time::Duration};
+use std::{
+    fs::OpenOptions,
+    io::Write,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 use tokio::process::Command;
 use tracing::instrument;
 use wavers::Wav;
@@ -15,8 +20,8 @@ pub(crate) fn get_duration(wav: &Wav<i16>) -> Duration {
 }
 
 pub(crate) async fn slice_audio(
-    input: &PathBuf,
-    output: &PathBuf,
+    input: &Path,
+    output: &Path,
     from_sec: Option<f64>,
     to_sec: Option<f64>,
 ) -> anyhow::Result<()> {
@@ -39,7 +44,7 @@ pub(crate) async fn slice_audio(
     Ok(())
 }
 
-pub(crate) fn convert_to_stereo_wav(input: PathBuf, output: PathBuf) -> anyhow::Result<()> {
+pub(crate) fn convert_to_stereo_wav(input: &Path, output: &Path) -> anyhow::Result<()> {
     let mut cmd = std::process::Command::new("ffmpeg");
     cmd.args([
         "-i",

@@ -1,42 +1,34 @@
 use super::{
     episode_service::EpisodeService, script_service::ScriptService, task_service::TaskService,
-    ProvideApiClient,
+    ProvideApiClient, UserApiClientProvider,
 };
 use crate::r2_storage::ProvideStorage;
 use repos::provider::*;
+use std::sync::Arc;
 
-#[derive(Debug, Clone, Copy)]
-pub struct Provider<
-    ProvidePodcastRepo = DefaultProvider,
-    ProvideEpisodeRepo = DefaultProvider,
-    ProvideTaskRepo = DefaultProvider,
-    ProvideCommentRepo = DefaultProvider,
-    ProvideScriptRepo = DefaultProvider,
-    ProvideStorage = DefaultProvider,
-    ProvideSecretRepo = DefaultProvider,
-    ProvideApiClient = DefaultProvider,
-> {
-    pub(crate) provide_podcast_repo: ProvidePodcastRepo,
-    pub(crate) provide_episode_repo: ProvideEpisodeRepo,
-    pub(crate) provide_task_repo: ProvideTaskRepo,
-    pub(crate) provide_comment_repo: ProvideCommentRepo,
-    pub(crate) provide_script_repo: ProvideScriptRepo,
-    pub(crate) provide_storage: ProvideStorage,
-    pub(crate) provide_secret_repo: ProvideSecretRepo,
-    pub(crate) provide_api_client: ProvideApiClient,
+#[derive(Debug, Clone)]
+pub struct Provider {
+    pub(crate) provide_podcast_repo: Arc<dyn ProvidePodcastRepo>,
+    pub(crate) provide_episode_repo: Arc<dyn ProvideEpisodeRepo>,
+    pub(crate) provide_task_repo: Arc<dyn ProvideTaskRepo>,
+    pub(crate) provide_comment_repo: Arc<dyn ProvideCommentRepo>,
+    pub(crate) provide_script_repo: Arc<dyn ProvideScriptRepo>,
+    pub(crate) provide_storage: Arc<dyn ProvideStorage>,
+    pub(crate) provide_secret_repo: Arc<dyn ProvideSecretRepo>,
+    pub(crate) provide_api_client: Arc<dyn ProvideApiClient>,
 }
 
 impl Default for Provider {
     fn default() -> Self {
         Self {
-            provide_podcast_repo: DefaultProvider,
-            provide_episode_repo: DefaultProvider,
-            provide_task_repo: DefaultProvider,
-            provide_comment_repo: DefaultProvider,
-            provide_script_repo: DefaultProvider,
-            provide_storage: DefaultProvider,
-            provide_secret_repo: DefaultProvider,
-            provide_api_client: DefaultProvider,
+            provide_podcast_repo: Arc::new(DefaultProvider),
+            provide_episode_repo: Arc::new(DefaultProvider),
+            provide_task_repo: Arc::new(DefaultProvider),
+            provide_comment_repo: Arc::new(DefaultProvider),
+            provide_script_repo: Arc::new(DefaultProvider),
+            provide_storage: Arc::new(DefaultProvider),
+            provide_secret_repo: Arc::new(DefaultProvider),
+            provide_api_client: Arc::new(UserApiClientProvider::default()),
         }
     }
 }

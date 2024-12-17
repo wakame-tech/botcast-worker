@@ -2,29 +2,29 @@ use crate::{
     postgres::*,
     repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo, SecretRepo, TaskRepo},
 };
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
-pub trait ProvidePodcastRepo {
+pub trait ProvidePodcastRepo: Debug + Send + Sync {
     fn podcast_repo(&self) -> Arc<dyn PodcastRepo>;
 }
 
-pub trait ProvideEpisodeRepo {
+pub trait ProvideEpisodeRepo: Debug + Send + Sync {
     fn episode_repo(&self) -> Arc<dyn EpisodeRepo>;
 }
 
-pub trait ProvideCommentRepo {
+pub trait ProvideCommentRepo: Debug + Send + Sync {
     fn comment_repo(&self) -> Arc<dyn CommentRepo>;
 }
 
-pub trait ProvideScriptRepo {
+pub trait ProvideScriptRepo: Debug + Send + Sync {
     fn script_repo(&self) -> Arc<dyn ScriptRepo>;
 }
 
-pub trait ProvideTaskRepo {
+pub trait ProvideTaskRepo: Debug + Send + Sync {
     fn task_repo(&self) -> Arc<dyn TaskRepo>;
 }
 
-pub trait ProvideSecretRepo {
+pub trait ProvideSecretRepo: Debug + Send + Sync {
     fn secret_repo(&self) -> Arc<dyn SecretRepo>;
 }
 

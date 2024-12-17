@@ -7,10 +7,10 @@ use tower_http::trace::TraceLayer;
 mod error;
 mod router;
 
-#[derive(Debug, Clone)]
-struct AppState(pub(crate) Provider);
+#[derive(Debug)]
+struct AppState(Arc<Provider>);
 
-pub async fn start_api(provider: Provider) -> anyhow::Result<()> {
+pub async fn start_api(provider: Arc<Provider>) -> anyhow::Result<()> {
     let state = Arc::new(AppState(provider));
     let router = routers()
         .with_state(state)

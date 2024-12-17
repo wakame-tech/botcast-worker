@@ -1,12 +1,18 @@
 use encoding::{all::UTF_8, DecoderTrap, Encoding};
 use std::time::Duration;
 
-pub struct HttpClient {
+pub(crate) struct HttpClient {
     client: reqwest::Client,
 }
 
+impl Default for HttpClient {
+    fn default() -> Self {
+        Self::new(std::env::var("USER_AGENT").ok())
+    }
+}
+
 impl HttpClient {
-    pub fn new(user_agent: Option<String>) -> Self {
+    pub(crate) fn new(user_agent: Option<String>) -> Self {
         Self {
             client: reqwest::Client::builder()
                 .user_agent(user_agent.unwrap_or_default())
@@ -16,7 +22,7 @@ impl HttpClient {
         }
     }
 
-    pub async fn fetch_content_as_utf8(&self, url: String) -> anyhow::Result<String> {
+    pub(crate) async fn fetch_content_as_utf8(&self, url: String) -> anyhow::Result<String> {
         let res = self.client.get(url).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!("Failed to fetch: {}", res.status());
@@ -31,7 +37,7 @@ impl HttpClient {
         Ok(html)
     }
 
-    pub async fn fetch_json(&self, url: String) -> anyhow::Result<serde_json::Value> {
+    pub(crate) async fn fetch_json(&self, url: String) -> anyhow::Result<serde_json::Value> {
         let res = self.client.get(url).send().await?;
         if res.status() != reqwest::StatusCode::OK {
             anyhow::bail!("Failed to fetch: {}", res.status());

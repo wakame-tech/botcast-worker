@@ -1,29 +1,12 @@
-use crate::imports::insert_custom_functions;
+use crate::plugins::{default_plugins, Plugin};
 use anyhow::Result;
-use futures::future::try_join_all;
-use json_e::{
-    builtins::builtins,
-    render_with_context,
-    value::{AsyncCallable, Function, Value},
-    Context,
-};
+use json_e::{builtins::builtins, value::Value, Context};
 use std::collections::BTreeMap;
 
 pub(crate) fn insert_values(context: &mut Context<'_>, values: BTreeMap<String, Value>) {
     for (k, v) in values {
         context.insert(k, v);
     }
-}
-
-pub(crate) async fn evaluate_args<'a>(
-    ctx: &'_ Context<'_>,
-    args: &'a [Value],
-) -> Result<Vec<serde_json::Value>> {
-    let args: Vec<serde_json::Value> = args
-        .iter()
-        .map(|v| v.try_into())
-        .collect::<Result<Vec<_>>>()?;
-    try_join_all(args.iter().map(|v| render_with_context(v, ctx))).await
 }
 
 pub struct ScriptRuntime<'a> {
@@ -34,19 +17,22 @@ impl Default for ScriptRuntime<'_> {
     fn default() -> Self {
         let mut context = Context::new();
         builtins(&mut context);
-        insert_custom_functions(&mut context);
-        Self { context }
+        Self::new(default_plugins())
     }
 }
 
 impl ScriptRuntime<'_> {
-    pub fn register_function(&mut self, name: &'static str, f: Box<dyn AsyncCallable>) {
-        self.context
-            .insert(name.to_string(), Value::Function(Function::new(name, f)));
+    pub fn new(plugins: Vec<Box<dyn Plugin>>) -> Self {
+        let mut context = Context::new();
+        builtins(&mut context);
+        for plugin in plugins {
+            plugin.register_functions(&mut context);
+        }
+        Self { context }
     }
 
-    pub fn insert(&mut self, name: &'static str, value: Value) {
-        self.context.insert(name.to_string(), value);
+    pub fn install_plugin(&mut self, plugin: impl Plugin) {
+        plugin.register_functions(&mut self.context);
     }
 
     #[tracing::instrument(skip(self))]

@@ -1,8 +1,11 @@
 use super::AppState;
-use crate::{error::Error, usecase::task_service::Args};
+use crate::{
+    error::Error,
+    usecase::{task_service::Args, Provider, UserApiClientProvider},
+};
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
@@ -12,6 +15,20 @@ use serde_json::{json, Value};
 use std::{collections::BTreeMap, sync::Arc};
 use tracing::instrument;
 use uuid::Uuid;
+
+fn with_user_api_client(provider: &Provider, token: Option<String>) -> Provider {
+    Provider {
+        provide_api_client: Arc::new(UserApiClientProvider::new(token)),
+        ..provider.clone()
+    }
+}
+
+fn get_authorization(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get("Authorization")
+        .and_then(|value| value.to_str().ok())
+        .map(ToString::to_string)
+}
 
 #[instrument(skip(state))]
 async fn update_script(
@@ -36,13 +53,15 @@ struct EvalTemplateRequest {
 #[instrument(skip(state))]
 async fn eval_template(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(EvalTemplateRequest {
         template,
         arguments,
     }): Json<EvalTemplateRequest>,
 ) -> Result<impl IntoResponse, Error> {
-    let evaluated = state
-        .0
+    let provider = with_user_api_client(&state.0, get_authorization(&headers));
+
+    let evaluated = provider
         .script_service()
         .run_template(&template, arguments)
         .await?;
@@ -52,9 +71,12 @@ async fn eval_template(
 #[instrument(skip(state))]
 async fn create_task(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(args): Json<Args>,
 ) -> Result<impl IntoResponse, Error> {
-    state.0.task_service().create_task(args).await?;
+    let provider = with_user_api_client(&state.0, get_authorization(&headers));
+
+    provider.task_service().create_task(args).await?;
     Ok(StatusCode::CREATED)
 }
 
