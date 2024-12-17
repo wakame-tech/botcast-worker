@@ -15,7 +15,7 @@ impl TryFrom<Channel> for RssFeed {
     fn try_from(channel: Channel) -> Result<Self> {
         let items = channel
             .items()
-            .into_iter()
+            .iter()
             .map(TryFrom::try_from)
             .collect::<Result<Vec<_>>>()?;
         Ok(Self {

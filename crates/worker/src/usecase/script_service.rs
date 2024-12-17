@@ -40,7 +40,7 @@ impl ScriptService {
                 match (key, value) {
                     (key, serde_json::Value::String(value)) if value.starts_with("$") => {
                         let name = value.trim_start_matches("$");
-                        let secret = self.secret_repo.find_by_name(&user_id, &name).await?;
+                        let secret = self.secret_repo.find_by_name(&user_id, name).await?;
                         let secret = secret.decrypted_secret.ok_or_else(|| {
                             Error::InvalidInput(anyhow::anyhow!(
                                 "Secret with name {} is not found",

@@ -65,6 +65,7 @@ impl AudioGenerator for VoiceVoxClient {
 
             let mut f = OpenOptions::new()
                 .create(true)
+                .truncate(true)
                 .write(true)
                 .read(true)
                 .open(&wav_path)?;

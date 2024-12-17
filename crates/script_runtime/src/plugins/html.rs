@@ -26,7 +26,8 @@ pub(crate) struct HtmlPlugin;
 
 impl Plugin for HtmlPlugin {
     fn register_functions(&self, context: &mut Context<'_>) {
-        for (name, f) in [("text", Box::new(Text))] {
+        {
+            let (name, f) = ("text", Box::new(Text));
             context.insert(name, Value::Function(Function::new(name, f)));
         }
     }

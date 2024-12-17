@@ -31,7 +31,8 @@ pub(crate) struct EvalPlugin;
 
 impl Plugin for EvalPlugin {
     fn register_functions(&self, context: &mut Context<'_>) {
-        for (name, f) in [("eval", Box::new(Eval))] {
+        {
+            let (name, f) = ("eval", Box::new(Eval));
             context.insert(name, Value::Function(Function::new(name, f)));
         }
     }

@@ -93,7 +93,7 @@ impl AsyncCallable for DeleteThread {
         let thread_id = as_string(&evaluated[1])?;
 
         delete_thread(api_key, thread_id).await?;
-        Ok(Value::Null.into())
+        Ok(Value::Null)
     }
 }
 

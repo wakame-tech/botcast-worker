@@ -33,7 +33,8 @@ pub(crate) struct RssPlugin;
 
 impl Plugin for RssPlugin {
     fn register_functions(&self, context: &mut Context<'_>) {
-        for (name, f) in [("rss", Box::new(Rss) as Box<dyn AsyncCallable>)] {
+        {
+            let (name, f) = ("rss", Box::new(Rss) as Box<dyn AsyncCallable>);
             context.insert(name, Value::Function(Function::new(name, f)));
         }
     }

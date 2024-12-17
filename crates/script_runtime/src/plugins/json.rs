@@ -30,7 +30,7 @@ struct Hq;
 impl AsyncCallable for Hq {
     #[instrument(skip(self, ctx))]
     async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
-        let args = evaluate_args(ctx, &args).await?;
+        let args = evaluate_args(ctx, args).await?;
         let html = as_string(&args[0])?;
         let query = as_string(&args[1])?;
 

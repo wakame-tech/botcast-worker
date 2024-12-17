@@ -24,7 +24,8 @@ pub(crate) struct TimePlugin;
 
 impl Plugin for TimePlugin {
     fn register_functions(&self, context: &mut Context<'_>) {
-        for (name, f) in [("today", Box::new(Today) as Box<dyn AsyncCallable>)] {
+        {
+            let (name, f) = ("today", Box::new(Today) as Box<dyn AsyncCallable>);
             context.insert(name, Value::Function(Function::new(name, f)));
         }
     }
