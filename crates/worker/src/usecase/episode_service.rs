@@ -37,7 +37,7 @@ impl EpisodeService {
         work_dir: &WorkDir,
         episode_id: &EpisodeId,
     ) -> anyhow::Result<(), Error> {
-        let (mut episode, _) = self.episode_repo.find_by_id(episode_id).await?;
+        let mut episode = self.episode_repo.find_by_id(episode_id).await?;
         let sections: Vec<Section> = serde_json::from_value(episode.sections.clone())
             .context("Failed to parse sections")
             .map_err(Error::Other)?;

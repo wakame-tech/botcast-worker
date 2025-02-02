@@ -55,37 +55,6 @@ impl AsyncCallable for GetEpisode {
 }
 
 #[derive(Clone)]
-struct GetComment(Arc<ApiClient>);
-
-#[async_trait::async_trait]
-impl AsyncCallable for GetComment {
-    #[instrument(skip(self, ctx))]
-    async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
-        let evaluated = evaluate_args(ctx, args).await?;
-        let id = as_string(&evaluated[0])?;
-        let res = self.0.comment(&id).await?;
-        let res = serde_json::to_value(res)?;
-        Ok(res.into())
-    }
-}
-
-#[derive(Clone)]
-struct NewComment(Arc<ApiClient>);
-
-#[async_trait::async_trait]
-impl AsyncCallable for NewComment {
-    #[instrument(skip(self, ctx))]
-    async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
-        let evaluated = evaluate_args(ctx, args).await?;
-        let episode_id = as_string(&evaluated[0])?;
-        let content = as_string(&evaluated[1])?;
-        let res = self.0.new_comment(&episode_id, &content).await?;
-        let res = serde_json::to_value(res)?;
-        Ok(res.into())
-    }
-}
-
-#[derive(Clone)]
 struct GetScript(Arc<ApiClient>);
 
 #[async_trait::async_trait]
@@ -168,8 +137,6 @@ impl Plugin for BotCastApiPlugin {
             ),
             ("get_podcast", Box::new(GetPodcast(self.client.clone()))),
             ("get_episode", Box::new(GetEpisode(self.client.clone()))),
-            ("get_comment", Box::new(GetComment(self.client.clone()))),
-            ("new_comment", Box::new(NewComment(self.client.clone()))),
             ("get_script", Box::new(GetScript(self.client.clone()))),
             ("new_episode", Box::new(NewEpisode(self.client.clone()))),
             (
