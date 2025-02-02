@@ -1,7 +1,7 @@
 use crate::{
     entity::{
-        Comment, CommentId, Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Secret, Task,
-        TaskId,
+        Corner, CornerId, Episode, EpisodeId, Mail, MailId, Podcast, PodcastId, Script, ScriptId,
+        Secret, Task, TaskId,
     },
     error::Error,
 };
@@ -17,7 +17,7 @@ pub trait PodcastRepo: Send + Sync {
 
 #[async_trait]
 pub trait EpisodeRepo: Send + Sync {
-    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<(Episode, Vec<Comment>), Error>;
+    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<Episode, Error>;
     async fn find_all_by_podcast_id(
         &self,
         podcast_id: &PodcastId,
@@ -27,18 +27,21 @@ pub trait EpisodeRepo: Send + Sync {
 }
 
 #[async_trait]
-pub trait CommentRepo: Send + Sync {
-    async fn find_all_by_episode_id(
-        &self,
-        episode_id: &EpisodeId,
-    ) -> anyhow::Result<Vec<Comment>, Error>;
-    async fn find_by_id(&self, id: &CommentId) -> anyhow::Result<Comment, Error>;
-}
-
-#[async_trait]
 pub trait ScriptRepo: Send + Sync {
     async fn find_by_id(&self, id: &ScriptId) -> anyhow::Result<Script, Error>;
     async fn update(&self, script: &Script) -> anyhow::Result<(), Error>;
+}
+
+#[async_trait]
+pub trait CornerRepo: Send + Sync {
+    async fn find_by_id(&self, id: &CornerId) -> anyhow::Result<Corner, Error>;
+    async fn update(&self, script: &Corner) -> anyhow::Result<(), Error>;
+}
+
+#[async_trait]
+pub trait MailRepo: Send + Sync {
+    async fn find_by_id(&self, id: &MailId) -> anyhow::Result<Mail, Error>;
+    async fn update(&self, mail: &Mail) -> anyhow::Result<(), Error>;
 }
 
 #[async_trait]

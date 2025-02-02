@@ -12,11 +12,15 @@ pub struct EpisodeId(pub Uuid);
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
-pub struct CommentId(pub Uuid);
+pub struct ScriptId(pub Uuid);
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
-pub struct ScriptId(pub Uuid);
+pub struct CornerId(pub Uuid);
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct MailId(pub Uuid);
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
@@ -47,15 +51,6 @@ pub struct Episode {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
-pub struct Comment {
-    pub id: Uuid,
-    pub user_id: Uuid,
-    pub episode_id: Uuid,
-    pub content: String,
-    pub created_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 pub struct Script {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -63,6 +58,26 @@ pub struct Script {
     pub description: Option<String>,
     pub arguments: serde_json::Value,
     pub template: serde_json::Value,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
+pub struct Corner {
+    pub id: Uuid,
+    pub title: String,
+    pub description: String,
+    pub requesting_mail: bool,
+    pub user_id: Uuid,
+    pub mail_schema: serde_json::Value,
+    pub podcast_id: Uuid,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
+pub struct Mail {
+    pub id: Uuid,
+    pub body: serde_json::Value,
+    pub user_id: Uuid,
+    pub corner_id: Uuid,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]

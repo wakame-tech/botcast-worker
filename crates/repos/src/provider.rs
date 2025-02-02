@@ -1,7 +1,4 @@
-use crate::{
-    postgres::*,
-    repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo, SecretRepo, TaskRepo},
-};
+use crate::{postgres::*, repo::*};
 use std::{fmt::Debug, sync::Arc};
 
 pub trait ProvidePodcastRepo: Debug + Send + Sync {
@@ -12,12 +9,16 @@ pub trait ProvideEpisodeRepo: Debug + Send + Sync {
     fn episode_repo(&self) -> Arc<dyn EpisodeRepo>;
 }
 
-pub trait ProvideCommentRepo: Debug + Send + Sync {
-    fn comment_repo(&self) -> Arc<dyn CommentRepo>;
-}
-
 pub trait ProvideScriptRepo: Debug + Send + Sync {
     fn script_repo(&self) -> Arc<dyn ScriptRepo>;
+}
+
+pub trait ProvideCornerRepo: Debug + Send + Sync {
+    fn corner_repo(&self) -> Arc<dyn CornerRepo>;
+}
+
+pub trait ProvideMailRepo: Debug + Send + Sync {
+    fn mail_repo(&self) -> Arc<dyn MailRepo>;
 }
 
 pub trait ProvideTaskRepo: Debug + Send + Sync {
@@ -43,15 +44,21 @@ impl ProvideEpisodeRepo for DefaultProvider {
     }
 }
 
-impl ProvideCommentRepo for DefaultProvider {
-    fn comment_repo(&self) -> Arc<dyn CommentRepo> {
-        Arc::new(PostgresCommentRepo::new())
-    }
-}
-
 impl ProvideScriptRepo for DefaultProvider {
     fn script_repo(&self) -> Arc<dyn ScriptRepo> {
         Arc::new(PostgresScriptRepo::new())
+    }
+}
+
+impl ProvideCornerRepo for DefaultProvider {
+    fn corner_repo(&self) -> Arc<dyn CornerRepo> {
+        Arc::new(PostgresCornerRepo::new())
+    }
+}
+
+impl ProvideMailRepo for DefaultProvider {
+    fn mail_repo(&self) -> Arc<dyn MailRepo> {
+        Arc::new(PostgresMailRepo::new())
     }
 }
 
