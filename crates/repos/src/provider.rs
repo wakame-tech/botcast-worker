@@ -1,7 +1,4 @@
-use crate::{
-    postgres::*,
-    repo::{EpisodeRepo, PodcastRepo, ScriptRepo, SecretRepo, TaskRepo},
-};
+use crate::{postgres::*, repo::*};
 use std::{fmt::Debug, sync::Arc};
 
 pub trait ProvidePodcastRepo: Debug + Send + Sync {
@@ -14,6 +11,10 @@ pub trait ProvideEpisodeRepo: Debug + Send + Sync {
 
 pub trait ProvideScriptRepo: Debug + Send + Sync {
     fn script_repo(&self) -> Arc<dyn ScriptRepo>;
+}
+
+pub trait ProvideCornerRepo: Debug + Send + Sync {
+    fn corner_repo(&self) -> Arc<dyn CornerRepo>;
 }
 
 pub trait ProvideTaskRepo: Debug + Send + Sync {
@@ -42,6 +43,12 @@ impl ProvideEpisodeRepo for DefaultProvider {
 impl ProvideScriptRepo for DefaultProvider {
     fn script_repo(&self) -> Arc<dyn ScriptRepo> {
         Arc::new(PostgresScriptRepo::new())
+    }
+}
+
+impl ProvideCornerRepo for DefaultProvider {
+    fn corner_repo(&self) -> Arc<dyn CornerRepo> {
+        Arc::new(PostgresCornerRepo::new())
     }
 }
 

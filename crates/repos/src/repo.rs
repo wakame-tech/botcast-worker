@@ -1,5 +1,8 @@
 use crate::{
-    entity::{Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Secret, Task, TaskId},
+    entity::{
+        Corner, CornerId, Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Secret, Task,
+        TaskId,
+    },
     error::Error,
 };
 use async_trait::async_trait;
@@ -27,6 +30,12 @@ pub trait EpisodeRepo: Send + Sync {
 pub trait ScriptRepo: Send + Sync {
     async fn find_by_id(&self, id: &ScriptId) -> anyhow::Result<Script, Error>;
     async fn update(&self, script: &Script) -> anyhow::Result<(), Error>;
+}
+
+#[async_trait]
+pub trait CornerRepo: Send + Sync {
+    async fn find_by_id(&self, id: &CornerId) -> anyhow::Result<Corner, Error>;
+    async fn update(&self, script: &Corner) -> anyhow::Result<(), Error>;
 }
 
 #[async_trait]
