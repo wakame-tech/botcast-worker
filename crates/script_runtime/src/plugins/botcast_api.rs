@@ -118,6 +118,20 @@ impl AsyncCallable for UpdateEpisode {
     }
 }
 
+#[derive(Clone)]
+struct GetPodcastMails(Arc<ApiClient>);
+
+#[async_trait::async_trait]
+impl AsyncCallable for GetPodcastMails {
+    #[instrument(skip(self, ctx))]
+    async fn call(&self, ctx: &Context<'_>, args: &[Value]) -> Result<Value> {
+        let args = evaluate_args(ctx, args).await?;
+        let corner_id = as_string(&args[0])?;
+        let mails = self.0.mails(&corner_id).await?;
+        Ok(serde_json::to_value(mails)?.into())
+    }
+}
+
 pub struct BotCastApiPlugin {
     client: Arc<ApiClient>,
 }
@@ -142,6 +156,10 @@ impl Plugin for BotCastApiPlugin {
             (
                 "update_episode",
                 Box::new(UpdateEpisode(self.client.clone())),
+            ),
+            (
+                "get_podcast_mails",
+                Box::new(GetPodcastMails(self.client.clone())),
             ),
         ];
         for (name, func) in functions {
