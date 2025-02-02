@@ -20,6 +20,10 @@ pub struct CornerId(pub Uuid);
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
+pub struct MailId(pub Uuid);
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
 pub struct TaskId(pub Uuid);
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
@@ -65,6 +69,15 @@ pub struct Corner {
     pub user_id: Uuid,
     pub mail_schema: serde_json::Value,
     pub podcast_id: Uuid,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
+pub struct Mail {
+    pub id: Uuid,
+    pub body: serde_json::Value,
+    pub user_id: Uuid,
+    pub corner_id: Uuid,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]

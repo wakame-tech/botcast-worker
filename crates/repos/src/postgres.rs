@@ -1,10 +1,10 @@
 use crate::{
     entity::{
-        Corner, CornerId, Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Secret, Task,
-        TaskId, TaskStatus,
+        Corner, CornerId, Episode, EpisodeId, Mail, MailId, Podcast, PodcastId, Script, ScriptId,
+        Secret, Task, TaskId, TaskStatus,
     },
     error::Error,
-    repo::{CornerRepo, EpisodeRepo, PodcastRepo, ScriptRepo, SecretRepo, TaskRepo},
+    repo::{CornerRepo, EpisodeRepo, MailRepo, PodcastRepo, ScriptRepo, SecretRepo, TaskRepo},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -235,25 +235,70 @@ impl PostgresCornerRepo {
 #[async_trait]
 impl CornerRepo for PostgresCornerRepo {
     async fn find_by_id(&self, id: &CornerId) -> anyhow::Result<Corner, Error> {
-        let Some(script) = sqlx::query_as!(Corner, "select * from corners where id = $1", id.0)
+        let Some(corner) = sqlx::query_as!(Corner, "select * from corners where id = $1", id.0)
             .fetch_optional(&self.pool)
             .await
             .map_err(Error::Other)?
         else {
-            return Err(Error::NotFound("script".to_string(), id.0.to_string()));
+            return Err(Error::NotFound("corner".to_string(), id.0.to_string()));
         };
-        Ok(script)
+        Ok(corner)
     }
 
     async fn update(&self, corner: &Corner) -> anyhow::Result<(), Error> {
         sqlx::query_as!(
-            Script,
+            Corner,
             "update corners set title = $2, description = $3, requesting_mail = $4, mail_schema = $5 where id = $1",
             corner.id,
             corner.title,
             corner.description,
             corner.requesting_mail,
             corner.mail_schema,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(Error::Other)?;
+        Ok(())
+    }
+}
+
+pub struct PostgresMailRepo {
+    pool: Pool<Postgres>,
+}
+
+impl Default for PostgresMailRepo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PostgresMailRepo {
+    pub fn new() -> Self {
+        let pool = PG_POOL.clone();
+        Self { pool }
+    }
+}
+
+#[async_trait]
+impl MailRepo for PostgresMailRepo {
+    async fn find_by_id(&self, id: &MailId) -> anyhow::Result<Mail, Error> {
+        let Some(mail) = sqlx::query_as!(Mail, "select * from mails where id = $1", id.0)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(Error::Other)?
+        else {
+            return Err(Error::NotFound("script".to_string(), id.0.to_string()));
+        };
+        Ok(mail)
+    }
+
+    async fn update(&self, mail: &Mail) -> anyhow::Result<(), Error> {
+        sqlx::query_as!(
+            Mail,
+            "update mails set body = $2, created_at = $3 where id = $1",
+            mail.id,
+            mail.body,
+            mail.created_at,
         )
         .execute(&self.pool)
         .await
