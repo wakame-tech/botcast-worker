@@ -1,6 +1,6 @@
 use crate::{
     postgres::*,
-    repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo, SecretRepo, TaskRepo},
+    repo::{EpisodeRepo, PodcastRepo, ScriptRepo, SecretRepo, TaskRepo},
 };
 use std::{fmt::Debug, sync::Arc};
 
@@ -10,10 +10,6 @@ pub trait ProvidePodcastRepo: Debug + Send + Sync {
 
 pub trait ProvideEpisodeRepo: Debug + Send + Sync {
     fn episode_repo(&self) -> Arc<dyn EpisodeRepo>;
-}
-
-pub trait ProvideCommentRepo: Debug + Send + Sync {
-    fn comment_repo(&self) -> Arc<dyn CommentRepo>;
 }
 
 pub trait ProvideScriptRepo: Debug + Send + Sync {
@@ -40,12 +36,6 @@ impl ProvidePodcastRepo for DefaultProvider {
 impl ProvideEpisodeRepo for DefaultProvider {
     fn episode_repo(&self) -> Arc<dyn EpisodeRepo> {
         Arc::new(PostgresEpisodeRepo::new())
-    }
-}
-
-impl ProvideCommentRepo for DefaultProvider {
-    fn comment_repo(&self) -> Arc<dyn CommentRepo> {
-        Arc::new(PostgresCommentRepo::new())
     }
 }
 

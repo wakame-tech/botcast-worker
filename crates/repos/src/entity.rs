@@ -12,10 +12,6 @@ pub struct EpisodeId(pub Uuid);
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
-pub struct CommentId(pub Uuid);
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(transparent)]
 pub struct ScriptId(pub Uuid);
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -43,15 +39,6 @@ pub struct Episode {
     pub srt_url: Option<String>,
     pub podcast_id: Uuid,
     pub user_id: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
-pub struct Comment {
-    pub id: Uuid,
-    pub user_id: Uuid,
-    pub episode_id: Uuid,
-    pub content: String,
     pub created_at: DateTime<Utc>,
 }
 

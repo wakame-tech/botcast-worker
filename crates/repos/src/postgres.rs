@@ -1,10 +1,9 @@
 use crate::{
     entity::{
-        Comment, CommentId, Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Secret, Task,
-        TaskId, TaskStatus,
+        Episode, EpisodeId, Podcast, PodcastId, Script, ScriptId, Secret, Task, TaskId, TaskStatus,
     },
     error::Error,
-    repo::{CommentRepo, EpisodeRepo, PodcastRepo, ScriptRepo, SecretRepo, TaskRepo},
+    repo::{EpisodeRepo, PodcastRepo, ScriptRepo, SecretRepo, TaskRepo},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -82,7 +81,7 @@ impl PostgresEpisodeRepo {
 
 #[async_trait]
 impl EpisodeRepo for PostgresEpisodeRepo {
-    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<(Episode, Vec<Comment>), Error> {
+    async fn find_by_id(&self, id: &EpisodeId) -> anyhow::Result<Episode, Error> {
         let Some(episode) = sqlx::query_as!(Episode, "select * from episodes where id = $1", id.0)
             .fetch_optional(&self.pool)
             .await
@@ -90,15 +89,7 @@ impl EpisodeRepo for PostgresEpisodeRepo {
         else {
             return Err(Error::NotFound("episode".to_string(), id.0.to_string()));
         };
-        let comments = sqlx::query_as!(
-            Comment,
-            "select * from comments where episode_id = $1",
-            id.0
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(Error::Other)?;
-        Ok((episode, comments))
+        Ok(episode)
     }
 
     async fn find_all_by_podcast_id(
@@ -151,52 +142,6 @@ impl EpisodeRepo for PostgresEpisodeRepo {
         .await
         .map_err(Error::Other)?;
         Ok(())
-    }
-}
-
-pub struct PostgresCommentRepo {
-    pool: Pool<Postgres>,
-}
-
-impl Default for PostgresCommentRepo {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl PostgresCommentRepo {
-    pub fn new() -> Self {
-        let pool = PG_POOL.clone();
-        Self { pool }
-    }
-}
-
-#[async_trait]
-impl CommentRepo for PostgresCommentRepo {
-    async fn find_all_by_episode_id(
-        &self,
-        episode_id: &EpisodeId,
-    ) -> anyhow::Result<Vec<Comment>, Error> {
-        let comments = sqlx::query_as!(
-            Comment,
-            "select * from comments where episode_id = $1",
-            episode_id.0
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(Error::Other)?;
-        Ok(comments)
-    }
-
-    async fn find_by_id(&self, id: &CommentId) -> anyhow::Result<Comment, Error> {
-        let Some(comment) = sqlx::query_as!(Comment, "select * from comments where id = $1", id.0)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(Error::Other)?
-        else {
-            return Err(Error::NotFound("comment".to_string(), id.0.to_string()));
-        };
-        Ok(comment)
     }
 }
 
